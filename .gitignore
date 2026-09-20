@@ -1,5 +1,22 @@
-.claude
+.claude/
+.vscode/
 **/.DS_Store
 .10x-cli.json
 CLAUDE.md
 
+# from 10x-astro-starter
+# build output
+dist/
+
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# logs
+*.log*
+
+# environment variables
+.env
+.env.production
