@@ -89,8 +89,10 @@ Two rules follow, and both are load-bearing:
    rejects them at config validation and points at
    `scriptDirective`/`styleDirective` instead.
 
-CSP is **not** applied under `astro dev` (Vite dev server limitation). Test with
-`npm run build && npm run preview`.
+CSP is **not** applied under `astro dev` (Vite dev server limitation). Test the
+meta CSP with `npm run build && npm run preview`. That covers only the meta
+policy — the `_headers` half needs a deployed version; see Day-to-day
+operations.
 
 ## Manual gates — human-only, in order
 
@@ -195,13 +197,24 @@ discouraged.
 | Task                           | Command                                                              |
 | ------------------------------ | -------------------------------------------------------------------- |
 | Development loop               | `npm run dev`                                                        |
-| Verify CSP / headers / 404     | `npm run build && npm run preview`                                   |
+| Verify meta CSP / 404 page     | `npm run build && npm run preview`                                   |
+| Verify `_headers` (see below)  | Branch push → preview URL, or `npx wrangler versions upload`, then `curl -I` |
 | Manual deploy                  | `npm run build && npx wrangler deploy`                               |
 | What is live                   | `npx wrangler deployments status`                                    |
 | History                        | `npx wrangler deployments list --json`, `npx wrangler versions list` |
 | Fast rollback                  | `npx wrangler rollback --message "reason"`                           |
 | Rollback to a specific version | `npx wrangler rollback <VERSION_ID> --message "reason"`              |
 | Durable recovery               | `git revert` + rebuild (~2 min)                                      |
+
+**`npm run preview` serves no headers at all.** Verified 2026-09-20: a request
+to Astro's local preview returns `200` and nothing else — no
+`x-content-type-options`, no `referrer-policy`, no `permissions-policy`, no
+`content-security-policy`. `public/_headers` is parsed by Cloudflare at request
+time, so local preview covers only what Astro bakes into the HTML (the meta CSP
+and the 404 page). **Any `_headers` change must be verified on a deployed
+version** — which is the practical reason preview builds are enabled. The dead
+`interest-cohort` directive reached production because no local command could
+have caught it.
 
 `--message` is **required** in any unattended context: without it `wrangler
 rollback` prompts twice and hangs the run. `wrangler versions deploy` also
