@@ -6,7 +6,8 @@ hints:
   language_family: js
   team_size: solo
   deployment_target: cloudflare-workers
-  ci_provider: github-actions
+  ci_provider: cloudflare-workers-builds
+  ci_quality_gate: github-actions
   ci_default_flow: auto-deploy-on-merge
   bootstrapper_confidence: first-class
   path_taken: custom
@@ -26,4 +27,4 @@ hints:
 
 ## Why this stack
 
-Critical Path is a single-user, browser-only planner: no login, no database, no server logic, no project data leaving the device, and it must keep working offline. A solo developer with a 3-week after-hours budget chose the custom path and asked for a stripped-down 10x Astro Starter rather than the full stack: keep Astro, React 19, TypeScript and Tailwind, but remove Supabase, auth, middleware and the server-side Cloudflare adapter, and build with static output where the whole application is a single client-only React island. This keeps all four agent-friendly gates (typed, convention-based, popular, well-documented) and gives access to React Flow with dagre/ELK auto-layout for the auto-arranged dependency diagram, while the validation and forecast logic stays pure client-side TypeScript. Server-rendered and backend-centric starters (Next.js, T3, Nuxt) were excluded by the no-backend constraint; Vite + React was the leaner alternative but lacks conventions. The static build deploys to Cloudflare Workers static assets (`wrangler deploy`, not Cloudflare Pages — see `infrastructure.md`) via GitHub Actions with auto-deploy on merge, and the self-check came back clean on all five points.
+Critical Path is a single-user, browser-only planner: no login, no database, no server logic, no project data leaving the device, and it must keep working offline. A solo developer with a 3-week after-hours budget chose the custom path and asked for a stripped-down 10x Astro Starter rather than the full stack: keep Astro, React 19, TypeScript and Tailwind, but remove Supabase, auth, middleware and the server-side Cloudflare adapter, and build with static output where the whole application is a single client-only React island. This keeps all four agent-friendly gates (typed, convention-based, popular, well-documented) and gives access to React Flow with dagre/ELK auto-layout for the auto-arranged dependency diagram, while the validation and forecast logic stays pure client-side TypeScript. Server-rendered and backend-centric starters (Next.js, T3, Nuxt) were excluded by the no-backend constraint; Vite + React was the leaner alternative but lacks conventions. The static build deploys to Cloudflare Workers static assets (`wrangler deploy`, not Cloudflare Pages — see `infrastructure.md`), and the self-check came back clean on all five points. Auto-deploy on merge to `main` is owned by **Cloudflare Workers Builds**, not GitHub Actions; the GitHub Actions workflow is a PR quality gate that holds no Cloudflare credentials. That inverts what `infrastructure.md` originally prescribed — see `../deployment/deploy-plan.md` (decision D1) for the reasoning and the consequences.

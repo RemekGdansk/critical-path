@@ -5,7 +5,7 @@ Critical Path is a single-user, browser-only project planner: Astro 7 (static ou
 ## Hard rules
 
 - **Never add server-only features.** No API routes, middleware, `Astro.locals`, `astro:env/server`, `prerender = false`. @astro.config.mjs sets `output: "static"` and there is no adapter, so these break the build.
-- **No project data leaves the device.** Once loaded the app makes no network calls — no analytics, telemetry, remote persistence or runtime CDN fetches. This is a PRD guardrail, not a preference.
+- **No project data leaves the device.** Once loaded the app makes no network calls — no analytics, telemetry, remote persistence or runtime CDN fetches. This is a PRD guardrail, not a preference. It is **enforced**, not just asserted: `security.csp` in @astro.config.mjs emits `connect-src 'none'`, so `fetch`, `XMLHttpRequest`, WebSocket and `sendBeacon` all fail. Loosening it must be a reviewed commit; never relax it to unblock a feature without saying so.
 - **Edit rules here, not in `AGENTS.md`.** `AGENTS.md` and `CLAUDE.md` are gitignored and tool-managed; `AGENTS.md` only imports this file.
 
 ## Domain terminology — use these exact terms
@@ -24,6 +24,8 @@ Full lists and forecast rules: @context/foundation/prd.md.
 - `npm run lint` — ESLint with type-checked rules
 - `npx astro check` — type-check `.astro` and TS files (CI gate)
 - `npm run build` — static build into `dist/`
+- `npm run preview` — the only way to see the CSP in effect; it is disabled under `npm run dev`
+- `npx wrangler deploy` — manual deploy of a built `dist/`. **Never** `wrangler pages deploy`: Pages and Workers are different products. Auto-deploy on `main` belongs to Cloudflare Workers Builds (@context/deployment/deploy-plan.md)
 
 Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro}` and `prettier --write` on `*.{json,css,md}` via husky + lint-staged.
 
@@ -34,7 +36,7 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 - Merge Tailwind classes with `cn()` from `@/lib/utils`; never concatenate class strings.
 - shadcn/ui ("new-york" variant) in `src/components/ui/`; add with `npx shadcn@latest add [name]`.
 - Hooks in `src/hooks/` (matches the `hooks` alias in @components.json), helpers in `src/lib/`, extracted business logic in `src/lib/services/`, shared types in `src/types.ts`.
-- Node 22.14.0 (@.nvmrc). No environment variables or secrets.
+- Node 24.21.0 (@.nvmrc), read by CI and by Cloudflare Workers Builds. No environment variables or secrets.
 
 ## Testing
 

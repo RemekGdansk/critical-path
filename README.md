@@ -13,7 +13,7 @@ Started from the [10x Astro Starter](https://github.com/przeprogramowani/10x-ast
 
 ## Prerequisites
 
-- Node.js v22.14.0 (as specified in `.nvmrc`)
+- Node.js v24.21.0 (as specified in `.nvmrc`)
 - npm (comes with Node.js)
 
 ## Getting Started
@@ -34,13 +34,17 @@ npm run dev
 
 ## Deployment
 
-The build output in `dist/` is static. It is intended for Cloudflare Workers static assets (`wrangler deploy`, **not** `wrangler pages deploy` — the two are not interchangeable) via GitHub Actions with auto-deploy on merge; the deploy workflow is not set up yet.
+The build output in `dist/` is static and is served by Cloudflare Workers static assets (`wrangler deploy`, **not** `wrangler pages deploy` — the two are not interchangeable). Configuration is in `wrangler.jsonc`: an assets-only Worker with no `main` entrypoint.
 
-See [`context/foundation/infrastructure.md`](./context/foundation/infrastructure.md) for the platform decision, the risk register and the setup steps.
+**Cloudflare Workers Builds owns auto-deploy**: every merge to `main` is built and deployed by Cloudflare. GitHub Actions never deploys. The manual path is `npm run build && npx wrangler deploy`; rollback is `npx wrangler rollback --message "reason"`.
+
+The app ships a Content Security Policy with `connect-src 'none'` (`security.csp` in `astro.config.mjs`), which makes the "no project data leaves the device" guarantee enforceable rather than merely asserted. CSP is not applied under `npm run dev` — verify with `npm run build && npm run preview`.
+
+See [`context/deployment/deploy-plan.md`](./context/deployment/deploy-plan.md) for the commands, manual gates and dashboard settings, and [`context/foundation/infrastructure.md`](./context/foundation/infrastructure.md) for the platform decision and risk register.
 
 ## CI
 
-GitHub Actions runs lint, `astro check` and build on every push and PR (`.github/workflows/ci.yml`).
+GitHub Actions runs lint, `astro check` and build on every push and PR (`.github/workflows/ci.yml`). It is a quality gate only and holds no Cloudflare credentials. Cloudflare Workers Builds runs the same gates in its own build command, because it does not wait for the Actions run.
 
 ## License
 

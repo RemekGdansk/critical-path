@@ -1,0 +1,18 @@
+# Parsed by Cloudflare Workers static assets; never served as a file.
+# Must live in public/ so Astro copies it into dist/ — at the repo root it is
+# silently ignored.
+#
+# The main Content-Security-Policy is emitted per page by Astro
+# (security.csp in astro.config.mjs), which hashes its own island scripts and
+# stylesheets. Browsers enforce the INTERSECTION of the meta and header
+# policies, so this file must never set default-src, script-src or style-src:
+# doing so would block Astro's own hashed scripts. Only frame-ancestors is
+# here, because a <meta> CSP cannot express it.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), interest-cohort=()
+  Content-Security-Policy: frame-ancestors 'none'
+
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable

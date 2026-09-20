@@ -1,0 +1,202 @@
+---
+project: Critical Path
+planned_at: 2026-09-20
+platform: Cloudflare Workers (static assets)
+deploy_owner: Cloudflare Workers Builds
+worker_name: critical-path
+production_url: TBD — critical-path.<subdomain>.workers.dev
+custom_domain: none (decided against; see D2)
+context_type: mvp
+---
+
+# Deployment plan — Cloudflare Workers static assets
+
+The audit trail for what was _supposed_ to happen. When a live run goes sideways,
+this is the document that says what the intended state was.
+
+Platform decision and its evidence live in
+[`../foundation/infrastructure.md`](../foundation/infrastructure.md). This file covers
+only the deploy: commands, dashboard state, manual gates and verification.
+
+## Decisions that override `infrastructure.md`
+
+| #   | Decision                                                                                                           | Effect on the contract                                                                                                                                                                                     |
+| --- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | **Cloudflare Workers Builds owns auto-deploy on `main`.** GitHub Actions never deploys.                            | Inverts R9 and replaces Getting Started step 6. Retires R10 (no API token exists). Moves R8 onto Cloudflare's build image.                                                                                 |
+| D2  | **`*.workers.dev` is the final URL.** No custom domain.                                                            | Closes R2 as not-applicable. Converts R3 from a mitigable risk into an **accepted** one — there is no escape hatch if a corporate filter blocks the shared subdomain.                                      |
+| D3  | **CSP via Astro's stable `security.csp`**, plus a narrow `public/_headers` for what a `<meta>` tag cannot express. | Replaces Getting Started step 4. Astro 7.3.2 ships `security.csp` (stable since Astro 6.0); it hashes Astro's own island scripts, client chunks and stylesheets, so the policy needs no `'unsafe-inline'`. |
+| D4  | **`.nvmrc` moved from `22.14.0` to `24.21.0`.**                                                                    | 22.14.0 was pinned but run nowhere: not locally, not in CI (`node-version: 22` resolved to 22.23.2), not in Cloudflare's image. R8 was nominal, not real.                                                  |
+
+## Research corrections to `infrastructure.md` (verified 2026-09-20)
+
+- **R12 withdrawn.** Cloudflare's pricing page: _"Requests to static assets are free and unlimited."_ For an assets-only Worker the 100,000 requests/day free-tier ceiling does not apply at all, so the per-asset request multiplier is moot.
+- **R5 downgraded.** `wrangler rollback` reaches the **100 most recently published versions**, not ten. (`wrangler deployments list` showing ~10 is a display default, not the rollback horizon.) The git-tag + `git revert` fallback is still worth keeping; the "ten deployments is under two days of history" scenario is not real.
+- **New risk R14.** Workers static assets **exclude nothing by default** — unlike Pages, which auto-excluded `.git`, `node_modules` and `.DS_Store`. A `dist/.DS_Store` existed in the working tree and would have been uploaded and publicly served. Mitigated by `public/.assetsignore`.
+- **New risk R15.** Workers Builds does **not** wait for GitHub Actions. A push to `main` deploys even with a failing `astro check`. Mitigated by running the gates inside the Cloudflare build command.
+- **`preview_urls` now defaults to `false`** (wrangler ≥ 4.34.0). Branch previews are an explicit opt-in, set in `wrangler.jsonc`.
+
+## Repository state — done
+
+All committed and verified locally on 2026-09-20.
+
+- [x] `wrangler@4` added as a dev dependency (4.135.0). `@astrojs/cloudflare` deliberately **not** installed — it is for on-demand rendering and would move the project off `output: "static"`.
+- [x] `src/pages/404.astro` — authored **before** `not_found_handling` was set, so the setting has something to serve (R6). Build emits `dist/404.html`.
+- [x] `wrangler.jsonc` — assets-only Worker, no `main` entrypoint.
+- [x] `astro.config.mjs` — `security.csp` with `connect-src 'none'`.
+- [x] `public/_headers` — security headers and immutable caching for `/_astro/*`.
+- [x] `public/.assetsignore` — excludes `.DS_Store` (R14).
+- [x] `.nvmrc` → `24.21.0`; `.github/workflows/ci.yml` reads it via `node-version-file` (R8).
+- [x] `npm run lint`, `npx astro check`, `npm run build`, `npx wrangler deploy --dry-run` all clean.
+
+### `wrangler.jsonc`
+
+```jsonc
+{
+  "name": "critical-path",
+  "compatibility_date": "2026-09-20",
+  "workers_dev": true,
+  "preview_urls": true,
+  "assets": {
+    "directory": "./dist/",
+    "not_found_handling": "404-page",
+    "html_handling": "auto-trailing-slash",
+  },
+}
+```
+
+`name` **must** equal the Worker name in the Cloudflare dashboard, or every
+Workers Build fails. `html_handling: "auto-trailing-slash"` matches Astro's
+default `build.format: "directory"`.
+
+### How the no-network guarantee is enforced
+
+Astro emits a per-page `<meta http-equiv="content-security-policy">` carrying
+`default-src 'none'`, `connect-src 'none'` and the rest of the deny-list, then
+appends its own `script-src 'self' <sha256…>` and `style-src 'self' <sha256…>`.
+`connect-src 'none'` makes `fetch`, `XMLHttpRequest`, WebSocket, `sendBeacon`
+and EventSource impossible from the page. The PRD guarantee stops being a claim
+and becomes a property of the artifact.
+
+Two rules follow, and both are load-bearing:
+
+1. **Never put `default-src`, `script-src` or `style-src` in `public/_headers`.**
+   Browsers enforce the _intersection_ of the meta and header policies, so a
+   header `script-src` without Astro's per-build hashes would block Astro's own
+   scripts. `_headers` carries `frame-ancestors 'none'` only, because a `<meta>`
+   CSP cannot express it.
+2. **Never put `script-src`/`style-src` in `security.csp.directives`.** Astro
+   rejects them at config validation and points at
+   `scriptDirective`/`styleDirective` instead.
+
+CSP is **not** applied under `astro dev` (Vite dev server limitation). Test with
+`npm run build && npm run preview`.
+
+## Manual gates — human-only, in order
+
+These cannot be done from an agent session.
+
+- [ ] **G1** Cloudflare account, Free plan, logged in at `dash.cloudflare.com`.
+- [ ] **G2** Register a **workers.dev subdomain**: Workers & Pages → _Subdomain_. One-time and account-wide; it becomes part of the production URL. The `wrangler subdomain` command no longer exists.
+- [ ] **G3** Record the subdomain here, replacing the `production_url` frontmatter placeholder.
+- [ ] **G4** `npx wrangler login` (browser OAuth), then `npx wrangler whoami`. Needed for rollback and deployment inspection. No API token, and no GitHub secret, exists anywhere in this project.
+- [ ] **G5** After G3, set `site: "https://critical-path.<subdomain>.workers.dev"` in `astro.config.mjs`. `@astrojs/sitemap` is installed and currently a silent no-op (`[WARN] The Sitemap integration requires the 'site' astro.config option. Skipping.`); setting it also fixes canonical URLs.
+
+## First deploy — by hand
+
+Deploy manually once before automating. A config error found here costs one
+command; found in Workers Builds it costs a dashboard round-trip.
+
+- [ ] **1** `nvm use && npm ci && npm run build`
+- [ ] **2** `npx wrangler deploy --dry-run` — validates config without touching the account.
+- [ ] **3** `npx wrangler deploy` — record the printed URL.
+- [ ] **4** Verify against production:
+  - `curl -I https://critical-path.<subdomain>.workers.dev/` → `200`, with `x-content-type-options: nosniff`, `referrer-policy: no-referrer`, `content-security-policy: frame-ancestors 'none'`.
+  - `curl -I https://critical-path.<subdomain>.workers.dev/does-not-exist` → `404`, serving `404.html`, not an empty body.
+  - `curl -I https://critical-path.<subdomain>.workers.dev/_astro/<hashed>.css` → `cache-control: public, max-age=31536000, immutable`.
+  - `curl -s https://critical-path.<subdomain>.workers.dev/.DS_Store` → must **not** return a file.
+- [ ] **5** Browser, network tab and console open: zero requests after load, zero CSP violations. **This is the R4 gate and it repeats before every release.**
+
+## Workers Builds — the single deploy path (D1)
+
+- [ ] **6** Dashboard → Workers & Pages → `critical-path` → **Settings → Builds → Connect**. Authorize the **Cloudflare Workers & Pages GitHub App** against `RemekGdansk/critical-path` only — not the whole account.
+- [ ] **7** Configure exactly:
+
+  | Setting                              | Value                                                                |
+  | ------------------------------------ | -------------------------------------------------------------------- |
+  | Build command                        | `npx astro sync && npm run lint && npx astro check && npm run build` |
+  | Deploy command                       | `npx wrangler deploy` _(default)_                                    |
+  | Non-production branch deploy command | `npx wrangler versions upload` _(default)_                           |
+  | Production branch                    | `main`                                                               |
+  | Root directory                       | repo root                                                            |
+  | Build variables                      | none                                                                 |
+
+  The build command duplicates the `ci.yml` gates on purpose. Workers Builds
+  does not wait for GitHub Actions, so lint and `astro check` must run _inside_
+  the Cloudflare build or a type error ships to production (R15).
+
+- [ ] **8** Push a branch, open a PR, confirm a preview version and URL appear in the Worker's version history. Merge, confirm `main` reaches production.
+- [ ] **9** Re-record the settings above verbatim if anything differed. They live in a dashboard and leave **no trace in git** — the same class of invisible state that R4 warns about.
+
+**Never add `cloudflare/wrangler-action` to `.github/workflows/ci.yml`.** Two
+pipelines racing the same production alias is R9. Under D1 the workflow holds no
+Cloudflare credentials, which makes the mistake impossible rather than merely
+discouraged.
+
+## Day-to-day operations
+
+| Task                           | Command                                                              |
+| ------------------------------ | -------------------------------------------------------------------- |
+| Development loop               | `npm run dev`                                                        |
+| Verify CSP / headers / 404     | `npm run build && npm run preview`                                   |
+| Manual deploy                  | `npm run build && npx wrangler deploy`                               |
+| What is live                   | `npx wrangler deployments status`                                    |
+| History                        | `npx wrangler deployments list --json`, `npx wrangler versions list` |
+| Fast rollback                  | `npx wrangler rollback --message "reason"`                           |
+| Rollback to a specific version | `npx wrangler rollback <VERSION_ID> --message "reason"`              |
+| Durable recovery               | `git revert` + rebuild (~2 min)                                      |
+
+`--message` is **required** in any unattended context: without it `wrangler
+rollback` prompts twice and hangs the run. `wrangler versions deploy` also
+prompts interactively — keep it out of automation entirely (R11).
+
+**There are no request logs.** This is an assets-only Worker with no entrypoint
+script, so requests served from `dist/` execute no user code and `wrangler tail`
+has nothing to stream. Build and deploy logs live in the Cloudflare dashboard
+under the Worker's Builds tab; request-level analytics come from the dashboard
+or the GraphQL Analytics API.
+
+## Approval boundary
+
+**Agent may**: `wrangler deploy`, `wrangler deploy --dry-run`,
+`wrangler deployments list|status`, `wrangler versions list`,
+`wrangler rollback --message "…"`.
+
+**Human only, by hand**: registering the workers.dev subdomain, connecting or
+disconnecting the GitHub App, deleting the Worker, and **enabling any analytics
+or observability feature that injects client-side script**. That last one is
+human-only not because it is destructive but because it silently invalidates the
+product's central guarantee, and it leaves no diff to review.
+
+## Post-deploy checklist
+
+- [ ] **P1** End-to-end: merge to `main` → Workers Builds runs → production serves the new build. Confirm with `npx wrangler deployments status`.
+- [ ] **P2** Rollback drill, once, deliberately: `npx wrangler rollback --message "drill"`, confirm the revert, then redeploy forward. An untested rollback is not a rollback.
+- [ ] **P3** **R3 check — week one, not launch day.** Load the production URL from the target corporate network. `*.workers.dev` is a shared subdomain that some corporate filters block wholesale, and under D2 there is no custom-domain escape hatch. If it is blocked, that reopens the platform decision; escalate rather than absorb.
+- [ ] **P4** Confirm Web Analytics is **off** and no observability feature injecting client-side script is enabled (R4). Re-check after any dashboard session.
+- [ ] **P5** `git tag deploy-<date>` on every production deploy — the durable recovery path (R5).
+
+## Known edge cases
+
+| Symptom                                                                     | Cause                                                                   | Fix                                                                                                                               |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `Missing entry-point to Worker script or to assets directory`               | `dist/` absent or `assets.directory` wrong                              | Build first; the path is `./dist/` relative to `wrangler.jsonc`                                                                   |
+| `wrangler deploy` prompts for configuration                                 | No config file found (wrong cwd), or name mismatch                      | Fix the config. `--yes` suppresses the prompt but lets wrangler auto-create something you did not intend                          |
+| Workers Build fails instantly on name                                       | Dashboard Worker name ≠ `"critical-path"`                               | Rename in the dashboard to match `wrangler.jsonc`                                                                                 |
+| Cloudflare opens an automatic PR rewriting the config                       | It detected a config/name conflict                                      | Close it, fix `wrangler.jsonc` by hand — do not let it author the contract                                                        |
+| Build image cannot install Node 24.21.0                                     | Image preinstalls 24.18.0 and 22.23.2; other versions install on demand | Fallback in order: set `NODE_VERSION=24.18.0` as a build variable, or bump `.nvmrc` to `24.18.0` and keep `ci.yml` pointing at it |
+| Build queues behind another                                                 | Free plan allows 1 concurrent build                                     | Wait. Free plan: 3,000 build minutes/month, 20-minute timeout; this build is ~1–2 min                                             |
+| CSP violation for an inline `style="…"` attribute                           | Something emitted an inline style attribute                             | Add the hash via `security.csp.styleDirective` with `kind: "attribute"` — never `'unsafe-inline'`                                 |
+| `[WARN] Shiki syntax highlighting … not compatible with CSP` on every build | Astro's default markdown highlighter uses inline styles                 | Cosmetic today (no markdown is rendered). If markdown is ever added, switch to `markdown.syntaxHighlight: "prism"`                |
+| `npx wrangler dev` fails to start                                           | `workerd` postinstall was blocked by the npm `allowScripts` policy      | Not needed — `npm run preview` covers CSP and 404 verification. To enable it, approve the `workerd` install script                |
+| Fork PR gets no preview URL                                                 | By design — secrets are withheld at that trust boundary (R13)           | Solo repo today; a reviewer would build locally                                                                                   |
+| `wrangler` re-prompts for an account on every command                       | Login has access to several Cloudflare accounts                         | Set `CLOUDFLARE_ACCOUNT_ID` in the shell, or unattended runs hang                                                                 |
