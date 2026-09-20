@@ -168,8 +168,8 @@ command; found in Workers Builds it costs a dashboard round-trip.
 
 ## Workers Builds — the single deploy path (D1)
 
-- [ ] **6** Dashboard → Workers & Pages → `critical-path` → **Settings → Builds → Connect**. Authorize the **Cloudflare Workers & Pages GitHub App** against `RemekGdansk/critical-path` only — not the whole account.
-- [ ] **7** Configure exactly:
+- [x] **6** Dashboard → Workers & Pages → `critical-path` → **Settings → Builds → Connect**. Authorize the **Cloudflare Workers & Pages GitHub App** against `RemekGdansk/critical-path` only — not the whole account.
+- [x] **7** Configure exactly:
 
   | Setting                              | Value                                                                |
   | ------------------------------------ | -------------------------------------------------------------------- |
@@ -179,6 +179,15 @@ command; found in Workers Builds it costs a dashboard round-trip.
   | Production branch                    | `main`                                                               |
   | Root directory                       | repo root                                                            |
   | Build variables                      | none                                                                 |
+
+  Preview builds (non-production branch builds) are **enabled** — required by
+  step 8, and the only way to verify a `public/_headers` change before it is
+  live (see Day-to-day operations).
+
+  First automated build ran 2026-09-20 16:32 UTC from `main`, producing version
+  `7c328031-77a9-4eaa-adb8-587cdaf4f526`. **Node 24.21.0 installed on demand**
+  as hoped — the `NODE_VERSION=24.18.0` fallback in Known edge cases was not
+  needed and remains untested.
 
   The build command duplicates the `ci.yml` gates on purpose. Workers Builds
   does not wait for GitHub Actions, so lint and `astro check` must run _inside_
@@ -245,11 +254,26 @@ product's central guarantee, and it leaves no diff to review.
 
 ## Post-deploy checklist
 
-- [ ] **P1** End-to-end: merge to `main` → Workers Builds runs → production serves the new build. Confirm with `npx wrangler deployments status`.
+- [x] **P1** End-to-end: merge to `main` → Workers Builds runs → production serves the new build. Confirm with `npx wrangler deployments status`. Done 2026-09-20: push to `main` → build → version `7c328031-77a9-4eaa-adb8-587cdaf4f526` live at 100%, distinct from both hand-run deploys. Headers and 404 re-verified after the handover.
 - [ ] **P2** Rollback drill, once, deliberately: `npx wrangler rollback --message "drill"`, confirm the revert, then redeploy forward. An untested rollback is not a rollback.
 - [ ] **P3** **R3 check — week one, not launch day.** Load the production URL from the target corporate network. `*.workers.dev` is a shared subdomain that some corporate filters block wholesale, and under D2 there is no custom-domain escape hatch. If it is blocked, that reopens the platform decision; escalate rather than absorb.
 - [ ] **P4** Confirm Web Analytics is **off** and no observability feature injecting client-side script is enabled (R4). Re-check after any dashboard session.
-- [ ] **P5** `git tag deploy-<date>` on every production deploy — the durable recovery path (R5).
+- [ ] **P5** Tag every production deploy — the durable recovery path (R5):
+
+  ```sh
+  git tag -a deploy-<date>-<short-version-id> <commit> -m "…"
+  ```
+
+  The Cloudflare version ID is in the tag name on purpose. Recovery starts from
+  `wrangler versions list`, which speaks version IDs, not commits; a date-only
+  tag cannot be mapped back and breaks outright on a second deploy in one day
+  (which happened on 2026-09-20 — three production versions, one tag name).
+  Put the full version ID and the URL in the tag message.
+
+  Tagged so far:
+  - `deploy-2026-09-20-97163c20` → `6a90f03`, hand-run (superseded `b3e938be`
+    from the same tree)
+  - `deploy-2026-09-20-7c328031` → `17f1627`, first Workers Builds deploy
 
 ## Known edge cases
 
