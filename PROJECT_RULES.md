@@ -1,42 +1,45 @@
 # Rules for AI
 
-This file provides guidance to AI Agent when working with code in this repository. It started as the 10x Astro Starter's `CLAUDE.md` and has been trimmed to match this project: a static, client-only app with no backend, no auth and no database.
+Critical Path is a single-user, browser-only project planner: Astro 7 (static output), React 19 islands, TypeScript, Tailwind 4. Setup and scripts: @README.md. Product spec: @context/foundation/prd.md.
+
+## Hard rules
+
+- **Never add server-only features.** No API routes, middleware, `Astro.locals`, `astro:env/server`, `prerender = false`. @astro.config.mjs sets `output: "static"` and there is no adapter, so these break the build.
+- **No project data leaves the device.** Once loaded the app makes no network calls — no analytics, telemetry, remote persistence or runtime CDN fetches. This is a PRD guardrail, not a preference.
+- **Edit rules here, not in `AGENTS.md`.** `AGENTS.md` and `CLAUDE.md` are gitignored and tool-managed; `AGENTS.md` only imports this file.
+
+## Domain terminology — use these exact terms
+
+Two commits exist solely to fix drift here. Do not introduce synonyms in identifiers, UI copy, comments or docs.
+
+- **Validation Error** — a state the project may never hold. Reject the edit at input and name the rule it would break. Not "invalid", "conflict" or "blocked".
+- **Validation Warning** — may exist, be exported and be imported; withholds the forecast while present.
+- **Resource-Unconstrained Project Finish Date** / **Resource-Constrained Project Finish Date** — never "ETA", "deadline" or "finish date" alone. "Completion date" is reserved for a Done Task's own date.
+
+Full lists and forecast rules: @context/foundation/prd.md.
 
 ## Commands
 
-- `npm run dev` — start dev server
-- `npm run build` — production build (static output into `dist/`)
-- `npm run preview` — preview production build
+- `npm run dev` — dev server
 - `npm run lint` — ESLint with type-checked rules
-- `npm run lint:fix` — auto-fix lint issues
-- `npm run format` — Prettier (includes prettier-plugin-astro + prettier-plugin-tailwindcss)
-- `npx astro check` — type-check `.astro` and TypeScript files (CI runs this)
+- `npx astro check` — type-check `.astro` and TS files (CI gate)
+- `npm run build` — static build into `dist/`
 
-Pre-commit hooks: husky + lint-staged runs `eslint --fix` on `*.{ts,tsx,astro}` and `prettier --write` on `*.{json,css,md}`.
+Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro}` and `prettier --write` on `*.{json,css,md}` via husky + lint-staged.
 
-## Architecture
+## Conventions
 
-**Astro 7 static site** with React 19 islands and Tailwind 4. Nothing runs on a server: no API routes, no middleware, no SSR, no database, no auth. All application logic runs in the browser.
+- Path alias `@/*` → `./src/*`.
+- No `"use client"` — this is not Next.js.
+- Merge Tailwind classes with `cn()` from `@/lib/utils`; never concatenate class strings.
+- shadcn/ui ("new-york" variant) in `src/components/ui/`; add with `npx shadcn@latest add [name]`.
+- Hooks in `src/hooks/` (matches the `hooks` alias in @components.json), helpers in `src/lib/`, extracted business logic in `src/lib/services/`, shared types in `src/types.ts`.
+- Node 22.14.0 (@.nvmrc). No environment variables or secrets.
 
-### Rendering mode
+## Testing
 
-Static output (`output: "static"` in astro.config.mjs). Pages are pre-rendered to HTML at build time. Do not add server-only features (API routes, `Astro.locals`, middleware, `astro:env/server`, `prerender = false`) — they need an adapter, which this project does not have.
+No test runner is configured — `npm test` does not exist. The CI gate is `astro sync` → lint → `astro check` → build (@.github/workflows/ci.yml). Run `npm run lint && npx astro check` before pushing.
 
-### Key conventions
+## Commits
 
-- **Path alias**: `@/*` maps to `./src/*` (tsconfig paths).
-- **Astro components** for static content/layout; **React components** only when interactivity is needed.
-- **Tailwind class merging**: use the `cn()` helper from `@/lib/utils` (clsx + tailwind-merge) for conditional/merged class names. Do not concatenate class strings manually.
-- **shadcn/ui**: components live in `src/components/ui/`, "new-york" style variant. Install new ones with `npx shadcn@latest add [name]`.
-- **React**: no Next.js directives ("use client" etc.). Extract hooks to `src/components/hooks/`.
-- **Services/helpers** go in `src/lib/` (or `src/lib/services/` for extracted business logic).
-- **Shared types** (entities, DTOs) go in `src/types.ts`.
-
-### Environment
-
-- Node.js v22.14.0 (see `.nvmrc`)
-- No environment variables or secrets are needed.
-
-## CI
-
-GitHub Actions workflow (`.github/workflows/ci.yml`) runs `astro sync`, lint, `astro check` and build on every push and PR. It needs no secrets.
+Short imperative sentence-case subjects, no Conventional Commits prefixes (e.g. "Scaffold application with Astro"). PRs target `main`.
