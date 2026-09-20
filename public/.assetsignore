@@ -1,0 +1,4 @@
+# Workers static assets excludes nothing by default (unlike Pages, which
+# auto-excluded .DS_Store, .git and node_modules). Without this, a local
+# `wrangler deploy` would upload and publicly serve dist/.DS_Store.
+.DS_Store

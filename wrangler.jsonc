@@ -1,0 +1,23 @@
+{
+  // Assets-only Worker: there is no `main` entrypoint, because Critical Path is
+  // a fully static build. Deploy with `wrangler deploy` — NOT `wrangler pages
+  // deploy`; Pages and Workers are different products with different verbs and
+  // different config keys. See context/foundation/infrastructure.md.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "critical-path",
+  "compatibility_date": "2026-09-20",
+  // Production URL is critical-path.<subdomain>.workers.dev. No custom domain:
+  // the DNS zone would have to move to Cloudflare nameservers (R2).
+  "workers_dev": true,
+  // Opt-in since wrangler 4.34.0. Gives branch builds (`wrangler versions
+  // upload`) a reachable preview URL. Fork PRs never get one (R13).
+  "preview_urls": true,
+  "assets": {
+    "directory": "./dist/",
+    // Serves dist/404.html. src/pages/404.astro must exist or this yields a
+    // blank 404 (R6).
+    "not_found_handling": "404-page",
+    // Matches Astro's default build.format: "directory".
+    "html_handling": "auto-trailing-slash"
+  }
+}
