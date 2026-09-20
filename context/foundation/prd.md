@@ -36,7 +36,7 @@ Individual planner: anyone planning a personal project with dependent tasks — 
 ## Success Criteria
 
 ### Primary
-- The MVP flow below works end to end: the user builds a task graph, sees a cycle rejected as a Validation Error, gets critical-path and total-work finish dates once all Durations and the start date are set, sees them withheld while a Validation Warning (missing Durations) exists, and round-trips the project through an exported file into a different browser.
+- The MVP flow below works end to end: the user builds a task graph, sees a cycle rejected as a Validation Error, gets the Resource-Unconstrained Project Finish Date and Resource-Constrained Project Finish Date once all Durations and the start date are set, sees them withheld while a Validation Warning (missing Durations) exists, and round-trips the project through an exported file into a different browser.
 
   MVP flow (first session):
   1. User opens the application in the browser.
@@ -44,9 +44,9 @@ Individual planner: anyone planning a personal project with dependent tasks — 
   3. User tries to also add C → A. The application rejects it as a Validation Error and explains it would create the cycle A → B → C → A. The project stays unchanged.
 
      *(Revised in Socrates round: originally the cycle was let in, flagged, and cleared by the user removing C → A. See FR-003, US-01.)*
-  4. User sets the project start date on START and Durations for A, B, C. Critical-path and total-work project finish dates are now calculated. They are the same, as no parallelism is possible.
+  4. User sets the project start date on START and Durations for A, B, C. The Resource-Unconstrained Project Finish Date and Resource-Constrained Project Finish Date are now calculated. They are the same, as no parallelism is possible.
   5. User adds Task D that depends on A and on which C depends: A → D → C. Project finish dates are no longer calculated; the application shows a Validation Warning that Durations are missing.
-  6. User adds a Duration to Task D. Critical-path and total-work finish dates are calculated again, and now differ due to possible parallelism.
+  6. User adds a Duration to Task D. The Resource-Unconstrained Project Finish Date and Resource-Constrained Project Finish Date are calculated again, and now differ due to possible parallelism.
   7. User exports the project to a file. The user is asked for a project name if they did not set it earlier; this is also the name of the exported file.
   8. User opens the application in another browser; the project is empty.
   9. User imports the previously exported file. The application shows the same data as in the previous browser.
@@ -78,7 +78,7 @@ Individual planner: anyone planning a personal project with dependent tasks — 
 
 - **Given** a project START → A → B → C → FINISH with a START date and Durations on A, B, C
 - **When** the user views the forecast
-- **Then** critical-path and total-work finish dates are shown, and they are equal (no parallelism possible)
+- **Then** the Resource-Unconstrained Project Finish Date and Resource-Constrained Project Finish Date are shown, and they are equal (no parallelism possible)
 
 #### Acceptance Criteria
 - After adding Task D with A → D → C and no Duration, the finish dates disappear and the application shows a Validation Warning that D is missing a Duration.
@@ -99,7 +99,7 @@ Individual planner: anyone planning a personal project with dependent tasks — 
 
 - **Given** a project counting calendar days: START date 1 Sep, START → A (5 days) → B (3 days) → FINISH; forecast finish 9 Sep
 - **When** the user marks A as Done with completion date 3 Sep, and today is 3 Sep
-- **Then** both earliest and latest finish dates become 6 Sep
+- **Then** both the Resource-Unconstrained Project Finish Date and the Resource-Constrained Project Finish Date become 6 Sep
 
 #### Acceptance Criteria
 - A marked Done on 8 Sep, today 8 Sep → finish dates 11 Sep.
@@ -152,7 +152,7 @@ Validation has two explicit levels:
   > Socrates: Counter-argument considered: "highlighting Done Tasks on the critical path is misleading." Resolution: the highlighted critical path covers only remaining work.
 - FR-011: User can see critical-path time and total-work time of the remaining (not-Done) work for a project with no Validation Warnings. Priority: must-have
   > Socrates: Counter-argument considered: "remaining vs whole-project time is ambiguous." Resolution: both times count only remaining work.
-- FR-012: User can see the earliest (critical-path based) and latest (total-work based) project finish dates, computed from the project start date, the current date and completion dates of Done Tasks. Priority: must-have
+- FR-012: User can see the Resource-Unconstrained Project Finish Date (based on the critical path of remaining work, assuming unlimited parallelism) and the Resource-Constrained Project Finish Date (based on the total remaining work, assuming a maximum parallelism of 1 — i.e. no parallelism — which is the only setting in the MVP), computed from the project start date, the current date and completion dates of Done Tasks. Priority: must-have
   > Socrates: Counter-argument considered: "in weekdays mode a base date on a weekend is undefined." Resolution: in weekdays mode, a base date falling on Saturday or Sunday moves to the following Monday.
 
 ### Persistence
@@ -172,15 +172,15 @@ Validation has two explicit levels:
 
 ## Business Logic
 
-From the dependency graph, the durations and the completion dates of Done Tasks, the app forecasts the earliest project finish date (critical path of remaining work, unlimited parallelism) and the latest one (all remaining work done one after another), with no remaining work allowed to start before today.
+From the dependency graph, the durations and the completion dates of Done Tasks, the app forecasts the Resource-Unconstrained Project Finish Date (critical path of remaining work, unlimited parallelism) and the Resource-Constrained Project Finish Date (all remaining work done one after another, maximum parallelism 1), with no remaining work allowed to start before today.
 
 Inputs (all user-supplied, plus the current date): Tasks, each with an id, a name, predecessors, a Duration in whole positive days, a Status (To Do / In Progress / Done) and, when Done, a completion date; the START date (today if not set); and the project's day-counting mode (calendar days, or weekdays Mon–Fri with no holidays). Structural rules: START has no predecessors; nothing depends on FINISH; a Task without predecessors depends on START; a Task without successors feeds FINISH; cycles are not allowed.
 
-Forecast rules: only Done counts as done — In Progress is treated exactly like To Do. A Task is ready to start as soon as all its predecessors are Done (or forecast to finish); Tasks have no planned start date of their own. A not-Done Task cannot start before today, so a START date in the past is replaced by today, and a Task whose predecessors finished earlier still starts no earlier than today. Once all of START's direct successors are Done, the START date no longer matters. A Task can be marked Done only when all its predecessors are Done, with a completion date that is today or earlier, not earlier than the START date, and not earlier than any predecessor's completion date — so completed work is always consistent with the graph and with the START date. In weekdays mode, a base date falling on Saturday or Sunday moves to the following Monday. The earliest finish date is the end of the longest (critical) path through the remaining work; the latest finish date is the same base date plus the sum of Durations of all not-Done Tasks. Critical-path time and total-work time count only remaining work. Example (calendar days): START 1 Sep, A (5) → B (3) → FINISH forecasts 9 Sep; A Done on 3 Sep with today 3 Sep → 6 Sep; A Done on 8 Sep with today 8 Sep → 11 Sep; A Done on 3 Sep with today 5 Sep → 8 Sep.
+Forecast rules: only Done counts as done — In Progress is treated exactly like To Do. A Task is ready to start as soon as all its predecessors are Done (or forecast to finish); Tasks have no planned start date of their own. A not-Done Task cannot start before today, so a START date in the past is replaced by today, and a Task whose predecessors finished earlier still starts no earlier than today. Once all of START's direct successors are Done, the START date no longer matters. A Task can be marked Done only when all its predecessors are Done, with a completion date that is today or earlier, not earlier than the START date, and not earlier than any predecessor's completion date — so completed work is always consistent with the graph and with the START date. In weekdays mode, a base date falling on Saturday or Sunday moves to the following Monday. The Resource-Unconstrained Project Finish Date assumes unlimited parallelism and is the end of the longest (critical) path through the remaining work. The Resource-Constrained Project Finish Date assumes a maximum parallelism of 1 — the only setting in the MVP, i.e. no parallelism at all — and is the same base date plus the sum of Durations of all not-Done Tasks. Critical-path time and total-work time count only remaining work. Example (calendar days): START 1 Sep, A (5) → B (3) → FINISH forecasts 9 Sep; A Done on 3 Sep with today 3 Sep → 6 Sep; A Done on 8 Sep with today 8 Sep → 11 Sep; A Done on 3 Sep with today 5 Sep → 8 Sep.
 
 Validation has two levels. A **Validation Error** is a state the project may never be in: the app rejects any edit that would create one, directly or indirectly, and explains which rule it would break; an exported file never contains one; an imported file that contains one is rejected. Validation Errors: a cycle; START with a predecessor; a Task depending on FINISH; a dependency on an unknown id; a Duration that is not a positive whole number; a Task Done while any predecessor is not Done; a Done Task without a completion date; a completion date after today, before the START date, or before a predecessor's completion date. A **Validation Warning** is shown to the user, but the project may exist, be exported and be imported with it. Validation Warnings: a not-Done Task missing a Duration (a Done Task needs no Duration, since only remaining work is forecast).
 
-The user encounters the rule continuously while editing: the critical path(s) of remaining work are highlighted on the diagram, and the critical-path time, total-work time and both finish dates are shown whenever the project has no Validation Warnings. While any Validation Warning exists (e.g. a not-Done Task is missing a Duration), no finish date is shown and the affected Tasks are highlighted instead. Forecasts are never saved in the exported file; they are always recalculated.
+The user encounters the rule continuously while editing: the critical path(s) of remaining work are highlighted on the diagram, and the critical-path time, total-work time, the Resource-Unconstrained Project Finish Date and the Resource-Constrained Project Finish Date are shown whenever the project has no Validation Warnings. While any Validation Warning exists (e.g. a not-Done Task is missing a Duration), no finish date is shown and the affected Tasks are highlighted instead. Forecasts are never saved in the exported file; they are always recalculated.
 
 ## Access Control
 
@@ -189,7 +189,8 @@ Single user; no auth; no roles. Whoever opens the app in their browser has full 
 ## Non-Goals
 
 ### Functional
-- No resources or assignees — no people, capacity or resource leveling; the forecast deliberately assumes unlimited parallelism (earliest) or none (latest).
+- No resources or assignees — no people, capacity or resource leveling; the only resource constraint is a maximum parallelism: unlimited for the Resource-Unconstrained Project Finish Date, 1 (no parallelism) for the Resource-Constrained Project Finish Date.
+- No parallelism levels other than 1 in the MVP — the Resource-Constrained Project Finish Date always assumes a maximum parallelism of 1; simulating other parallelism levels is planned after the MVP.
 - No in-app collaboration — no sync, sharing or multi-user editing; sharing happens outside the app via the exported file (e.g. version control).
 - No issue-tracker integration — no import from or export to an issue tracker.
 - No Gantt or timeline view — the auto-arranged dependency diagram is the only view.
