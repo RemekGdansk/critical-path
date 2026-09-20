@@ -34,7 +34,9 @@ npm run dev
 
 ## Deployment
 
-The build output in `dist/` is static. It is intended for Cloudflare Pages via GitHub Actions with auto-deploy on merge; the deploy workflow is not set up yet.
+The build output in `dist/` is static. It is intended for Cloudflare Workers static assets (`wrangler deploy`, **not** `wrangler pages deploy` — the two are not interchangeable) via GitHub Actions with auto-deploy on merge; the deploy workflow is not set up yet.
+
+See [`context/foundation/infrastructure.md`](./context/foundation/infrastructure.md) for the platform decision, the risk register and the setup steps.
 
 ## CI
 
