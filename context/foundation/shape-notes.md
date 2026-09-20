@@ -55,6 +55,8 @@ checkpoint:
       decision: "web app; user count irrelevant to load (each user runs own local copy, no server); hard deadline 2026-11-04; after-hours"
     - topic: "Done-date rules"
       decision: "completion date must be today or earlier, not earlier than the START date; a Task can be Done only when all predecessors are Done, with a completion date not earlier than theirs"
+    - topic: "nice-to-have FRs"
+      decision: "FR-015 and FR-018 are stretch goals: not required for the MVP, built only if time allows"
   frs_drafted: 18
   quality_check_status: accepted
 product_type: web-app
@@ -76,7 +78,7 @@ A browser-only tool called "Critical Path" for quickly creating project tasks wi
 
 ## Vision & Problem Statement
 
-A planner at an early stage of a project — while still discovering which tasks need doing and how they depend on each other — needs more than a to-do list, because tasks have predecessors that must be done first. Today they reach for an issue tracker (e.g. JIRA) or a whiteboard tool (e.g. Miro). The tracker is slow: it demands multiple mandatory fields at a moment when details are not yet known, so issues end up vague or inaccurate and are never updated; the same friction discourages restructuring, so the tracker is inconsistent with reality from the start. Tracker dependency links ("is blocked by") are information-only and not diagram-first: nothing validates them (e.g. for cycles) and nothing forecasts from them. The whiteboard makes drawing tasks and arrows easy, but offers no validation and no calculation, and manual layout pulls focus from content to arrangement.
+A planner at an early stage of a project — while still discovering which tasks need doing and how they depend on each other — needs more than a to-do list, because tasks have predecessors that must be done first. Today they reach for an issue tracker or a whiteboard tool. The tracker is slow: it demands multiple mandatory fields at a moment when details are not yet known, so issues end up vague or inaccurate and are never updated; the same friction discourages restructuring, so the tracker is inconsistent with reality from the start. Tracker dependency links ("is blocked by") are information-only and not diagram-first: nothing validates them (e.g. for cycles) and nothing forecasts from them. The whiteboard makes drawing tasks and arrows easy, but offers no validation and no calculation, and manual layout pulls focus from content to arrangement.
 
 Insight: early planning is not tracking — discovery-phase planning needs near-zero-friction task capture, with details added later. A dependency graph is only valuable when the tool validates it and derives the critical path and completion forecasts from it. Auto-arranged layout keeps attention on content (and keeps layout out of the saved file). Running entirely locally, with no login and no data leaving the user's machine, makes the tool usable in corporate environments where cloud tools are not allowed.
 
@@ -236,7 +238,7 @@ The user encounters the rule continuously while editing: the critical path(s) of
 ### Functional
 - No resources or assignees — no people, capacity or resource leveling; the forecast deliberately assumes unlimited parallelism (earliest) or none (latest).
 - No in-app collaboration — no sync, sharing or multi-user editing; sharing happens outside the app via the exported file (e.g. version control).
-- No issue-tracker integration — no import from or export to JIRA or similar trackers.
+- No issue-tracker integration — no import from or export to an issue tracker.
 - No Gantt or timeline view — the auto-arranged dependency diagram is the only view.
 - No manual layout — users cannot position nodes, and no layout is stored in the exported file; this keeps attention on content.
 - No Task-level dates — no planned start dates or "start no earlier than" constraints per Task; only START has a date.
