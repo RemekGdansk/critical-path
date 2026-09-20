@@ -2,6 +2,7 @@
 .vscode/
 **/.DS_Store
 .10x-cli.json
+AGENTS.md
 CLAUDE.md
 
 # from 10x-astro-starter
