@@ -4,7 +4,7 @@ planned_at: 2026-09-20
 platform: Cloudflare Workers (static assets)
 deploy_owner: Cloudflare Workers Builds
 worker_name: critical-path
-production_url: TBD — critical-path.<subdomain>.workers.dev
+production_url: https://critical-path.remekgdansk.workers.dev
 custom_domain: none (decided against; see D2)
 context_type: mvp
 ---
@@ -34,6 +34,7 @@ only the deploy: commands, dashboard state, manual gates and verification.
 - **New risk R14.** Workers static assets **exclude nothing by default** — unlike Pages, which auto-excluded `.git`, `node_modules` and `.DS_Store`. A `dist/.DS_Store` existed in the working tree and would have been uploaded and publicly served. Mitigated by `public/.assetsignore`.
 - **New risk R15.** Workers Builds does **not** wait for GitHub Actions. A push to `main` deploys even with a failing `astro check`. Mitigated by running the gates inside the Cloudflare build command.
 - **`preview_urls` now defaults to `false`** (wrangler ≥ 4.34.0). Branch previews are an explicit opt-in, set in `wrangler.jsonc`.
+- **G2 corrected.** The workers.dev subdomain is *not* one-time. Cloudflare's docs describe changing it from the Workers & Pages account details panel. It is still account-wide, and changing it invalidates every live `*.workers.dev` URL on the account simultaneously, so the practical guidance is unchanged once a deploy exists.
 
 ## Repository state — done
 
@@ -95,25 +96,72 @@ CSP is **not** applied under `astro dev` (Vite dev server limitation). Test with
 
 These cannot be done from an agent session.
 
-- [ ] **G1** Cloudflare account, Free plan, logged in at `dash.cloudflare.com`.
-- [ ] **G2** Register a **workers.dev subdomain**: Workers & Pages → _Subdomain_. One-time and account-wide; it becomes part of the production URL. The `wrangler subdomain` command no longer exists.
-- [ ] **G3** Record the subdomain here, replacing the `production_url` frontmatter placeholder.
-- [ ] **G4** `npx wrangler login` (browser OAuth), then `npx wrangler whoami`. Needed for rollback and deployment inspection. No API token, and no GitHub secret, exists anywhere in this project.
-- [ ] **G5** After G3, set `site: "https://critical-path.<subdomain>.workers.dev"` in `astro.config.mjs`. `@astrojs/sitemap` is installed and currently a silent no-op (`[WARN] The Sitemap integration requires the 'site' astro.config option. Skipping.`); setting it also fixes canonical URLs.
+- [x] **G1** Cloudflare account, Free plan, logged in at `dash.cloudflare.com`.
+- [x] **G2** Register a **workers.dev subdomain**: Workers & Pages → account details → _Your subdomain_ → **Change**. Account-wide, and it becomes part of every Worker URL on the account. Changeable in the dashboard, but changing it breaks every live `*.workers.dev` URL at once and releases the old name for anyone to claim — so treat it as settled once deployed. The `wrangler subdomain` command no longer exists. Set to `remekgdansk` on 2026-09-20.
+- [x] **G3** Record the subdomain here, replacing the `production_url` frontmatter placeholder.
+- [x] **G4** Log in with **scoped** OAuth, then verify:
+
+  ```sh
+  npx wrangler login --scopes account:read user:read workers_scripts:write --use-keyring
+  npx wrangler whoami
+  ```
+
+  Needed for deploy, deployment inspection and rollback. No API token, and no
+  GitHub secret, exists anywhere in this project.
+
+  | Scope                   | Covers                                                                                                  |
+  | ----------------------- | ------------------------------------------------------------------------------------------------------- |
+  | `account:read`          | Resolving the account to deploy into; every command fails without it                                    |
+  | `user:read`             | `wrangler whoami`                                                                                        |
+  | `workers_scripts:write` | `deploy`, `deployments list\|status`, `versions list`, `rollback`, and the `workers.dev` subdomain route |
+
+  Deliberately **not** granted: `workers:write` (superset — avoid),
+  `workers_routes:write` (custom-domain zone routes only; closed by D2),
+  `workers_tail:read` (an assets-only Worker streams nothing), `pages:write`
+  (wrong product), `workers_kv:write` / `d1:write` / `secrets_store:write` /
+  `zone:read` (no such resources here).
+
+  `--use-keyring` puts the credentials in the macOS Keychain (`/usr/bin/security`,
+  a generic-password item) instead of plaintext under `~/.config/.wrangler/`,
+  where the long-lived **refresh token** would otherwise be readable by any
+  process running as the user. Decided 2026-09-20: keep it.
+
+  If macOS shows a Keychain dialog, click **Always Allow**, not Allow — that
+  writes the permission into the item's ACL. Otherwise the dialog reappears on
+  an agent-run `wrangler deploy` as a silent hang with no output. If it repeats
+  even after Always Allow, `wrangler logout` and re-login without the flag.
+
+  `offline_access` is appended by wrangler automatically (refresh token); it
+  grants no additional access. `whoami` then prints a **WARNING listing the
+  scopes that were deliberately withheld** and advises re-running `wrangler
+  login` — ignore it, on every command. Following it re-grants the full default
+  superset.
+
+  Credentials land in an encrypted file (`~/Library/Preferences/.wrangler/
+  config/default.enc`) with the key in the Keychain — not in the Keychain
+  directly. Verified 2026-09-20: no `~/.config/.wrangler/` plaintext exists.
+
+  On a 403 or `insufficient permissions`, add **one** named scope and re-run —
+  never reach for `workers:write`.
+- [x] **G5** After G3, set `site: "https://critical-path.remekgdansk.workers.dev"` in `astro.config.mjs`. `@astrojs/sitemap` is installed and currently a silent no-op (`[WARN] The Sitemap integration requires the 'site' astro.config option. Skipping.`); setting it also fixes canonical URLs.
 
 ## First deploy — by hand
 
 Deploy manually once before automating. A config error found here costs one
 command; found in Workers Builds it costs a dashboard round-trip.
 
-- [ ] **1** `nvm use && npm ci && npm run build`
-- [ ] **2** `npx wrangler deploy --dry-run` — validates config without touching the account.
-- [ ] **3** `npx wrangler deploy` — record the printed URL.
-- [ ] **4** Verify against production:
-  - `curl -I https://critical-path.<subdomain>.workers.dev/` → `200`, with `x-content-type-options: nosniff`, `referrer-policy: no-referrer`, `content-security-policy: frame-ancestors 'none'`.
-  - `curl -I https://critical-path.<subdomain>.workers.dev/does-not-exist` → `404`, serving `404.html`, not an empty body.
-  - `curl -I https://critical-path.<subdomain>.workers.dev/_astro/<hashed>.css` → `cache-control: public, max-age=31536000, immutable`.
-  - `curl -s https://critical-path.<subdomain>.workers.dev/.DS_Store` → must **not** return a file.
+- [x] **1** `nvm use && npm ci && npm run build`
+- [x] **2** `npx wrangler deploy --dry-run` — validates config without touching the account.
+- [x] **3** `npx wrangler deploy` — record the printed URL.
+      Deployed 2026-09-20 → `https://critical-path.remekgdansk.workers.dev`,
+      version `b3e938be-0cca-4d97-b46c-9f3633c8484f` (superseded by
+      `97163c20-fe2b-4589-a3cd-88d76822219a`, the Permissions-Policy fix), 7 assets. `workers_scripts:write`
+      alone was sufficient for the assets-upload session — no extra scope needed.
+- [x] **4** Verify against production:
+  - `curl -I https://critical-path.remekgdansk.workers.dev/` → `200`, with `x-content-type-options: nosniff`, `referrer-policy: no-referrer`, `content-security-policy: frame-ancestors 'none'`.
+  - `curl -I https://critical-path.remekgdansk.workers.dev/does-not-exist` → `404`, serving `404.html`, not an empty body.
+  - `curl -I https://critical-path.remekgdansk.workers.dev/_astro/<hashed>.css` → `cache-control: public, max-age=31536000, immutable`.
+  - `curl -s https://critical-path.remekgdansk.workers.dev/.DS_Store` → must **not** return a file.
 - [ ] **5** Browser, network tab and console open: zero requests after load, zero CSP violations. **This is the R4 gate and it repeats before every release.**
 
 ## Workers Builds — the single deploy path (D1)
@@ -171,7 +219,12 @@ or the GraphQL Analytics API.
 `wrangler deployments list|status`, `wrangler versions list`,
 `wrangler rollback --message "…"`.
 
-**Human only, by hand**: registering the workers.dev subdomain, connecting or
+OAuth scopes are **account-wide**: `workers_scripts:write` grants write access
+to every Worker on the account, not only `critical-path`. Per-Worker scoping
+needs an API token, which D1 rules out. Acceptable while this account holds one
+Worker; revisit before putting an unrelated production service on it.
+
+**Human only, by hand**: registering or changing the workers.dev subdomain, connecting or
 disconnecting the GitHub App, deleting the Worker, and **enabling any analytics
 or observability feature that injects client-side script**. That last one is
 human-only not because it is destructive but because it silently invalidates the
@@ -199,4 +252,5 @@ product's central guarantee, and it leaves no diff to review.
 | `[WARN] Shiki syntax highlighting … not compatible with CSP` on every build | Astro's default markdown highlighter uses inline styles                 | Cosmetic today (no markdown is rendered). If markdown is ever added, switch to `markdown.syntaxHighlight: "prism"`                |
 | `npx wrangler dev` fails to start                                           | `workerd` postinstall was blocked by the npm `allowScripts` policy      | Not needed — `npm run preview` covers CSP and 404 verification. To enable it, approve the `workerd` install script                |
 | Fork PR gets no preview URL                                                 | By design — secrets are withheld at that trust boundary (R13)           | Solo repo today; a reviewer would build locally                                                                                   |
+| Console: `Error with Permissions-Policy header: Unrecognized feature: 'x'`   | `public/_headers` names a feature the browser does not know                 | Remove it. Found 2026-09-20 with `interest-cohort` (FLoC, long dead). Never add `browsing-topics=()` — Chrome-only, same error in Firefox/Safari. Harmless to function, but it breaks the zero-console-error R4 gate |
 | `wrangler` re-prompts for an account on every command                       | Login has access to several Cloudflare accounts                         | Set `CLOUDFLARE_ACCOUNT_ID` in the shell, or unattended runs hang                                                                 |

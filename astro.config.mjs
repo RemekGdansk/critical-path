@@ -7,6 +7,9 @@ import tailwindcss from "@tailwindcss/vite";
 
 // https://astro.build/config
 export default defineConfig({
+  // Set after G3: the workers.dev subdomain is registered and final (D2).
+  // Required by @astrojs/sitemap and for canonical URLs.
+  site: "https://critical-path.remekgdansk.workers.dev",
   output: "static",
   integrations: [react(), sitemap()],
   security: {

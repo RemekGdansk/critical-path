@@ -8,10 +8,18 @@
 # policies, so this file must never set default-src, script-src or style-src:
 # doing so would block Astro's own hashed scripts. Only frame-ancestors is
 # here, because a <meta> CSP cannot express it.
+#
+# Permissions-Policy lists only features every target browser recognises. An
+# unrecognised name logs "Error with Permissions-Policy header" in the console,
+# which erodes the zero-console-error release gate (R4). `interest-cohort`
+# (FLoC) was removed on 2026-09-20 for exactly that reason. Do NOT add its
+# successor `browsing-topics=()`: Chrome knows it, Firefox and Safari do not,
+# so it reproduces the same error there. Topics needs a network call anyway,
+# and `connect-src 'none'` already makes that impossible.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
-  Permissions-Policy: geolocation=(), camera=(), microphone=(), interest-cohort=()
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
   Content-Security-Policy: frame-ancestors 'none'
 
 /_astro/*
