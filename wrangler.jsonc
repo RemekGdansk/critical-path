@@ -8,6 +8,13 @@
   "compatibility_date": "2026-09-20",
   // Production URL is critical-path.<subdomain>.workers.dev. No custom domain:
   // the DNS zone would have to move to Cloudflare nameservers (R2).
+  // Wrangler sends anonymous usage metrics to Cloudflare by default. A value
+  // here overrides the machine-wide `wrangler telemetry` preference, so the
+  // setting travels with the repo instead of living in one developer's local
+  // config. This does not touch the PRD guarantee — that is about the shipped
+  // app and is enforced by `connect-src 'none'` — but the same principle
+  // applies: what leaves the machine should be a reviewed commit.
+  "send_metrics": false,
   "workers_dev": true,
   // Opt-in since wrangler 4.34.0. Gives branch builds (`wrangler versions
   // upload`) a reachable preview URL. Fork PRs never get one (R13).
