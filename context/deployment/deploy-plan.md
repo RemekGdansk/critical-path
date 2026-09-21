@@ -209,7 +209,31 @@ command; found in Workers Builds it costs a dashboard round-trip.
   does not wait for GitHub Actions, so lint and `astro check` must run _inside_
   the Cloudflare build or a type error ships to production (R15).
 
-- [ ] **8** Push a branch, open a PR, confirm a preview version and URL appear in the Worker's version history. Merge, confirm `main` reaches production.
+- [x] **8** Push a branch, open a PR, confirm a preview version and URL appear in the Worker's version history. Merge, confirm `main` reaches production.
+
+  Preview half verified 2026-09-21 on branch `record-stamping-verification`:
+  version `5d49b2b3-86b3-4908-8a0d-b3dd40e590c1`, `Tag:` the branch commit
+  `915a3d63…`, `Message: record-stamping-verification build 3da4391b-…`.
+  Production stayed on `0581d49c` throughout — `wrangler versions upload` does
+  not move the production alias.
+
+  **Preview URL = the first 8 characters of the version ID:**
+
+  ```
+  https://<version-id-prefix>-critical-path.remekgdansk.workers.dev
+  ```
+
+  It serves the **full `public/_headers` set** — verified: `permissions-policy`,
+  `referrer-policy`, `x-content-type-options`, `frame-ancestors`, the immutable
+  `/_astro/*` rule and a working 404. This is the pre-merge check that `npm run
+  preview` cannot do, and the reason preview builds are enabled.
+
+  Merge half verified the same day: squash-merged as `50f541b`, production moved
+  to version `6f5b541f-363c-4ce0-b467-238f0c8953bf` tagged
+  `50f541b49b49090e1441a3afc545eadc423cb7ab`. Note the **preview and production
+  versions carry different SHAs for identical content** — a squash merge creates
+  a new commit, so `915a3d6` (preview) and `50f541b` (production) both exist.
+  Expected, not a fault.
 - [x] **9** Re-record the settings above verbatim if anything differed. Done 2026-09-21: the table matches the dashboard, including the deploy-command fix. They live in a dashboard and leave **no trace in git** — the same class of invisible state that R4 warns about.
 
 **Never add `cloudflare/wrangler-action` to `.github/workflows/ci.yml`.** Two
@@ -271,7 +295,28 @@ product's central guarantee, and it leaves no diff to review.
 ## Post-deploy checklist
 
 - [x] **P1** End-to-end: merge to `main` → Workers Builds runs → production serves the new build. Confirm with `npx wrangler deployments status`. Done 2026-09-20: push to `main` → build → version `7c328031-77a9-4eaa-adb8-587cdaf4f526` live at 100%, distinct from both hand-run deploys. Headers and 404 re-verified after the handover.
-- [ ] **P2** Rollback drill, once, deliberately: `npx wrangler rollback --message "drill"`, confirm the revert, then redeploy forward. An untested rollback is not a rollback.
+- [x] **P2** Rollback drill, once, deliberately: `npx wrangler rollback --message "drill"`, confirm the revert, then redeploy forward. An untested rollback is not a rollback.
+
+  Run 2026-09-21. Back from `6f5b541f` to `0581d49c`, verified, then forward
+  again. Findings:
+
+  - **Roll forward with `wrangler rollback <NEWER_VERSION_ID> --message "…"`.**
+    Rollback is not direction-bound — it deploys whatever version ID it is
+    given. No rebuild, so the artifact is bit-identical to what was tested.
+  - **~7 seconds**, versus ~2 minutes for the `git revert` + rebuild path.
+  - **Both prompts auto-answer in a non-interactive context**, which cuts both
+    ways. `--message` supplies the message prompt's value, and `Are you sure
+    you want to deploy this Worker Version to 100% of traffic?` falls back to
+    **yes**. So rollback will not hang in automation — and equally, there is no
+    confirmation gate there. Contrast R11: `wrangler versions deploy` is still
+    kept out of automation.
+  - **Rollback messages attach to the deployment, not the version.** The
+    deployment reads `drill` / `roll forward after P2 drill` while the version
+    keeps its own `Tag: <commit sha>` and build message. Both layers of audit
+    trail survive a rollback.
+
+  Note: `timeout(1)` does not exist on macOS, so it cannot be used to guard
+  these commands locally.
 - [ ] **P3** **R3 check — week one, not launch day.** Load the production URL from the target corporate network. `*.workers.dev` is a shared subdomain that some corporate filters block wholesale, and under D2 there is no custom-domain escape hatch. If it is blocked, that reopens the platform decision; escalate rather than absorb.
 - [ ] **P4** Confirm Web Analytics is **off** and no observability feature injecting client-side script is enabled (R4). Re-check after any dashboard session.
 - [ ] **P5** Tag releases worth rolling back to — the durable recovery path (R5):
