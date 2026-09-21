@@ -3,6 +3,7 @@
   "singleQuote": false,
   "tabWidth": 2,
   "printWidth": 120,
+  "proseWrap": "preserve",
   "trailingComma": "all",
   "plugins": ["prettier-plugin-astro", "prettier-plugin-tailwindcss"],
   "overrides": [
