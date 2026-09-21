@@ -45,7 +45,7 @@ No test runner is configured — `npm test` does not exist. The CI gate is `astr
 ## Markdown
 
 - Do not insert line breaks. Readers can always use word-wrap in an editor.
-- Keep table columns evenly distrubuted.
+- Keep table columns evenly distributed. `prettier --write` does this on commit; do not hand-align.
 
 ## Commits
 
