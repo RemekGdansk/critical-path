@@ -165,6 +165,8 @@ Deploy manually once before automating. A config error found here costs one comm
 
 - [x] **9** Re-record the settings above verbatim if anything differed. Done 2026-09-21: the table matches the dashboard, including the deploy-command fix. They live in a dashboard and leave **no trace in git** — the same class of invisible state that R4 warns about.
 
+  **The GitHub App is now load-bearing for merges, not just deploys.** `main` requires the status checks `ci` and `Workers Builds: critical-path`. The second is reported by the Cloudflare GitHub App, so if the App is ever disconnected the check never arrives, and every PR blocks indefinitely with no failing check to point at — a green board and a dead merge button. Disconnecting it is already human-only under the approval boundary; this is the second reason why.
+
 **Never add `cloudflare/wrangler-action` to `.github/workflows/ci.yml`.** Two pipelines racing the same production alias is R9. Under D1 the workflow holds no Cloudflare credentials, which makes the mistake impossible rather than merely discouraged.
 
 ## Day-to-day operations
