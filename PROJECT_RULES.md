@@ -42,6 +42,11 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 
 No test runner is configured — `npm test` does not exist. The CI gate is `astro sync` → lint → `astro check` → build (@.github/workflows/ci.yml). Run `npm run lint && npx astro check` before pushing.
 
+## Markdown
+
+- Do not insert line breaks. Readers can always use word-wrap in an editor.
+- Keep table columns evenly distrubuted.
+
 ## Commits
 
 Short imperative sentence-case subjects, no Conventional Commits prefixes (e.g. "Scaffold application with Astro"). PRs target `main`.
