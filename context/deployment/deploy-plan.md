@@ -174,11 +174,21 @@ command; found in Workers Builds it costs a dashboard round-trip.
   | Setting                              | Value                                                                |
   | ------------------------------------ | -------------------------------------------------------------------- |
   | Build command                        | `npx astro sync && npm run lint && npx astro check && npm run build` |
-  | Deploy command                       | `npx wrangler deploy` _(default)_                                    |
-  | Non-production branch deploy command | `npx wrangler versions upload` _(default)_                           |
+  | Deploy command                       | `npx wrangler deploy --tag "$WORKERS_CI_COMMIT_SHA" --message "$WORKERS_CI_BRANCH build $WORKERS_CI_BUILD_UUID"` |
+  | Non-production branch deploy command | `npx wrangler versions upload --tag "$WORKERS_CI_COMMIT_SHA" --message "$WORKERS_CI_BRANCH build $WORKERS_CI_BUILD_UUID"` |
   | Production branch                    | `main`                                                               |
   | Root directory                       | repo root                                                            |
   | Build variables                      | none                                                                 |
+
+  Both deploy commands **override the defaults** (`npx wrangler deploy` /
+  `npx wrangler versions upload`). Without the flags, `wrangler deployments
+  status` reports `Source: Unknown (deployment)`, `Tag: -`, `Message: -` — the
+  platform records no link to the commit that produced the live version, which
+  is precisely what recovery needs. Workers Builds injects
+  `WORKERS_CI_COMMIT_SHA`, `WORKERS_CI_BRANCH` and `WORKERS_CI_BUILD_UUID` into
+  every build, so stamping them costs nothing and cannot be forgotten. Verified
+  2026-09-20 that both `wrangler deploy` and `wrangler versions upload` accept
+  `--tag` and `--message`.
 
   Preview builds (non-production branch builds) are **enabled** — required by
   step 8, and the only way to verify a `public/_headers` change before it is
@@ -208,7 +218,7 @@ discouraged.
 | Development loop               | `npm run dev`                                                        |
 | Verify meta CSP / 404 page     | `npm run build && npm run preview`                                   |
 | Verify `_headers` (see below)  | Branch push → preview URL, or `npx wrangler versions upload`, then `curl -I` |
-| Manual deploy                  | `npm run build && npx wrangler deploy`                               |
+| Manual deploy                  | `npm run build && npx wrangler deploy --tag "$(git rev-parse HEAD)"` |
 | What is live                   | `npx wrangler deployments status`                                    |
 | History                        | `npx wrangler deployments list --json`, `npx wrangler versions list` |
 | Fast rollback                  | `npx wrangler rollback --message "reason"`                           |
@@ -258,7 +268,7 @@ product's central guarantee, and it leaves no diff to review.
 - [ ] **P2** Rollback drill, once, deliberately: `npx wrangler rollback --message "drill"`, confirm the revert, then redeploy forward. An untested rollback is not a rollback.
 - [ ] **P3** **R3 check — week one, not launch day.** Load the production URL from the target corporate network. `*.workers.dev` is a shared subdomain that some corporate filters block wholesale, and under D2 there is no custom-domain escape hatch. If it is blocked, that reopens the platform decision; escalate rather than absorb.
 - [ ] **P4** Confirm Web Analytics is **off** and no observability feature injecting client-side script is enabled (R4). Re-check after any dashboard session.
-- [ ] **P5** Tag every production deploy — the durable recovery path (R5):
+- [ ] **P5** Tag releases worth rolling back to — the durable recovery path (R5):
 
   ```sh
   git tag -a deploy-<date>-<short-version-id> <commit> -m "…"
@@ -269,6 +279,14 @@ product's central guarantee, and it leaves no diff to review.
   tag cannot be mapped back and breaks outright on a second deploy in one day
   (which happened on 2026-09-20 — three production versions, one tag name).
   Put the full version ID and the URL in the tag message.
+
+  **Narrowed 2026-09-20.** Since step 7 now stamps `--tag
+  "$WORKERS_CI_COMMIT_SHA"` on every build, the version → commit mapping is
+  automatic and lives on the platform. A git tag is no longer the mechanism for
+  that, so tag **releases worth rolling back to**, not every push. A docs-only
+  commit still triggers a build and a new version ID; it does not deserve a
+  tag. The platform record is what recovery reads; the git tag is a human
+  marker.
 
   Tagged so far:
   - `deploy-2026-09-20-97163c20` → `6a90f03`, hand-run (superseded `b3e938be`
