@@ -317,7 +317,14 @@ product's central guarantee, and it leaves no diff to review.
 
   Note: `timeout(1)` does not exist on macOS, so it cannot be used to guard
   these commands locally.
-- [ ] **P3** **R3 check — week one, not launch day.** Load the production URL from the target corporate network. `*.workers.dev` is a shared subdomain that some corporate filters block wholesale, and under D2 there is no custom-domain escape hatch. If it is blocked, that reopens the platform decision; escalate rather than absorb.
+- [x] **P3** **R3 check — week one, not launch day.** Load the production URL from the target corporate network. `*.workers.dev` is a shared subdomain that some corporate filters block wholesale, and under D2 there is no custom-domain escape hatch. If it is blocked, that reopens the platform decision; escalate rather than absorb.
+
+  **Reachable from the corporate network, confirmed 2026-09-21 — launch day.**
+  That is a real pass, but weaker evidence than the week-one check this item
+  asked for: filters categorise new hostnames lazily, so a freshly registered
+  subdomain can pass now and be blocked once it is classified. Re-check around
+  2026-09-28. A later block still reopens the platform decision — D2 left no
+  custom-domain fallback, so the escalation path is unchanged.
 - [x] **P4** Confirm Web Analytics is **off** and no observability feature injecting client-side script is enabled (R4). Re-check after any dashboard session.
 
   Verified 2026-09-21 **from the response, not the dashboard** — the served
