@@ -245,6 +245,8 @@ OAuth scopes are **account-wide**: `workers_scripts:write` grants write access t
 
   **Narrowed 2026-09-20.** Since step 7 now stamps `--tag "$WORKERS_CI_COMMIT_SHA"` on every build, the version → commit mapping is automatic and lives on the platform. A git tag is no longer the mechanism for that, so tag **releases worth rolling back to**, not every push. A docs-only commit still triggers a build and a new version ID; it does not deserve a tag. The platform record is what recovery reads; the git tag is a human marker.
 
+  **Docs commits were not output-neutral until 2026-09-21.** Tailwind 4 automatic content detection scanned every non-gitignored file, markdown included, so prose words that are also utility names (`static`, `fixed`, `table`, `block`, `visible`) compiled into the CSS bundle and any docs edit changed the asset hash — `Cw2YEzlt` → `7w7kIYbd` on the reflow commit. Fixed by `source(none)` plus an explicit `@source` in `src/styles/global.css`. Commit messages written before that fix describing a docs commit as producing byte-identical output were wrong; the tagging conclusion is unaffected.
+
   Tagged so far:
   - `deploy-2026-09-20-97163c20` → `6a90f03`, hand-run (superseded `b3e938be` from the same tree)
   - `deploy-2026-09-20-7c328031` → `17f1627`, first Workers Builds deploy
