@@ -318,7 +318,39 @@ product's central guarantee, and it leaves no diff to review.
   Note: `timeout(1)` does not exist on macOS, so it cannot be used to guard
   these commands locally.
 - [ ] **P3** **R3 check — week one, not launch day.** Load the production URL from the target corporate network. `*.workers.dev` is a shared subdomain that some corporate filters block wholesale, and under D2 there is no custom-domain escape hatch. If it is blocked, that reopens the platform decision; escalate rather than absorb.
-- [ ] **P4** Confirm Web Analytics is **off** and no observability feature injecting client-side script is enabled (R4). Re-check after any dashboard session.
+- [x] **P4** Confirm Web Analytics is **off** and no observability feature injecting client-side script is enabled (R4). Re-check after any dashboard session.
+
+  Verified 2026-09-21 **from the response, not the dashboard** — the served
+  `index.html` is 1194 bytes containing zero `<script>` tags, no
+  `cloudflareinsights`, no `beacon.min.js`. Were Web Analytics active,
+  Cloudflare would inject `<script src="https://static.cloudflareinsights.com/
+  beacon.min.js">` at the edge and it would be visible there.
+
+  **The response is the authoritative check; the dashboard only reports intent.**
+  Run after every dashboard session:
+
+  ```sh
+  curl -s https://critical-path.remekgdansk.workers.dev/ \
+    | grep -ci "cloudflareinsights\|beacon.min.js\|<script"
+  ```
+
+  `0` passes. Anything else means something is injecting.
+
+  Dashboard locations, if the check ever fails — there is more than one switch:
+
+  - **Analytics & Logs → Web Analytics** — account-level site list. Delete the
+    entry, or *Manage Site → Advanced Options →* disable JS snippet injection.
+  - **Workers & Pages → `critical-path` → Metrics / Observability** — the
+    per-project switches, and for a Workers/Pages project this is the one that
+    actually injects. Server-side observability puts nothing in the page and is
+    harmless; the test is only whether script reaches the HTML.
+
+  `*.workers.dev` is not a zone under this account, so there is no
+  orange-cloud proxy path to inject through — one fewer surface than a custom
+  domain would have (another consequence of D2).
+
+  Backstop: an injected beacon would be blocked by `script-src 'self'` plus the
+  per-build hashes and surface as a console CSP violation, not a silent leak.
 - [ ] **P5** Tag releases worth rolling back to — the durable recovery path (R5):
 
   ```sh
