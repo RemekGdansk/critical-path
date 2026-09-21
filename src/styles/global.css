@@ -1,5 +1,11 @@
-@import "tailwindcss";
+/* source(none) disables Tailwind 4 automatic content detection, which scans
+   every non-gitignored file including markdown. Prose words that happen to be
+   utility names (static, fixed, table, block, visible) were being
+   compiled into the production bundle, and any docs edit changed the CSS hash. */
+@import "tailwindcss" source(none);
 @import "tw-animate-css";
+
+@source "../**/*.{astro,ts,tsx}";
 
 @custom-variant dark (&:is(.dark *));
 
