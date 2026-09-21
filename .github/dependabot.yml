@@ -15,6 +15,16 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+    ignore:
+      # TypeScript 7 cannot install: @astrojs/check declares
+      # `typescript@"^5.0.0 || ^6.0.0"`, so `npm ci` fails at resolution before
+      # any code runs (PR #7). A grouped PR is all-or-nothing, so one impossible
+      # upgrade blocks every other dev-dependency bump, and Dependabot reopens
+      # the same red PR every week until red stops meaning anything.
+      # Remove this once @astrojs/check widens its peer range.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   # Pinned action tags are mutable; this at least surfaces when they move.
   - package-ecosystem: github-actions
