@@ -194,6 +194,12 @@ command; found in Workers Builds it costs a dashboard round-trip.
   step 8, and the only way to verify a `public/_headers` change before it is
   live (see Day-to-day operations).
 
+  Stamping verified 2026-09-21: version `0581d49c-b734-4b88-846f-f8363678976b`
+  carries `Tag: 83e7cd904b1b68de17ead62b1f2dfceb0349bef3` (the exact commit) and
+  `Message: main build 98d50495-…`. The four versions shipped before the change
+  keep `Tag: -` — there is no retroactive stamping, which is what the two git
+  tags from 2026-09-20 cover.
+
   First automated build ran 2026-09-20 16:32 UTC from `main`, producing version
   `7c328031-77a9-4eaa-adb8-587cdaf4f526`. **Node 24.21.0 installed on demand**
   as hoped — the `NODE_VERSION=24.18.0` fallback in Known edge cases was not
@@ -204,7 +210,7 @@ command; found in Workers Builds it costs a dashboard round-trip.
   the Cloudflare build or a type error ships to production (R15).
 
 - [ ] **8** Push a branch, open a PR, confirm a preview version and URL appear in the Worker's version history. Merge, confirm `main` reaches production.
-- [ ] **9** Re-record the settings above verbatim if anything differed. They live in a dashboard and leave **no trace in git** — the same class of invisible state that R4 warns about.
+- [x] **9** Re-record the settings above verbatim if anything differed. Done 2026-09-21: the table matches the dashboard, including the deploy-command fix. They live in a dashboard and leave **no trace in git** — the same class of invisible state that R4 warns about.
 
 **Never add `cloudflare/wrangler-action` to `.github/workflows/ci.yml`.** Two
 pipelines racing the same production alias is R9. Under D1 the workflow holds no
@@ -308,4 +314,5 @@ product's central guarantee, and it leaves no diff to review.
 | `npx wrangler dev` fails to start                                           | `workerd` postinstall was blocked by the npm `allowScripts` policy      | Not needed — `npm run preview` covers CSP and 404 verification. To enable it, approve the `workerd` install script                |
 | Fork PR gets no preview URL                                                 | By design — secrets are withheld at that trust boundary (R13)           | Solo repo today; a reviewer would build locally                                                                                   |
 | Console: `Error with Permissions-Policy header: Unrecognized feature: 'x'`   | `public/_headers` names a feature the browser does not know                 | Remove it. Found 2026-09-20 with `interest-cohort` (FLoC, long dead). Never add `browsing-topics=()` — Chrome-only, same error in Firefox/Safari. Harmless to function, but it breaks the zero-console-error R4 gate |
+| Build fails immediately after editing a deploy command in the dashboard      | Unterminated quote or other shell typo in the field                         | The dashboard accepts any string and validates nothing; the error surfaces only in the build log. Happened 2026-09-21 — a missing closing `"` on `--message`. The version command was correct, so branch builds kept working while `main` stopped deploying |
 | `wrangler` re-prompts for an account on every command                       | Login has access to several Cloudflare accounts                         | Set `CLOUDFLARE_ACCOUNT_ID` in the shell, or unattended runs hang                                                                 |
