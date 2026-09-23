@@ -187,7 +187,7 @@ Deploy manually once before automating. A config error found here costs one comm
 
 `--message` is **required** in any unattended context: without it `wrangler rollback` prompts twice and hangs the run. `wrangler versions deploy` also prompts interactively — keep it out of automation entirely (R11).
 
-**There are no request logs.** This is an assets-only Worker with no entrypoint script, so requests served from `dist/` execute no user code and `wrangler tail` has nothing to stream. Build and deploy logs live in the Cloudflare dashboard under the Worker's Builds tab; request-level analytics come from the dashboard or the GraphQL Analytics API.
+**There are no request logs.** This is an assets-only Worker with no entrypoint script, so requests served from `dist/` execute no user code and `wrangler tail` has nothing to stream. Build and deploy logs live in the Cloudflare dashboard under the Worker's Builds tab; request-level analytics come from the dashboard or the GraphQL Analytics API. Both are also readable by the agent through the read-only MCP (see _MCP access_ below).
 
 ## Approval boundary
 
@@ -196,6 +196,24 @@ Deploy manually once before automating. A config error found here costs one comm
 OAuth scopes are **account-wide**: `workers_scripts:write` grants write access to every Worker on the account, not only `critical-path`. Per-Worker scoping needs an API token, which D1 rules out. Acceptable while this account holds one Worker; revisit before putting an unrelated production service on it.
 
 **Human only, by hand**: registering or changing the workers.dev subdomain, connecting or disconnecting the GitHub App, deleting the Worker, and **enabling any analytics or observability feature that injects client-side script**. That last one is human-only not because it is destructive but because it silently invalidates the product's central guarantee, and it leaves no diff to review.
+
+### MCP access: read-only
+
+The Cloudflare MCP server (`https://mcp.cloudflare.com/mcp`, `.mcp.json`) is a **second, read-only** path to the account. It exists for what the CLI cannot reach: Workers Builds logs and request analytics. Every write stays on wrangler, inside the boundary above. The MCP's `execute` tool can call any endpoint its grant allows, with no dry-run and no draft default, so a write grant here would bypass that boundary.
+
+Authorised via OAuth on the `/mcp` consent screen. `.mcp.json` holds no credential. Granted, all **Read**:
+
+| Permission             | Covers                                                        |
+| ---------------------- | ------------------------------------------------------------- |
+| Account Read           | Resolving the account; `/accounts/{id}`, memberships           |
+| User Read              | `/user`                                                        |
+| Workers Scripts Read   | Scripts, workers.dev subdomain, deployments, versions          |
+| Workers CI Read        | Workers Builds history and **build logs**                      |
+| Account Analytics Read | GraphQL Analytics API (request counts)                         |
+
+Deliberately **not** granted: any Edit/Write permission, Intel, Radar, Logs (Logpush), zone Analytics, Web Analytics, Workers Observability, Pages, KV, D1, R2, Secrets Store, Billing.
+
+Verified 2026-09-23 by GET-only probes through the MCP. Everything in the table answered. Intel, Logpush, Web Analytics, Observability, Pages, KV, R2 and Billing returned `10000: Authentication error`. The `/zones` listing still returns 200 with an empty list (no zones on the account), and Radar answers without a grant (public data). Neither exposes anything. OAuth grants have no scope-introspection endpoint, so re-run the probes after any re-authorisation. If a consent screen ever offers an Edit permission, decline it.
 
 ## Post-deploy checklist
 
