@@ -8,6 +8,6 @@ import { cn } from "@/lib/utils";
 
 describe("cn", () => {
   it("merges conflicting Tailwind classes, keeping the last one", () => {
-    expect(cn("p-2 bg-slate-100", "bg-fuchsia-950")).toBe("p-2 bg-slate-100");
+    expect(cn("p-2 bg-slate-100", "bg-fuchsia-950")).toBe("p-2 bg-fuchsia-950");
   });
 });
