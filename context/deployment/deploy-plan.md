@@ -161,7 +161,7 @@ Deploy manually once before automating. A config error found here costs one comm
 
   It serves the **full `public/_headers` set** — verified: `permissions-policy`, `referrer-policy`, `x-content-type-options`, `frame-ancestors`, the immutable `/_astro/*` rule and a working 404. This is the pre-merge check that `npm run preview` cannot do, and the reason preview builds are enabled.
 
-  Merge half verified the same day: squash-merged as `50f541b`, production moved to version `6f5b541f-363c-4ce0-b467-238f0c8953bf` tagged `50f541b49b49090e1441a3afc545eadc423cb7ab`. Note the **preview and production versions carry different SHAs for identical content** — a squash merge creates a new commit, so `915a3d6` (preview) and `50f541b` (production) both exist. Expected, not a fault.
+  Merge half verified the same day: squash-merged as `9a84c5e` (formerly `50f541b`; history rewritten 2026-09-26 to change the author email, Cloudflare still records the original SHAs), production moved to version `6f5b541f-363c-4ce0-b467-238f0c8953bf` tagged `50f541b49b49090e1441a3afc545eadc423cb7ab`. Note the **preview and production versions carry different SHAs for identical content** — a squash merge creates a new commit, so `915a3d6` (preview) and `50f541b` (production) both exist. Expected, not a fault.
 
 - [x] **9** Re-record the settings above verbatim if anything differed. Done 2026-09-21: the table matches the dashboard, including the deploy-command fix. They live in a dashboard and leave **no trace in git** — the same class of invisible state that R4 warns about.
 
@@ -268,8 +268,8 @@ Verified 2026-09-23 by GET-only probes through the MCP. Everything in the table 
   **Docs commits were not output-neutral until 2026-09-21.** Tailwind 4 automatic content detection scanned every non-gitignored file, markdown included, so prose words that are also utility names (`static`, `fixed`, `table`, `block`, `visible`) compiled into the CSS bundle and any docs edit changed the asset hash — `Cw2YEzlt` → `7w7kIYbd` on the reflow commit. Fixed by `source(none)` plus an explicit `@source` in `src/styles/global.css`. Commit messages written before that fix describing a docs commit as producing byte-identical output were wrong; the tagging conclusion is unaffected.
 
   Tagged so far:
-  - `deploy-2026-09-20-97163c20` → `6a90f03`, hand-run (superseded `b3e938be` from the same tree)
-  - `deploy-2026-09-20-7c328031` → `17f1627`, first Workers Builds deploy
+  - `deploy-2026-09-20-97163c20` → `fbb88b5` (formerly `6a90f03`), hand-run (superseded `b3e938be` from the same tree)
+  - `deploy-2026-09-20-7c328031` → `f6e347d` (formerly `17f1627`), first Workers Builds deploy
 
 ## Known edge cases
 
