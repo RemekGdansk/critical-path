@@ -254,4 +254,4 @@ None — additive. To roll back, remove `npm test` from the dashboard build comm
 - [x] 2.3 Cloudflare dashboard build command reads `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — 17251af
 - [x] 2.4 With the failing-test commit pushed, `ci` fails at the `npm test` step, `Workers Builds: critical-path` fails in its build log at the test step, and the PR merge button is blocked — 17251af
 - [x] 2.5 After the revert commit, both checks are green — 17251af
-- [ ] 2.6 After the squash merge with `Closes #14`, the `main` Workers build log shows the test step ran, `npx wrangler deployments status` shows the new version tagged with the merge commit, and issue #14 is closed
+- [x] 2.6 After the squash merge with `Closes #14`, the `main` Workers build log shows the test step ran, `npx wrangler deployments status` shows the new version tagged with the merge commit, and issue #14 is closed — 07bdc84
