@@ -1,0 +1,45 @@
+# Mirrors context/foundation/roadmap.md into GitHub Issues and the roadmap
+# Project (scripts/sync-roadmap.mjs). One-way: edit the roadmap, not the issues.
+name: Roadmap sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - context/foundation/roadmap.md
+      - scripts/sync-roadmap.mjs
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: Print the planned changes without applying them
+        type: boolean
+        default: false
+
+# Two overlapping runs could both create the same missing issue.
+concurrency:
+  group: roadmap-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # Same pins as ci.yml; Dependabot bumps both.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+      # The script has no npm dependencies; it drives the preinstalled `gh`.
+      # GITHUB_TOKEN cannot write to a user-owned Project, hence the PAT.
+      - env:
+          GH_TOKEN: ${{ secrets.ROADMAP_SYNC_TOKEN }}
+          DRY_RUN: ${{ inputs.dry-run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            node scripts/sync-roadmap.mjs --dry-run
+          else
+            node scripts/sync-roadmap.mjs
+          fi
