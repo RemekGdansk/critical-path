@@ -229,29 +229,29 @@ None — additive. To roll back, remove `npm test` from the dashboard build comm
 
 #### Automated
 
-- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci`
-- [x] 1.2 `npm test` passes and `npx vitest list` lists only the tests in `src/lib/services/smoke.test.ts`
-- [x] 1.3 A temporarily broken assertion in the smoke test makes `npm test` exit non-zero (reverted afterwards)
-- [x] 1.4 Linting passes: `npm run lint`
-- [x] 1.5 Type check passes: `npx astro check`
-- [x] 1.6 Build passes: `npm run build`
-- [x] 1.7 Probe class is absent from the built CSS: `grep -r "fuchsia-950" dist/` finds nothing
-- [x] 1.8 Editing only the smoke test and rebuilding leaves the `dist/_astro/*.css` filename unchanged
+- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci` — 98ec09e
+- [x] 1.2 `npm test` passes and `npx vitest list` lists only the tests in `src/lib/services/smoke.test.ts` — 98ec09e
+- [x] 1.3 A temporarily broken assertion in the smoke test makes `npm test` exit non-zero (reverted afterwards) — 98ec09e
+- [x] 1.4 Linting passes: `npm run lint` — 98ec09e
+- [x] 1.5 Type check passes: `npx astro check` — 98ec09e
+- [x] 1.6 Build passes: `npm run build` — 98ec09e
+- [x] 1.7 Probe class is absent from the built CSS: `grep -r "fuchsia-950" dist/` finds nothing — 98ec09e
+- [x] 1.8 Editing only the smoke test and rebuilding leaves the `dist/_astro/*.css` filename unchanged — 98ec09e
 
 #### Manual
 
-- [x] 1.9 `PROJECT_RULES.md` Testing/Commands and `README.md` scripts read correctly and name the same test pattern and gate order as the config
+- [x] 1.9 `PROJECT_RULES.md` Testing/Commands and `README.md` scripts read correctly and name the same test pattern and gate order as the config — 98ec09e
 
 ### Phase 2: Deploy gate and proven block
 
 #### Automated
 
-- [ ] 2.1 `deploy-plan.md` build-command row equals the `ci.yml` step order: `grep -n "npm test && npm run build" context/deployment/deploy-plan.md` matches
-- [ ] 2.2 Markdown formatting is clean: `npx prettier --check context/deployment/deploy-plan.md PROJECT_RULES.md README.md`
+- [x] 2.1 `deploy-plan.md` build-command row equals the `ci.yml` step order: `grep -n "npm test && npm run build" context/deployment/deploy-plan.md` matches
+- [x] 2.2 Markdown formatting is clean: `npx prettier --check context/deployment/deploy-plan.md PROJECT_RULES.md README.md`
 
 #### Manual
 
-- [ ] 2.3 Cloudflare dashboard build command reads `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
-- [ ] 2.4 With the failing-test commit pushed, `ci` fails at the `npm test` step, `Workers Builds: critical-path` fails in its build log at the test step, and the PR merge button is blocked
-- [ ] 2.5 After the revert commit, both checks are green
+- [x] 2.3 Cloudflare dashboard build command reads `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
+- [x] 2.4 With the failing-test commit pushed, `ci` fails at the `npm test` step, `Workers Builds: critical-path` fails in its build log at the test step, and the PR merge button is blocked
+- [x] 2.5 After the revert commit, both checks are green
 - [ ] 2.6 After the squash merge with `Closes #14`, the `main` Workers build log shows the test step ran, `npx wrangler deployments status` shows the new version tagged with the merge commit, and issue #14 is closed
