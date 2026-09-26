@@ -3,8 +3,8 @@ version: 2
 updates:
   # Grouped so a quiet week produces one PR, not six. Every PR still has to pass
   # `ci` and `Workers Builds: critical-path`, both required on main — lint,
-  # astro check and a real Cloudflare build are the review this repo has instead
-  # of a test suite.
+  # astro check, `npm test` and a real Cloudflare build are the review every
+  # dependency bump gets.
   - package-ecosystem: npm
     directory: /
     schedule:

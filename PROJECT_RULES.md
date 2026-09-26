@@ -23,6 +23,7 @@ Full lists and forecast rules: @context/foundation/prd.md.
 - `npm run dev` — dev server
 - `npm run lint` — ESLint with type-checked rules
 - `npx astro check` — type-check `.astro` and TS files (CI gate)
+- `npm test` — Vitest, single run (`vitest run`), pure domain logic
 - `npm run build` — static build into `dist/`
 - `npm run preview` — the only way to see the CSP in effect; it is disabled under `npm run dev`
 - `npx wrangler deploy` — manual deploy of a built `dist/`. **Never** `wrangler pages deploy`: Pages and Workers are different products. Auto-deploy on `main` belongs to Cloudflare Workers Builds (@context/deployment/deploy-plan.md)
@@ -41,7 +42,7 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 
 ## Testing
 
-No test runner is configured — `npm test` does not exist. The CI gate is `astro sync` → lint → `astro check` → build (@.github/workflows/ci.yml). Run `npm run lint && npx astro check` before pushing.
+Vitest runs pure domain logic. Tests are colocated as `src/**/*.test.ts` — the only pattern Vitest discovers (@vitest.config.ts) and the pattern Tailwind ignores (@src/styles/global.css), so class names in tests never reach the production CSS. Domain logic lives in `src/lib/services/`, next to its tests. The CI gate is `astro sync` → lint → `astro check` → test → build, run both in @.github/workflows/ci.yml and in the Cloudflare Workers Builds build command. Run `npm run lint && npx astro check && npm test` before pushing.
 
 ## Markdown
 
