@@ -1,7 +1,7 @@
 ---
 change_id: domain-test-gate
 title: Domain test gate
-status: plan_reviewed
+status: implementing
 created: 2026-09-26
 updated: 2026-09-26
 archived_at: null

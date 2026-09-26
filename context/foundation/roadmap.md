@@ -41,7 +41,7 @@ Early-stage project planning needs near-zero-friction task capture, with details
 
 | ID   | Change ID                     | Outcome (user can …)                                                                        | Prerequisites | PRD refs                                    | Status   |
 | ---- | ----------------------------- | ------------------------------------------------------------------------------------------- | ------------- | ------------------------------------------- | -------- |
-| F-01 | domain-test-gate              | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic                  | planning |
+| F-01 | domain-test-gate              | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic                  | in-progress |
 | S-01 | capture-task-graph            | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008              | proposed |
 | S-02 | reject-invalid-dependencies   | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                       | proposed |
 | S-03 | project-file-round-trip       | user can export the project to a named file and import it back identically elsewhere       | S-02          | US-03, FR-007, FR-013, FR-014               | proposed |
@@ -86,7 +86,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Sequenced first because the `quality` goal and absolute Guardrails need an executable gate before the first rule lands; kept to a runner wired into both gates plus one smoke check — no test suites written ahead of the slices that own the rules.
-- **Status:** planning
+- **Status:** in-progress
 
 ## Slices
 

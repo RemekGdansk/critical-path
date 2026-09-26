@@ -6,6 +6,9 @@
 @import "tw-animate-css";
 
 @source "../**/*.{astro,ts,tsx}";
+/* Test files match the glob above but never ship; class names in them must not
+   reach the production CSS. */
+@source not "../**/*.test.ts";
 
 @custom-variant dark (&:is(.dark *));
 

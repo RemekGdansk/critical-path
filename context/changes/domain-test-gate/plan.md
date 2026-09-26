@@ -229,18 +229,18 @@ None — additive. To roll back, remove `npm test` from the dashboard build comm
 
 #### Automated
 
-- [ ] 1.1 Clean install succeeds with the updated lockfile: `npm ci`
-- [ ] 1.2 `npm test` passes and `npx vitest list` lists only the tests in `src/lib/services/smoke.test.ts`
-- [ ] 1.3 A temporarily broken assertion in the smoke test makes `npm test` exit non-zero (reverted afterwards)
-- [ ] 1.4 Linting passes: `npm run lint`
-- [ ] 1.5 Type check passes: `npx astro check`
-- [ ] 1.6 Build passes: `npm run build`
-- [ ] 1.7 Probe class is absent from the built CSS: `grep -r "fuchsia-950" dist/` finds nothing
-- [ ] 1.8 Editing only the smoke test and rebuilding leaves the `dist/_astro/*.css` filename unchanged
+- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci`
+- [x] 1.2 `npm test` passes and `npx vitest list` lists only the tests in `src/lib/services/smoke.test.ts`
+- [x] 1.3 A temporarily broken assertion in the smoke test makes `npm test` exit non-zero (reverted afterwards)
+- [x] 1.4 Linting passes: `npm run lint`
+- [x] 1.5 Type check passes: `npx astro check`
+- [x] 1.6 Build passes: `npm run build`
+- [x] 1.7 Probe class is absent from the built CSS: `grep -r "fuchsia-950" dist/` finds nothing
+- [x] 1.8 Editing only the smoke test and rebuilding leaves the `dist/_astro/*.css` filename unchanged
 
 #### Manual
 
-- [ ] 1.9 `PROJECT_RULES.md` Testing/Commands and `README.md` scripts read correctly and name the same test pattern and gate order as the config
+- [x] 1.9 `PROJECT_RULES.md` Testing/Commands and `README.md` scripts read correctly and name the same test pattern and gate order as the config
 
 ### Phase 2: Deploy gate and proven block
 
