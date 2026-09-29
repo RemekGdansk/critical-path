@@ -82,7 +82,7 @@ Install the diagram libraries and the two shadcn primitives, wire React Flow's C
 
 **File**: `src/components/planner/Planner.tsx` (new)
 
-**Intent**: The single React island root; in this phase it renders `<ReactFlow>` with two hard-coded nodes (START, FINISH) and one edge, `colorMode="light"`, `nodesDraggable={false}`, `nodesConnectable={false}`, `fitView`, plus `<Background>` and `<Controls>`, wrapped in `ReactFlowProvider`.
+**Intent**: The single React island root; in this phase it renders `<ReactFlow>` with two hard-coded nodes (START, FINISH) and one edge — START carries `className: "bg-primary text-primary-foreground"` as a layering probe that competes with `.react-flow__node-default`'s background — `colorMode="light"`, `nodesDraggable={false}`, `nodesConnectable={false}`, `fitView`, plus `<Background>` and `<Controls>`, wrapped in `ReactFlowProvider`.
 
 **Contract**: default-less named export `Planner`, no props. Replaced by the real content in Phase 4.
 
@@ -104,7 +104,7 @@ Install the diagram libraries and the two shadcn primitives, wire React Flow's C
 #### Manual Verification:
 
 - `npm run build && npm run preview`: the page shows START → FINISH with zoom controls and a background grid, and the browser console shows zero CSP violations or other errors
-- Tailwind utilities still apply (toolbar/heading styling unchanged) and React Flow's controls are styled correctly
+- Tailwind utilities beat React Flow's styles: the START node shows its Tailwind `bg-primary` background, not React Flow's default white node background, and React Flow's controls are styled correctly
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase. If lint reports a `react/prop-types` false positive on typed node props, disable that rule for `.tsx` in `eslint.config.js` with a comment citing TypeScript prop checking, and note it in the phase commit.
 
@@ -133,7 +133,7 @@ type DayCountingMode = "calendar-days" | "weekdays";
 
 interface Task {
   id: TaskId;
-  name: string; // trimmed, 1..200 chars
+  name: string; // trimmed, 1..200 UTF-16 code units (`.length`, as `maxLength` counts), well-formed Unicode (`isWellFormed()`)
   predecessors: TaskId[]; // Task ids only, no duplicates, ascending id order
   duration?: number; // S-04
   status: TaskStatus; // "to-do" on creation; S-07
@@ -163,7 +163,7 @@ interface Project {
 
 **Intent**: A single result shape for every edit, using the PRD term Validation Error, so S-02/S-07 add rules without restructuring and S-03 import reuses the same checks.
 
-**Contract**: `ValidationError { rule: ValidationErrorRule; message: string }`, with `ValidationErrorRule` = `"task-name-empty" | "task-name-too-long" | "unknown-task" | "cycle"`; `EditResult = { ok: true; project: Project } | { ok: false; error: ValidationError }`. Messages name the rule and never use "invalid", "conflict" or "blocked" (e.g. "A Task name cannot be empty.", "A Task name can be at most 200 characters.", "Adding this predecessor would create a cycle.").
+**Contract**: `ValidationError { rule: ValidationErrorRule; message: string }`, with `ValidationErrorRule` = `"task-name-empty" | "task-name-too-long" | "task-name-malformed" | "unknown-task" | "cycle"`; `EditResult = { ok: true; project: Project } | { ok: false; error: ValidationError }`. Messages name the rule and never use "invalid", "conflict" or "blocked" (e.g. "A Task name cannot be empty.", "A Task name can be at most 200 characters.", "A Task name cannot contain an incomplete character.", "Adding this predecessor would create a cycle.").
 
 #### 3. Edit functions
 
@@ -201,6 +201,14 @@ interface Project {
 
 **Contract**: see Testing Strategy → Unit Tests.
 
+#### 6. PRD Validation Error list
+
+**File**: `context/foundation/prd.md`
+
+**Intent**: The three name rules are new Validation Errors; record them in the canonical list so S-03's import rejection (FR-014) inherits them instead of rediscovering them.
+
+**Contract**: In the Validation Errors sentence (`prd.md:181`), after "a dependency on an unknown id;", insert "an empty Task name; a Task name longer than 200 characters; a Task name that is not well-formed Unicode;". No other PRD text changes.
+
 ### Success Criteria:
 
 #### Automated Verification:
@@ -226,7 +234,7 @@ Turn a project into React Flow nodes and edges — including the synthetic START
 
 **Intent**: The one place that knows how the model becomes a diagram: START (`id: "start"`) and FINISH (`id: "finish"`) nodes always exist; every Task becomes a node; each predecessor link becomes an edge; a Task with no predecessors gets an edge from START; a Task with no successors gets an edge to FINISH; an empty project gets a single START → FINISH edge. Layout is dagre `rankdir: "LR"` with fixed node sizes.
 
-**Contract**: `layoutDiagram(project: Project): { nodes: DiagramNode[]; edges: DiagramEdge[] }`, where `DiagramNode` is a React Flow `Node` union of `Node<{ name: string; taskId: TaskId }, "task">`, `Node<Record<string, never>, "start">` and `Node<Record<string, never>, "finish">` with top-level `width`/`height` set, `position` converted from dagre's centre to top-left, `targetPosition: "left"`, `sourcePosition: "right"`; edges have deterministic ids `"<source>-><target>"` and a closed arrow marker. Node ids: `"start"`, `"finish"`, and `String(task.id)` for Tasks (React Flow ids are strings; no collision since Task ids are numeric); click handling reads `data.taskId`, never parses the node id. A fresh `new Graph<GraphLabel, NodeLabel, EdgeLabel>()` per call; named imports from `@dagrejs/dagre`; React Flow symbols imported with `import type` only; alias one of the two `Edge` types. Exported size constants (Task node ~180×44, START/FINISH nodes ~96×40).
+**Contract**: `layoutDiagram(project: Project): { nodes: DiagramNode[]; edges: DiagramEdge[] }`, where `DiagramNode` is a React Flow `Node` union of `Node<{ name: string; taskId: TaskId }, "task">`, `Node<Record<string, never>, "start">` and `Node<Record<string, never>, "finish">` with top-level `width`/`height` set, `position` converted from dagre's centre to top-left; no `targetPosition`/`sourcePosition` (React Flow's `Position` is a string enum, not assignable from `"left"` under `import type`; edge sides come from the `<Handle position>` props in the Phase 4 custom nodes); edges have deterministic ids `"<source>-><target>"` and a closed arrow marker. Node ids: `"start"`, `"finish"`, and `String(task.id)` for Tasks (React Flow ids are strings; no collision since Task ids are numeric); click handling reads `data.taskId`, never parses the node id. A fresh `new Graph<GraphLabel, NodeLabel, EdgeLabel>()` per call; named imports from `@dagrejs/dagre`; React Flow symbols imported with `import type` only; alias one of the two `Edge` types. Exported size constants (Task node ~180×44, START/FINISH nodes ~96×40).
 
 #### 2. Performance fixture
 
@@ -281,7 +289,7 @@ Wire the domain to the island: project and selection state, the toolbar "New Tas
 
 **File**: `src/components/planner/Diagram.tsx` (new)
 
-**Intent**: Renders the laid-out project: `useMemo(() => layoutDiagram(project), [project])`, then a second `useMemo` marking the selected Task node `selected: true`. `onNodeClick` selects Task nodes only (START and FINISH ignored); `onPaneClick` clears selection. Refit the view when the set of Task ids changes (create/delete), not on rename or selection.
+**Intent**: Renders the laid-out project: `useMemo(() => layoutDiagram(project), [project])`, then a second `useMemo` marking the selected Task node `selected: true`. `onNodeClick` selects Task nodes only (START and FINISH ignored); `onPaneClick` clears selection. Refit the view when the set of Task ids changes (create/delete), not on rename or selection: `const taskIdsKey = project.tasks.map((t) => t.id).join(",")` and `useEffect(() => { void fitView(); }, [taskIdsKey, fitView])` with `fitView` from `useReactFlow()` (React Flow 12.12 queues `fitView` until nodes are measured).
 
 **Contract**: props `{ project, selectedTaskId, onSelect }`; `<ReactFlow>` with `nodeTypes`, controlled `nodes`/`edges`, no `onNodesChange`, `nodesDraggable={false}`, `nodesConnectable={false}`, `colorMode="light"`, `fitView`, `<Background>`, `<Controls showInteractive={false}>`; handlers wrapped in `useCallback`. Attribution link left as shipped.
 
@@ -305,7 +313,7 @@ Wire the domain to the island: project and selection state, the toolbar "New Tas
 
 **File**: `src/components/planner/Planner.tsx`
 
-**Intent**: Replace the Phase 1 shell: toolbar across the top, diagram filling the rest, side panel on the right; all state from `useProject`. In dev only, `?fixture=perf100` starts from `createPerfProject()` for the 200 ms check.
+**Intent**: Replace the Phase 1 shell, keeping `ReactFlowProvider` in `Planner` wrapping `Diagram` (`useReactFlow()` throws error001 without it): toolbar across the top, diagram filling the rest, side panel on the right; all state from `useProject`. In dev only, `?fixture=perf100` starts from `createPerfProject()` for the 200 ms check.
 
 **Contract**: the fixture branch is guarded by `import.meta.env.DEV` so it is dead-code-eliminated from the production build.
 
@@ -335,7 +343,7 @@ Wire the domain to the island: project and selection state, the toolbar "New Tas
 
 ### Unit Tests:
 
-- `project.test.ts`: `createEmptyProject` shape; `createTask` trims, assigns ids 1, 2, … and increments the counter; empty, whitespace-only and 201-char names are rejected with the right rule while 200 chars are accepted; duplicate names allowed; rename keeps id and predecessors of dependents; rename/delete/add/remove on an unknown id → `unknown-task`; delete removes the id from all dependents, does not bridge (A → B → C, delete B → C has no predecessors, A has no successors), and does not decrement `nextTaskId` (delete Task 3 of three, create → id 4); `addPredecessor` rejects self and a transitive cycle (A → B → C, add C as predecessor of A) with `cycle`, is idempotent for an existing predecessor, and keeps `predecessors` in ascending id order (add 5 then 2 → `[2, 5]`); every rejection leaves the input deep-equal and every call leaves the input unmutated.
+- `project.test.ts`: `createEmptyProject` shape; `createTask` trims, assigns ids 1, 2, … and increments the counter; empty, whitespace-only and 201-unit names are rejected with the right rule while 200 units are accepted, including a 200-unit name ending in an emoji (a surrogate pair counts as 2); a name with a lone surrogate (e.g. `"A\uD83D"`) is rejected with `task-name-malformed`; duplicate names allowed; rename keeps id and predecessors of dependents; rename/delete/add/remove on an unknown id → `unknown-task`; delete removes the id from all dependents, does not bridge (A → B → C, delete B → C has no predecessors, A has no successors), and does not decrement `nextTaskId` (delete Task 3 of three, create → id 4); `addPredecessor` rejects self and a transitive cycle (A → B → C, add C as predecessor of A) with `cycle`, is idempotent for an existing predecessor, and keeps `predecessors` in ascending id order (add 5 then 2 → `[2, 5]`); every rejection leaves the input deep-equal and every call leaves the input unmutated.
 - `task-graph.test.ts`: `wouldCreateCycle` for self, direct, transitive and unrelated cases in a diamond graph; `eligiblePredecessors` excludes self, existing predecessors and all descendants, returns Tasks in ascending numeric id order (2 before 10).
 - `diagram-layout.test.ts`: empty project → START, FINISH, one START → FINISH edge; a lone Task → START → node `"1"` → FINISH; A → B yields START → A, A → B, B → FINISH and no START → B or A → FINISH; node count = tasks + 2 and no edge references a deleted Task; START is left of every Task and FINISH right of every Task; positions are top-left (dagre centre minus half size); edge ids are deterministic; the 100-Task fixture lays out without overlapping node rectangles.
 
@@ -384,7 +392,7 @@ None — no persisted data exists yet. The model shape is the starting point for
 #### Manual
 
 - [ ] 1.3 `npm run build && npm run preview`: the page shows START → FINISH with zoom controls and a background grid, and the browser console shows zero CSP violations or other errors
-- [ ] 1.4 Tailwind utilities still apply (toolbar/heading styling unchanged) and React Flow's controls are styled correctly
+- [ ] 1.4 Tailwind utilities beat React Flow's styles: the START node shows its Tailwind `bg-primary` background, not React Flow's default white node background, and React Flow's controls are styled correctly
 
 ### Phase 2: Domain Model and Edit Functions
 
