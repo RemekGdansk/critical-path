@@ -45,6 +45,12 @@ export function TaskPanel({ task, project, actions }: TaskPanelProps) {
   const tasksById = useMemo(() => new Map(project.tasks.map((candidate) => [candidate.id, candidate])), [project]);
   const eligible = useMemo(() => eligiblePredecessors(project, task.id), [project, task.id]);
 
+  // The picker only chooses; "Add" commits. A closed select fires `change` on arrow
+  // keys and type-ahead, so adding on change would add Tasks the user only browsed past.
+  const [pickedValue, setPickedValue] = useState("");
+  // A choice that another edit made ineligible resolves to the placeholder.
+  const picked = eligible.some((candidate) => String(candidate.id) === pickedValue) ? pickedValue : "";
+
   function commitRename() {
     if (draft === task.name) {
       setRenameError(undefined);
@@ -72,10 +78,12 @@ export function TaskPanel({ task, project, actions }: TaskPanelProps) {
     }
   }
 
-  function handleAddPredecessor(value: string) {
-    const predecessorId = Number(value);
-    if (!Number.isInteger(predecessorId)) return;
-    const result = addPredecessor(task.id, predecessorId);
+  // The CSP's form-action 'none' blocks native submission; the form never navigates.
+  function handleAddPredecessor(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (picked === "") return;
+    const result = addPredecessor(task.id, Number(picked));
+    if (result.ok) setPickedValue("");
     setPredecessorError(result.ok ? undefined : result.error.message);
   }
 
@@ -149,30 +157,34 @@ export function TaskPanel({ task, project, actions }: TaskPanelProps) {
         <Label htmlFor={pickerId} className="mt-2">
           Add predecessor
         </Label>
-        {/* Controlled to the placeholder, so the picker resets after every choice. */}
-        <select
-          id={pickerId}
-          value=""
-          onChange={(event) => {
-            handleAddPredecessor(event.target.value);
-          }}
-          disabled={eligible.length === 0}
-          aria-describedby={eligible.length === 0 ? pickerNoteId : undefined}
-          className={cn(
-            "border-input bg-background h-9 w-full rounded-md border px-3 text-sm shadow-xs outline-none",
-            "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-            "disabled:cursor-not-allowed disabled:opacity-50",
-          )}
-        >
-          <option value="" disabled>
-            Choose a Task…
-          </option>
-          {eligible.map((candidate) => (
-            <option key={candidate.id} value={candidate.id}>
-              {taskLabel(candidate)}
+        <form onSubmit={handleAddPredecessor} className="flex gap-2">
+          <select
+            id={pickerId}
+            value={picked}
+            onChange={(event) => {
+              setPickedValue(event.target.value);
+            }}
+            disabled={eligible.length === 0}
+            aria-describedby={eligible.length === 0 ? pickerNoteId : undefined}
+            className={cn(
+              "border-input bg-background h-9 min-w-0 flex-1 rounded-md border px-3 text-sm shadow-xs outline-none",
+              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
+              "disabled:cursor-not-allowed disabled:opacity-50",
+            )}
+          >
+            <option value="" disabled>
+              Choose a Task…
             </option>
-          ))}
-        </select>
+            {eligible.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {taskLabel(candidate)}
+              </option>
+            ))}
+          </select>
+          <Button type="submit" variant="outline" disabled={picked === ""}>
+            Add
+          </Button>
+        </form>
         {eligible.length === 0 && (
           <p id={pickerNoteId} className="text-muted-foreground text-sm">
             No Task is available: every other Task is already a predecessor or would create a cycle.

@@ -305,7 +305,7 @@ Wire the domain to the island: project and selection state, the toolbar "New Tas
 
 **File**: `src/components/planner/TaskPanel.tsx` (new)
 
-**Intent**: Shown when a Task is selected (otherwise a short hint to select a Task). Contains: a rename field (draft, commit on Enter/blur, rejection message, Escape restores — see Critical Implementation Details); the predecessor list in ascending id order (the order of `task.predecessors`), each entry "7: Name" and a ghost icon button with an accessible label to remove it; a native `<select>` "Add predecessor" whose options are `eligiblePredecessors` in ascending id order, labelled "7: Name", which adds on change and resets to its placeholder (disabled with a note when no Task is eligible); a destructive "Delete Task" button that deletes immediately, with no confirmation.
+**Intent**: Shown when a Task is selected (otherwise a short hint to select a Task). Contains: a rename field (draft, commit on Enter/blur, rejection message, Escape restores — see Critical Implementation Details); the predecessor list in ascending id order (the order of `task.predecessors`), each entry "7: Name" and a ghost icon button with an accessible label to remove it; a native `<select>` "Add predecessor" whose options are `eligiblePredecessors` in ascending id order, labelled "7: Name", which adds with an explicit "Add" button (never on change: a closed select fires `change` on arrow keys and type-ahead) and then resets to its placeholder (disabled with a note when no Task is eligible); a destructive "Delete Task" button that deletes immediately, with no confirmation.
 
 **Contract**: props `{ task, project, actions }`; uses the `--sidebar-*` tokens (`global.css:40-47`); remounted per selected Task (`key={task.id}`) so the rename draft resets on selection change.
 
@@ -423,5 +423,5 @@ None — no persisted data exists yet. The model shape is the starting point for
 - [x] 4.6 Submitting an empty/whitespace name or renaming to empty shows a message naming the rule and leaves the project unchanged; Escape restores the old name — e28c547
 - [x] 4.7 Deleting B (with A → B → C) leaves C hanging off START and A feeding FINISH, clears the panel, and a newly created Task gets a fresh id (not B's) — e28c547
 - [x] 4.8 Nodes cannot be dragged or connected; clicking the pane deselects; clicking START/FINISH selects nothing — e28c547
-- [x] 4.9 200 ms NFR: in `npm run dev` with `?fixture=perf100` in Chrome on the development Mac, adding and removing a predecessor and deleting a Task each commit in under 200 ms in the React Profiler / Performance panel — e28c547
+- [x] 4.9 200 ms NFR: in `npm run dev` with `?fixture=perf100` in Chrome on the development Mac, adding and removing a predecessor and deleting a Task each commit in under 200 ms in the React Profiler / Performance panel — e28c547 (the user confirmed all three under 200 ms on 2026-09-29; figures not recorded)
 - [x] 4.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — e28c547

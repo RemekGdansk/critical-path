@@ -60,6 +60,10 @@ export function Diagram({ project, selectedTaskId, onSelect }: DiagramProps) {
       onPaneClick={handlePaneClick}
       nodesDraggable={false}
       nodesConnectable={false}
+      // Keyboard selection is not built yet: Enter on a focused node would go
+      // through onNodesChange, which is not passed, so focus would be a dead stop.
+      nodesFocusable={false}
+      edgesFocusable={false}
       colorMode="light"
       fitView
     >
