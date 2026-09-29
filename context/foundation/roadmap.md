@@ -3,7 +3,7 @@ project: "Critical Path"
 version: 1
 status: draft
 created: 2026-09-26
-updated: 2026-09-26
+updated: 2026-09-29
 prd_version: 1
 main_goal: quality
 top_blocker: time
@@ -42,7 +42,7 @@ Early-stage project planning needs near-zero-friction task capture, with details
 | ID   | Change ID                   | Outcome (user can …)                                                                        | Prerequisites | PRD refs                              | Status   |
 | ---- | --------------------------- | ------------------------------------------------------------------------------------------- | ------------- | ------------------------------------- | -------- |
 | F-01 | domain-test-gate            | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic            | done     |
-| S-01 | capture-task-graph          | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008        | proposed |
+| S-01 | capture-task-graph          | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008        | planning |
 | S-02 | reject-invalid-dependencies | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                 | proposed |
 | S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | proposed |
 | S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | proposed |
@@ -101,7 +101,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - Does auto-layout plus re-render of a 100-Task diagram fit the 200 ms NFR on the target desktop browsers? — Owner: user. Block: no.
 - **Risk:** Establishes the project model (constant Task ids, id-based references) that every later slice and the file format build on; getting identity wrong here forces rework in S-03.
-- **Status:** proposed
+- **Status:** planning
 
 ### S-02: Reject invalid dependencies with an explanation
 
