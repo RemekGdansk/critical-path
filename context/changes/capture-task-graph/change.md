@@ -1,7 +1,7 @@
 ---
 change_id: capture-task-graph
 title: Capture Tasks and predecessors on an auto-arranged diagram
-status: plan_reviewed
+status: implementing
 created: 2026-09-27
 updated: 2026-09-29
 archived_at: null

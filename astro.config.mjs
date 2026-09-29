@@ -12,6 +12,9 @@ export default defineConfig({
   site: "https://critical-path.remekgdansk.workers.dev",
   output: "static",
   integrations: [react(), sitemap()],
+  // Shiki (the default) emits inline styles the CSP below rejects, and Astro
+  // warns on every build. The app has no markdown pages to highlight.
+  markdown: { syntaxHighlight: false },
   security: {
     // Enforces the PRD guarantee that no project data leaves the device.
     // Astro emits a per-page <meta http-equiv="content-security-policy"> and

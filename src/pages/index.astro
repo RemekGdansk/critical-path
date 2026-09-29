@@ -1,9 +1,11 @@
 ---
 import Layout from "@/layouts/Layout.astro";
+import { Planner } from "@/components/planner/Planner";
 ---
 
 <Layout title="Critical Path">
-  <main class="flex min-h-screen items-center justify-center p-4">
-    <h1 class="text-4xl font-bold">Critical Path</h1>
+  <main class="h-dvh">
+    <!-- client:only is the only permitted directive: server-rendered React Flow markup carries style attributes the CSP rejects. -->
+    <Planner client:only="react" />
   </main>
 </Layout>

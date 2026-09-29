@@ -386,13 +386,13 @@ None — no persisted data exists yet. The model shape is the starting point for
 
 #### Automated
 
-- [ ] 1.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
-- [ ] 1.2 The island is client-only in the built page: `grep -q 'client="only"' dist/index.html` succeeds (no server-rendered React Flow markup with inline styles)
+- [x] 1.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
+- [x] 1.2 The island is client-only in the built page: `grep -q 'client="only"' dist/index.html` succeeds (no server-rendered React Flow markup with inline styles)
 
 #### Manual
 
-- [ ] 1.3 `npm run build && npm run preview`: the page shows START → FINISH with zoom controls and a background grid, and the browser console shows zero CSP violations or other errors
-- [ ] 1.4 Tailwind utilities beat React Flow's styles: the START node shows its Tailwind `bg-primary` background, not React Flow's default white node background, and React Flow's controls are styled correctly
+- [x] 1.3 `npm run build && npm run preview`: the page shows START → FINISH with zoom controls and a background grid, and the browser console shows zero CSP violations or other errors
+- [x] 1.4 Tailwind utilities beat React Flow's styles: the START node shows its Tailwind `bg-primary` background, not React Flow's default white node background, and React Flow's controls are styled correctly
 
 ### Phase 2: Domain Model and Edit Functions
 
