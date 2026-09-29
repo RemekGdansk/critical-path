@@ -398,8 +398,8 @@ None — no persisted data exists yet. The model shape is the starting point for
 
 #### Automated
 
-- [ ] 2.1 Domain tests pass: `npm test`
-- [ ] 2.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
+- [x] 2.1 Domain tests pass: `npm test`
+- [x] 2.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
 
 ### Phase 3: Diagram Projection and Layout
 
