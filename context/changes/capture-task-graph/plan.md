@@ -133,7 +133,7 @@ type DayCountingMode = "calendar-days" | "weekdays";
 
 interface Task {
   id: TaskId;
-  name: string; // trimmed, 1..200 UTF-16 code units (`.length`, as `maxLength` counts), well-formed Unicode (`isWellFormed()`)
+  name: string; // trimmed, 1..200 UTF-16 code units (`.length`, as `maxLength` counts), well-formed Unicode (`isWellFormed()`), at least one visible character, no control characters
   predecessors: TaskId[]; // Task ids only, no duplicates, ascending id order
   duration?: number; // S-04
   status: TaskStatus; // "to-do" on creation; S-07
@@ -163,7 +163,7 @@ interface Project {
 
 **Intent**: A single result shape for every edit, using the PRD term Validation Error, so S-02/S-07 add rules without restructuring and S-03 import reuses the same checks.
 
-**Contract**: `ValidationError { rule: ValidationErrorRule; message: string }`, with `ValidationErrorRule` = `"task-name-empty" | "task-name-too-long" | "task-name-malformed" | "unknown-task" | "cycle"`; `EditResult = { ok: true; project: Project } | { ok: false; error: ValidationError }`. Messages name the rule and never use "invalid", "conflict" or "blocked" (e.g. "A Task name cannot be empty.", "A Task name can be at most 200 characters.", "A Task name cannot contain an incomplete character.", "Adding this predecessor would create a cycle.").
+**Contract**: `ValidationError { rule: ValidationErrorRule; message: string }`, with `ValidationErrorRule` = `"task-name-empty" | "task-name-too-long" | "task-name-malformed" | "task-name-control-character" | "unknown-task" | "cycle"`; `EditResult = { ok: true; project: Project } | { ok: false; error: ValidationError }`. Messages name the rule and never use "invalid", "conflict" or "blocked" (e.g. "A Task name cannot be empty.", "A Task name can be at most 200 characters.", "A Task name cannot contain an incomplete character.", "A Task name cannot contain a line break or other control character.", "Adding this predecessor would create a cycle.").
 
 #### 3. Edit functions
 
@@ -205,9 +205,9 @@ interface Project {
 
 **File**: `context/foundation/prd.md`
 
-**Intent**: The three name rules are new Validation Errors; record them in the canonical list so S-03's import rejection (FR-014) inherits them instead of rediscovering them.
+**Intent**: The Task name rules are new Validation Errors; record them in the canonical list so S-03's import rejection (FR-014) inherits them instead of rediscovering them.
 
-**Contract**: In the Validation Errors sentence (`prd.md:181`), after "a dependency on an unknown id;", insert "an empty Task name; a Task name longer than 200 characters; a Task name that is not well-formed Unicode;". No other PRD text changes.
+**Contract**: In the Validation Errors sentence (`prd.md:181`), after "a dependency on an unknown id;", insert "an empty Task name (including one of only invisible characters); a Task name longer than 200 characters; a Task name that is not well-formed Unicode; a Task name containing a line break or other control character;". No other PRD text changes.
 
 ### Success Criteria:
 
@@ -343,7 +343,7 @@ Wire the domain to the island: project and selection state, the toolbar "New Tas
 
 ### Unit Tests:
 
-- `project.test.ts`: `createEmptyProject` shape; `createTask` trims, assigns ids 1, 2, … and increments the counter; empty, whitespace-only and 201-unit names are rejected with the right rule while 200 units are accepted, including a 200-unit name ending in an emoji (a surrogate pair counts as 2); a name with a lone surrogate (e.g. `"A\uD83D"`) is rejected with `task-name-malformed`; duplicate names allowed; rename keeps id and predecessors of dependents; rename/delete/add/remove on an unknown id → `unknown-task`; delete removes the id from all dependents, does not bridge (A → B → C, delete B → C has no predecessors, A has no successors), and does not decrement `nextTaskId` (delete Task 3 of three, create → id 4); `addPredecessor` rejects self and a transitive cycle (A → B → C, add C as predecessor of A) with `cycle`, is idempotent for an existing predecessor, and keeps `predecessors` in ascending id order (add 5 then 2 → `[2, 5]`); every rejection leaves the input deep-equal and every call leaves the input unmutated.
+- `project.test.ts`: `createEmptyProject` shape; `createTask` trims, assigns ids 1, 2, … and increments the counter; empty, whitespace-only and 201-unit names are rejected with the right rule while 200 units are accepted, including a 200-unit name ending in an emoji (a surrogate pair counts as 2); a name with a lone surrogate (e.g. `"A\uD83D"`) is rejected with `task-name-malformed`; a name of only invisible characters (e.g. `"\u200B"`) is rejected with `task-name-empty`, a name with a line break, tab, U+2028 or NUL with `task-name-control-character`, while an emoji ZWJ sequence is accepted; duplicate names allowed; rename keeps id and predecessors of dependents; rename/delete/add/remove on an unknown id → `unknown-task`; delete removes the id from all dependents, does not bridge (A → B → C, delete B → C has no predecessors, A has no successors), and does not decrement `nextTaskId` (delete Task 3 of three, create → id 4); `addPredecessor` rejects self and a transitive cycle (A → B → C, add C as predecessor of A) with `cycle`, is idempotent for an existing predecessor, and keeps `predecessors` in ascending id order (add 5 then 2 → `[2, 5]`); every rejection leaves the input deep-equal and every call leaves the input unmutated.
 - `task-graph.test.ts`: `wouldCreateCycle` for self, direct, transitive and unrelated cases in a diamond graph; `eligiblePredecessors` excludes self, existing predecessors and all descendants, returns Tasks in ascending numeric id order (2 before 10).
 - `diagram-layout.test.ts`: empty project → START, FINISH, one START → FINISH edge; a lone Task → START → node `"1"` → FINISH; A → B yields START → A, A → B, B → FINISH and no START → B or A → FINISH; node count = tasks + 2 and no edge references a deleted Task; START is left of every Task and FINISH right of every Task; positions are top-left (dagre centre minus half size); edge ids are deterministic; the 100-Task fixture lays out without overlapping node rectangles.
 
@@ -398,8 +398,8 @@ None — no persisted data exists yet. The model shape is the starting point for
 
 #### Automated
 
-- [x] 2.1 Domain tests pass: `npm test`
-- [x] 2.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
+- [x] 2.1 Domain tests pass: `npm test` — e38b228
+- [x] 2.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — e38b228
 
 ### Phase 3: Diagram Projection and Layout
 

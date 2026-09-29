@@ -94,6 +94,22 @@ describe("createTask", () => {
     expectRejected(edit(createTask, createEmptyProject(), " \t\n "), "task-name-empty");
   });
 
+  it("rejects a name made only of invisible characters as empty", () => {
+    expectRejected(edit(createTask, createEmptyProject(), "​​"), "task-name-empty");
+    expectRejected(edit(createTask, createEmptyProject(), " ​﻿ "), "task-name-empty");
+  });
+
+  it("rejects a name with a line break or other control character", () => {
+    for (const name of ["A\nB", "A\tB", "A B", "A\u0000B"]) {
+      expectRejected(edit(createTask, createEmptyProject(), name), "task-name-control-character");
+    }
+  });
+
+  it("accepts an emoji sequence joined by zero-width joiners", () => {
+    const name = "👩‍💻 Design";
+    expect(accepted(edit(createTask, createEmptyProject(), name)).tasks[0]?.name).toBe(name);
+  });
+
   it("accepts 200 code units and rejects 201", () => {
     expect(TASK_NAME_MAX_LENGTH).toBe(200);
     expect(accepted(edit(createTask, createEmptyProject(), "a".repeat(200))).tasks[0]?.name).toHaveLength(200);
@@ -142,6 +158,7 @@ describe("renameTask", () => {
     expectRejected(edit(renameTask, project, 1, "   "), "task-name-empty");
     expectRejected(edit(renameTask, project, 1, "a".repeat(201)), "task-name-too-long");
     expectRejected(edit(renameTask, project, 1, "A\uD83D"), "task-name-malformed");
+    expectRejected(edit(renameTask, project, 1, "A\nB"), "task-name-control-character");
   });
 
   it("rejects an unknown id", () => {
@@ -223,6 +240,7 @@ describe("removePredecessor", () => {
   it("returns the project unchanged for a Task that is not a predecessor", () => {
     const project = withDependencies(projectWith("A", "B", "C"), [1, 3]);
     expect(accepted(edit(removePredecessor, project, 3, 2))).toEqual(project);
+    expect(accepted(edit(removePredecessor, project, 3, 99))).toEqual(project);
   });
 
   it("rejects an unknown Task id", () => {

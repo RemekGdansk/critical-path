@@ -11,7 +11,10 @@ export type DayCountingMode = "calendar-days" | "weekdays";
 
 export interface Task {
   id: TaskId;
-  /** Trimmed, 1..200 UTF-16 code units (`.length`, as `maxLength` counts), well-formed Unicode. */
+  /**
+   * Trimmed, 1..200 UTF-16 code units (`.length`, as `maxLength` counts), well-formed Unicode,
+   * at least one visible character, no control characters.
+   */
   name: string;
   /** Task ids only, no duplicates, ascending id order. */
   predecessors: TaskId[];

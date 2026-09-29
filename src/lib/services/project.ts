@@ -7,7 +7,12 @@ import type { Project, Task, TaskId } from "@/types";
 export const TASK_NAME_MAX_LENGTH = 200;
 
 export type ValidationErrorRule =
-  "task-name-empty" | "task-name-too-long" | "task-name-malformed" | "unknown-task" | "cycle";
+  | "task-name-empty"
+  | "task-name-too-long"
+  | "task-name-malformed"
+  | "task-name-control-character"
+  | "unknown-task"
+  | "cycle";
 
 export interface ValidationError {
   rule: ValidationErrorRule;
@@ -32,13 +37,22 @@ function findTask(project: Project, taskId: TaskId): Task | undefined {
   return project.tasks.find((task) => task.id === taskId);
 }
 
+// Whitespace and invisible format characters (zero-width space, joiners, BOM…):
+// a name made only of these looks empty.
+const INVISIBLE_ONLY = /^[\p{White_Space}\p{Cf}]*$/u;
+// Control characters (tab, line feed…) plus the Unicode line and paragraph separators.
+const CONTROL_CHARACTER = /[\p{Cc}\p{Zl}\p{Zp}]/u;
+
 /** Returns the Validation Error a trimmed Task name would create, if any. */
 function checkTaskName(name: string): EditResult | undefined {
-  if (name.length === 0) return reject("task-name-empty", "A Task name cannot be empty.");
+  if (INVISIBLE_ONLY.test(name)) return reject("task-name-empty", "A Task name cannot be empty.");
   if (name.length > TASK_NAME_MAX_LENGTH) {
     return reject("task-name-too-long", `A Task name can be at most ${TASK_NAME_MAX_LENGTH} characters.`);
   }
   if (!name.isWellFormed()) return reject("task-name-malformed", "A Task name cannot contain an incomplete character.");
+  if (CONTROL_CHARACTER.test(name)) {
+    return reject("task-name-control-character", "A Task name cannot contain a line break or other control character.");
+  }
   return undefined;
 }
 

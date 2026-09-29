@@ -43,6 +43,22 @@ describe("wouldCreateCycle", () => {
     expect(wouldCreateCycle(diamond, 4, 5)).toBe(false);
     expect(wouldCreateCycle(diamond, 5, 4)).toBe(false);
   });
+
+  it("terminates on a dangling predecessor id and on a graph that already holds a cycle", () => {
+    // Neither state can come from the edit functions, but an imported file can hold them.
+    const dangling = projectOf([
+      [1, [99]],
+      [2, []],
+    ]);
+    expect(wouldCreateCycle(dangling, 2, 1)).toBe(false);
+    const cyclic = projectOf([
+      [1, [2]],
+      [2, [1]],
+      [3, []],
+    ]);
+    expect(wouldCreateCycle(cyclic, 3, 1)).toBe(false);
+    expect(wouldCreateCycle(cyclic, 1, 2)).toBe(true);
+  });
 });
 
 describe("eligiblePredecessors", () => {
@@ -78,5 +94,23 @@ describe("successorsOf", () => {
     expect(successorsOf(diamond, 1)).toEqual([2, 3]);
     expect(successorsOf(diamond, 3)).toEqual([4]);
     expect(successorsOf(diamond, 4)).toEqual([]);
+  });
+});
+
+describe("graph queries", () => {
+  it("leave the input project unmutated", () => {
+    const project = projectOf([
+      [1, []],
+      [2, [1]],
+      [3, [1, 2]],
+    ]);
+    const before = structuredClone(project);
+    for (const task of project.tasks) Object.freeze(task.predecessors);
+
+    wouldCreateCycle(project, 1, 3);
+    eligiblePredecessors(project, 1);
+    successorsOf(project, 1);
+
+    expect(project).toEqual(before);
   });
 });
