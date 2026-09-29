@@ -386,42 +386,42 @@ None — no persisted data exists yet. The model shape is the starting point for
 
 #### Automated
 
-- [x] 1.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — 15fd1c2
-- [x] 1.2 The island is client-only in the built page: `grep -q 'client="only"' dist/index.html` succeeds (no server-rendered React Flow markup with inline styles) — 15fd1c2
+- [x] 1.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — 381a02d
+- [x] 1.2 The island is client-only in the built page: `grep -q 'client="only"' dist/index.html` succeeds (no server-rendered React Flow markup with inline styles) — 381a02d
 
 #### Manual
 
-- [x] 1.3 `npm run build && npm run preview`: the page shows START → FINISH with zoom controls and a background grid, and the browser console shows zero CSP violations or other errors — 15fd1c2
-- [x] 1.4 Tailwind utilities beat React Flow's styles: the START node shows its Tailwind `bg-primary` background, not React Flow's default white node background, and React Flow's controls are styled correctly — 15fd1c2
+- [x] 1.3 `npm run build && npm run preview`: the page shows START → FINISH with zoom controls and a background grid, and the browser console shows zero CSP violations or other errors — 381a02d
+- [x] 1.4 Tailwind utilities beat React Flow's styles: the START node shows its Tailwind `bg-primary` background, not React Flow's default white node background, and React Flow's controls are styled correctly — 381a02d
 
 ### Phase 2: Domain Model and Edit Functions
 
 #### Automated
 
-- [x] 2.1 Domain tests pass: `npm test` — e38b228
-- [x] 2.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — e38b228
+- [x] 2.1 Domain tests pass: `npm test` — 381a02d
+- [x] 2.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — 381a02d
 
 ### Phase 3: Diagram Projection and Layout
 
 #### Automated
 
-- [x] 3.1 Layout tests pass: `npm test` — eacf530
-- [x] 3.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — eacf530
+- [x] 3.1 Layout tests pass: `npm test` — 381a02d
+- [x] 3.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — 381a02d
 
 ### Phase 4: Planner UI
 
 #### Automated
 
-- [x] 4.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — e28c547
-- [x] 4.2 Dev fixture is absent from the build: `grep -rlE "perf100|Fixture edit was rejected" dist/` returns nothing — e28c547
+- [x] 4.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — 381a02d
+- [x] 4.2 Dev fixture is absent from the build: `grep -rlE "perf100|Fixture edit was rejected" dist/` returns nothing — 381a02d
 
 #### Manual
 
-- [x] 4.3 MVP flow steps 1–2 under `npm run build && npm run preview`: create A, B, C via the toolbar without leaving the input; set A → B, B → C in the panel; the diagram shows START → A → B → C → FINISH — e28c547
-- [x] 4.4 With A → B → C, selecting A shows neither B nor C in "Add predecessor"; selecting C offers no Task that would close a cycle; START and FINISH never appear as options — e28c547
-- [x] 4.5 Two Tasks named "Design" are distinguishable in the picker and predecessor list by their "N: " id prefix — e28c547
-- [x] 4.6 Submitting an empty/whitespace name or renaming to empty shows a message naming the rule and leaves the project unchanged; Escape restores the old name — e28c547
-- [x] 4.7 Deleting B (with A → B → C) leaves C hanging off START and A feeding FINISH, clears the panel, and a newly created Task gets a fresh id (not B's) — e28c547
-- [x] 4.8 Nodes cannot be dragged or connected; clicking the pane deselects; clicking START/FINISH selects nothing — e28c547
-- [x] 4.9 200 ms NFR: in `npm run dev` with `?fixture=perf100` in Chrome on the development Mac, adding and removing a predecessor and deleting a Task each commit in under 200 ms in the React Profiler / Performance panel — e28c547 (the user confirmed all three under 200 ms on 2026-09-29; figures not recorded)
-- [x] 4.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — e28c547
+- [x] 4.3 MVP flow steps 1–2 under `npm run build && npm run preview`: create A, B, C via the toolbar without leaving the input; set A → B, B → C in the panel; the diagram shows START → A → B → C → FINISH — 381a02d
+- [x] 4.4 With A → B → C, selecting A shows neither B nor C in "Add predecessor"; selecting C offers no Task that would close a cycle; START and FINISH never appear as options — 381a02d
+- [x] 4.5 Two Tasks named "Design" are distinguishable in the picker and predecessor list by their "N: " id prefix — 381a02d
+- [x] 4.6 Submitting an empty/whitespace name or renaming to empty shows a message naming the rule and leaves the project unchanged; Escape restores the old name — 381a02d
+- [x] 4.7 Deleting B (with A → B → C) leaves C hanging off START and A feeding FINISH, clears the panel, and a newly created Task gets a fresh id (not B's) — 381a02d
+- [x] 4.8 Nodes cannot be dragged or connected; clicking the pane deselects; clicking START/FINISH selects nothing — 381a02d
+- [x] 4.9 200 ms NFR: in `npm run dev` with `?fixture=perf100` in Chrome on the development Mac, adding and removing a predecessor and deleting a Task each commit in under 200 ms in the React Profiler / Performance panel — 381a02d (the user confirmed all three under 200 ms on 2026-09-29; figures not recorded)
+- [x] 4.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — 381a02d
