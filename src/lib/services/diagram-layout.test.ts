@@ -4,6 +4,7 @@ import {
   type DiagramNode,
   FINISH_NODE_ID,
   layoutDiagram,
+  RANK_SEPARATION,
   START_FINISH_NODE_HEIGHT,
   START_FINISH_NODE_WIDTH,
   START_NODE_ID,
@@ -161,6 +162,9 @@ describe("layoutDiagram positions", () => {
     expect(centreY(task)).toBe(centreY(start));
     expect(centreY(finish)).toBe(centreY(start));
     expect(start.position.y - task.position.y).toBe((TASK_NODE_HEIGHT - START_FINISH_NODE_HEIGHT) / 2);
+    // Horizontally, ranks are RANK_SEPARATION apart edge to edge; a centre
+    // position would widen the gap by half the difference in width.
+    expect(task.position.x - (start.position.x + START_FINISH_NODE_WIDTH)).toBe(RANK_SEPARATION);
   });
 
   it("lays out the 100-Task fixture without overlapping node rectangles", () => {

@@ -322,7 +322,7 @@ Wire the domain to the island: project and selection state, the toolbar "New Tas
 #### Automated Verification:
 
 - Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
-- Dev fixture is absent from the build: `grep -rl "perf100" dist/` returns nothing
+- Dev fixture is absent from the build: `grep -rlE "perf100|Fixture edit was rejected" dist/` returns nothing
 
 #### Manual Verification:
 
@@ -405,15 +405,15 @@ None — no persisted data exists yet. The model shape is the starting point for
 
 #### Automated
 
-- [x] 3.1 Layout tests pass: `npm test`
-- [x] 3.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
+- [x] 3.1 Layout tests pass: `npm test` — eacf530
+- [x] 3.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build` — eacf530
 
 ### Phase 4: Planner UI
 
 #### Automated
 
 - [ ] 4.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
-- [ ] 4.2 Dev fixture is absent from the build: `grep -rl "perf100" dist/` returns nothing
+- [ ] 4.2 Dev fixture is absent from the build: `grep -rlE "perf100|Fixture edit was rejected" dist/` returns nothing
 
 #### Manual
 

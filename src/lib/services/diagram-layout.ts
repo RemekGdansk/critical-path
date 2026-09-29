@@ -1,7 +1,7 @@
 // The one place that knows how a project becomes a diagram: START and FINISH
 // always exist, every Task is a node, every predecessor link is an edge, a Task
 // without predecessors hangs off START and a Task without successors feeds
-// FINISH. Positions come from dagre with fixed node sizes, so one synchronous
+// FINISH. Positions come from dagre with constant node sizes, so one synchronous
 // pass lays out the whole project. React Flow is imported as types only: this
 // module and its tests never load React.
 import { Graph, layout, type EdgeLabel, type GraphLabel, type NodeLabel } from "@dagrejs/dagre";
@@ -13,6 +13,8 @@ export const TASK_NODE_WIDTH = 180;
 export const TASK_NODE_HEIGHT = 44;
 export const START_FINISH_NODE_WIDTH = 96;
 export const START_FINISH_NODE_HEIGHT = 40;
+/** Horizontal gap between the right edge of one rank and the left edge of the next. */
+export const RANK_SEPARATION = 60;
 
 export const START_NODE_ID = "start";
 export const FINISH_NODE_ID = "finish";
@@ -29,7 +31,7 @@ export interface Diagram {
   edges: DiagramEdge[];
 }
 
-const LAYOUT: GraphLabel = { rankdir: "LR", nodesep: 40, ranksep: 60 };
+const LAYOUT: GraphLabel = { rankdir: "LR", nodesep: 40, ranksep: RANK_SEPARATION };
 
 function taskNodeId(taskId: TaskId): string {
   return String(taskId);
