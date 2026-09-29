@@ -405,8 +405,8 @@ None — no persisted data exists yet. The model shape is the starting point for
 
 #### Automated
 
-- [ ] 3.1 Layout tests pass: `npm test`
-- [ ] 3.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
+- [x] 3.1 Layout tests pass: `npm test`
+- [x] 3.2 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
 
 ### Phase 4: Planner UI
 
