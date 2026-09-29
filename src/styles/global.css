@@ -4,6 +4,8 @@
    compiled into the production bundle, and any docs edit changed the CSS hash. */
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
+/* React Flow's required styles, layered so Tailwind utilities on custom nodes win over them. */
+@import "@xyflow/react/dist/style.css" layer(components);
 
 @source "../**/*.{astro,ts,tsx}";
 /* Test files match the glob above but never ship; class names in them must not
