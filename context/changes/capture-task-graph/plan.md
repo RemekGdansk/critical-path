@@ -412,16 +412,16 @@ None — no persisted data exists yet. The model shape is the starting point for
 
 #### Automated
 
-- [ ] 4.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
-- [ ] 4.2 Dev fixture is absent from the build: `grep -rlE "perf100|Fixture edit was rejected" dist/` returns nothing
+- [x] 4.1 Full gate passes: `npx astro sync && npm run lint && npx astro check && npm test && npm run build`
+- [x] 4.2 Dev fixture is absent from the build: `grep -rlE "perf100|Fixture edit was rejected" dist/` returns nothing
 
 #### Manual
 
-- [ ] 4.3 MVP flow steps 1–2 under `npm run build && npm run preview`: create A, B, C via the toolbar without leaving the input; set A → B, B → C in the panel; the diagram shows START → A → B → C → FINISH
-- [ ] 4.4 With A → B → C, selecting A shows neither B nor C in "Add predecessor"; selecting C offers no Task that would close a cycle; START and FINISH never appear as options
-- [ ] 4.5 Two Tasks named "Design" are distinguishable in the picker and predecessor list by their "N: " id prefix
-- [ ] 4.6 Submitting an empty/whitespace name or renaming to empty shows a message naming the rule and leaves the project unchanged; Escape restores the old name
-- [ ] 4.7 Deleting B (with A → B → C) leaves C hanging off START and A feeding FINISH, clears the panel, and a newly created Task gets a fresh id (not B's)
-- [ ] 4.8 Nodes cannot be dragged or connected; clicking the pane deselects; clicking START/FINISH selects nothing
-- [ ] 4.9 200 ms NFR: in `npm run dev` with `?fixture=perf100` in Chrome on the development Mac, adding and removing a predecessor and deleting a Task each commit in under 200 ms in the React Profiler / Performance panel
-- [ ] 4.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow
+- [x] 4.3 MVP flow steps 1–2 under `npm run build && npm run preview`: create A, B, C via the toolbar without leaving the input; set A → B, B → C in the panel; the diagram shows START → A → B → C → FINISH
+- [x] 4.4 With A → B → C, selecting A shows neither B nor C in "Add predecessor"; selecting C offers no Task that would close a cycle; START and FINISH never appear as options
+- [x] 4.5 Two Tasks named "Design" are distinguishable in the picker and predecessor list by their "N: " id prefix
+- [x] 4.6 Submitting an empty/whitespace name or renaming to empty shows a message naming the rule and leaves the project unchanged; Escape restores the old name
+- [x] 4.7 Deleting B (with A → B → C) leaves C hanging off START and A feeding FINISH, clears the panel, and a newly created Task gets a fresh id (not B's)
+- [x] 4.8 Nodes cannot be dragged or connected; clicking the pane deselects; clicking START/FINISH selects nothing
+- [x] 4.9 200 ms NFR: in `npm run dev` with `?fixture=perf100` in Chrome on the development Mac, adding and removing a predecessor and deleting a Task each commit in under 200 ms in the React Profiler / Performance panel
+- [x] 4.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow
