@@ -22,11 +22,17 @@ export interface ProjectState extends ProjectActions {
   selectedTask: Task | undefined;
 }
 
-/** `initial` may be a lazy initializer, as with `useState`, so a costly project is built once. */
-export function useProject(initial?: Project | (() => Project)): ProjectState {
+/**
+ * `initial` may be a lazy initializer, as with `useState`, so a costly project is built once.
+ * `initialSelectedTaskId` is the Task selected on first render; none by default.
+ */
+export function useProject(
+  initial?: Project | (() => Project),
+  initialSelectedTaskId: TaskId | null = null,
+): ProjectState {
   const [project, setProject] = useState<Project>(initial ?? edits.createEmptyProject);
   // Stored as given and resolved on read: a deleted Task simply resolves to "nothing selected".
-  const [selectedTaskId, setSelectedTaskId] = useState<TaskId | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<TaskId | null>(initialSelectedTaskId);
   // The latest committed project, so two edits in one event (a rename committed
   // on blur, then a click) never apply to a stale render's project.
   const latest = useRef(project);

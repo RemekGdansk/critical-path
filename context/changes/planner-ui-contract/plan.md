@@ -445,29 +445,29 @@ The keydown handler and focus request add no work per render; the 200 ms NFR che
 
 #### Automated
 
-- [x] 4.1 `dist/index.html` contains the skeleton markup and the `<noscript>` line (read the built file)
-- [x] 4.2 Hardcoded-value scan on the view files (now including `PlannerSkeleton.astro`) returns 0 hits
-- [x] 4.3 `npm run lint && npx astro check && npm test && npm run build` pass
+- [x] 4.1 `dist/index.html` contains the skeleton markup and the `<noscript>` line (read the built file) — d212c61
+- [x] 4.2 Hardcoded-value scan on the view files (now including `PlannerSkeleton.astro`) returns 0 hits — d212c61
+- [x] 4.3 `npm run lint && npx astro check && npm test && npm run build` pass — d212c61
 
 #### Manual
 
-- [x] 4.4 First load shows the empty-state copy pointing at New Task; creating a Task switches to the "Select a Task" copy
-- [x] 4.5 With network throttled in `npm run preview`, the skeleton shows and the swap to the live planner causes no visible layout jump
-- [x] 4.6 With JavaScript disabled, the page shows the skeleton and the `<noscript>` line, no CSP errors
-- [x] 4.7 Screenshot at 1440 of empty state and of the skeleton
+- [x] 4.4 First load shows the empty-state copy pointing at New Task; creating a Task switches to the "Select a Task" copy — d212c61
+- [x] 4.5 With network throttled in `npm run preview`, the skeleton shows and the swap to the live planner causes no visible layout jump — d212c61
+- [x] 4.6 With JavaScript disabled, the page shows the skeleton and the `<noscript>` line, no CSP errors — d212c61
+- [x] 4.7 Screenshot at 1440 of empty state and of the skeleton — d212c61
 
 ### Phase 5: Visual gate — dev-only kitchen sink
 
 #### Automated
 
-- [ ] 5.1 `npm run build` emits no `kitchen-sink` file in `dist/` and no `/kitchen-sink` URL in the sitemap
-- [ ] 5.2 Probe: the CSS files in `dist/` are byte-identical between a build with `src/dev/` and one with it temporarily removed
-- [ ] 5.3 `npm run lint && npx astro check && npm test` pass
+- [x] 5.1 `npm run build` emits no `kitchen-sink` file in `dist/` and no `/kitchen-sink` URL in the sitemap
+- [x] 5.2 Probe: the CSS files in `dist/` are byte-identical between a build with `src/dev/` and one with it temporarily removed
+- [x] 5.3 `npm run lint && npx astro check && npm test` pass
 
 #### Manual
 
-- [ ] 5.4 `npm run dev` → `/kitchen-sink` shows all seven cells, each shown or N/A with a reason; mobile width marked N/A (PRD Non-Goal)
-- [ ] 5.5 Screenshots of the kitchen sink at 1440 and 1024 saved to `context/changes/planner-ui-contract/screenshots/`
+- [x] 5.4 `npm run dev` → `/kitchen-sink` shows all seven cells, each shown or N/A with a reason; mobile width marked N/A (PRD Non-Goal)
+- [x] 5.5 Screenshots of the kitchen sink at 1440 and 1024 saved to `context/changes/planner-ui-contract/screenshots/`
 
 ### Phase 6: Guard
 

@@ -152,7 +152,8 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-7"
+                    // The ghost hover surface (--accent) equals this row's --sidebar-accent, so it would not show.
+                    className="hover:bg-background size-7"
                     aria-label={`Remove predecessor ${label}`}
                     onClick={() => {
                       handleRemovePredecessor(predecessorId);
@@ -211,7 +212,8 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
       <Button
         type="button"
         variant="destructive"
-        className="self-start"
+        // The variant's hover (destructive at 90%) is not visible on the near-white panel.
+        className="hover:bg-destructive/80 self-start"
         onClick={() => {
           deleteTask(task.id);
         }}

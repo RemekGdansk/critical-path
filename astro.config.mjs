@@ -5,13 +5,28 @@ import react from "@astrojs/react";
 import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 
+/**
+ * The planner kitchen sink (the /10x-ui visual gate) at /kitchen-sink, injected
+ * for `astro dev` only: the page lives outside src/pages, so `astro build` never
+ * sees it and ships no file and no sitemap entry for it.
+ * @type {import("astro").AstroIntegration}
+ */
+const devKitchenSink = {
+  name: "critical-path:dev-kitchen-sink",
+  hooks: {
+    "astro:config:setup": ({ command, injectRoute }) => {
+      if (command === "dev") injectRoute({ pattern: "/kitchen-sink", entrypoint: "./src/dev/kitchen-sink.astro" });
+    },
+  },
+};
+
 // https://astro.build/config
 export default defineConfig({
   // Set after G3: the workers.dev subdomain is registered and final (D2).
   // Required by @astrojs/sitemap and for canonical URLs.
   site: "https://critical-path.remekgdansk.workers.dev",
   output: "static",
-  integrations: [react(), sitemap()],
+  integrations: [react(), sitemap(), devKitchenSink],
   // Shiki (the default) emits inline styles the CSP below rejects, and Astro
   // warns on every build. The app has no markdown pages to highlight.
   markdown: { syntaxHighlight: false },
