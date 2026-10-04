@@ -3,7 +3,7 @@ project: "Critical Path"
 version: 1
 status: draft
 created: 2026-09-26
-updated: 2026-09-29
+updated: 2026-10-04
 prd_version: 1
 main_goal: quality
 top_blocker: time
@@ -43,7 +43,7 @@ Early-stage project planning needs near-zero-friction task capture, with details
 | ---- | --------------------------- | ------------------------------------------------------------------------------------------- | ------------- | ------------------------------------- | -------- |
 | F-01 | domain-test-gate            | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic            | done     |
 | S-01 | capture-task-graph          | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008        | done     |
-| S-02 | reject-invalid-dependencies | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                 | proposed |
+| S-02 | reject-invalid-dependencies | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                 | planning |
 | S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | proposed |
 | S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | proposed |
 | S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | proposed |
@@ -113,7 +113,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Placed before the north star because import (S-03) must reject hand-edited files containing a cycle, and it should reuse the same rule check rather than a second implementation that could disagree.
-- **Status:** proposed
+- **Status:** planning
 
 ### S-03: Project file round-trip
 
