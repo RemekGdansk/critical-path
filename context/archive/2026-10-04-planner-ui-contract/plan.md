@@ -417,87 +417,87 @@ Changes that landed outside the phases' Changes Required, recorded by `/10x-impl
 
 #### Automated
 
-- [x] 1.1 `package.json` and `package-lock.json` unchanged by the shadcn add — f45aa7d
-- [x] 1.2 Hardcoded-value scan on the view files returns 0 hits — f45aa7d
-- [x] 1.3 `npm run lint && npx astro check && npm test && npm run build` pass — f45aa7d
+- [x] 1.1 `package.json` and `package-lock.json` unchanged by the shadcn add — a6a8f5e
+- [x] 1.2 Hardcoded-value scan on the view files returns 0 hits — a6a8f5e
+- [x] 1.3 `npm run lint && npx astro check && npm test && npm run build` pass — a6a8f5e
 
 #### Manual
 
-- [x] 1.4 Picker fills the row beside "Add" and shows the chevron; focus ring matches the "Task name" input; disabled state (Task with no eligible predecessor) looks disabled and shows the note — f45aa7d
-- [x] 1.5 Adding and removing predecessors works as before, including arrow-key browsing that does not add a Task until "Add" — f45aa7d
-- [x] 1.6 Screenshot at 1440 of the panel with a Task selected, before/after — f45aa7d
+- [x] 1.4 Picker fills the row beside "Add" and shows the chevron; focus ring matches the "Task name" input; disabled state (Task with no eligible predecessor) looks disabled and shows the note — a6a8f5e
+- [x] 1.5 Adding and removing predecessors works as before, including arrow-key browsing that does not add a Task until "Add" — a6a8f5e
+- [x] 1.6 Screenshot at 1440 of the panel with a Task selected, before/after — a6a8f5e
 
 ### Phase 2: Token values (C2)
 
 #### Automated
 
-- [x] 2.1 Hardcoded-value scan on the view files returns 0 hits — aeb0347
-- [x] 2.2 `grep -rn bg-cosmic src` returns nothing — aeb0347
-- [x] 2.3 `npm run lint && npx astro check && npm test && npm run build` pass — aeb0347
-- [x] 2.4 Built CSS in `dist/` contains the `--xy-*` overrides as `var(--…)` references (read the artifact, not `global.css`) — aeb0347
+- [x] 2.1 Hardcoded-value scan on the view files returns 0 hits — 4490f4c
+- [x] 2.2 `grep -rn bg-cosmic src` returns nothing — 4490f4c
+- [x] 2.3 `npm run lint && npx astro check && npm test && npm run build` pass — 4490f4c
+- [x] 2.4 Built CSS in `dist/` contains the `--xy-*` overrides as `var(--…)` references (read the artifact, not `global.css`) — 4490f4c
 
 #### Manual
 
-- [x] 2.5 Screenshot at 1440, before/after, with a small project: canvas is muted, Task nodes read as white cards, edges and arrowheads share one colour and are clearly visible, dots and zoom controls match the palette — aeb0347
-- [x] 2.6 Temporarily changing `--muted-foreground` in devtools recolours edges and arrowheads together — aeb0347
-- [x] 2.7 `npm run preview`: no CSP errors in the console — aeb0347
+- [x] 2.5 Screenshot at 1440, before/after, with a small project: canvas is muted, Task nodes read as white cards, edges and arrowheads share one colour and are clearly visible, dots and zoom controls match the palette — 4490f4c
+- [x] 2.6 Temporarily changing `--muted-foreground` in devtools recolours edges and arrowheads together — 4490f4c
+- [x] 2.7 `npm run preview`: no CSP errors in the console — 4490f4c
 
 ### Phase 3: Keyboard path (C3)
 
 #### Automated
 
-- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions — 2c06759
-- [x] 3.2 Hardcoded-value scan on the view files returns 0 hits — 2c06759
-- [x] 3.3 `npm run lint && npx astro check && npm run build` pass — 2c06759
+- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions — 15856d5
+- [x] 3.2 Hardcoded-value scan on the view files returns 0 hits — 15856d5
+- [x] 3.3 `npm run lint && npx astro check && npm run build` pass — 15856d5
 
 #### Manual
 
-- [x] 3.4 From the New Task input, Tab reaches each Task node in turn, never START or FINISH; each focused node shows the `--ring` focus ring and scrolls into view on a large project (`?fixture=perf100` in dev) — 2c06759
-- [x] 3.5 Enter and Space on a focused node select it and put the caret in "Task name"; re-selecting the same Task by keyboard also focuses it — 2c06759
-- [x] 3.6 Clicking a node selects it without moving focus to the panel — 2c06759
-- [x] 3.7 Delete Task (by keyboard or mouse) returns focus to the New Task input; the Delete and Backspace keys on a focused node do nothing — 2c06759
-- [x] 3.8 Escape on a focused selected node does not leave the panel and the diagram out of sync — 2c06759
-- [x] 3.9 Screenshot at 1440 with a focused (not selected) and a selected Task — 2c06759
+- [x] 3.4 From the New Task input, Tab reaches each Task node in turn, never START or FINISH; each focused node shows the `--ring` focus ring and scrolls into view on a large project (`?fixture=perf100` in dev) — 15856d5
+- [x] 3.5 Enter and Space on a focused node select it and put the caret in "Task name"; re-selecting the same Task by keyboard also focuses it — 15856d5
+- [x] 3.6 Clicking a node selects it without moving focus to the panel — 15856d5
+- [x] 3.7 Delete Task (by keyboard or mouse) returns focus to the New Task input; the Delete and Backspace keys on a focused node do nothing — 15856d5
+- [x] 3.8 Escape on a focused selected node does not leave the panel and the diagram out of sync — 15856d5
+- [x] 3.9 Screenshot at 1440 with a focused (not selected) and a selected Task — 15856d5
 
 ### Phase 4: Empty and loading states (C4, C5)
 
 #### Automated
 
-- [x] 4.1 `dist/index.html` contains the skeleton markup and the `<noscript>` line (read the built file) — d212c61
-- [x] 4.2 Hardcoded-value scan on the view files (now including `PlannerSkeleton.astro`) returns 0 hits — d212c61
-- [x] 4.3 `npm run lint && npx astro check && npm test && npm run build` pass — d212c61
+- [x] 4.1 `dist/index.html` contains the skeleton markup and the `<noscript>` line (read the built file) — afbcdd1
+- [x] 4.2 Hardcoded-value scan on the view files (now including `PlannerSkeleton.astro`) returns 0 hits — afbcdd1
+- [x] 4.3 `npm run lint && npx astro check && npm test && npm run build` pass — afbcdd1
 
 #### Manual
 
-- [x] 4.4 First load shows the empty-state copy pointing at New Task; creating a Task switches to the "Select a Task" copy — d212c61
-- [x] 4.5 With network throttled in `npm run preview`, the skeleton shows and the swap to the live planner causes no visible layout jump — d212c61
-- [x] 4.6 With JavaScript disabled, the page shows the skeleton and the `<noscript>` line, no CSP errors — d212c61
-- [x] 4.7 Screenshot at 1440 of empty state and of the skeleton — d212c61
+- [x] 4.4 First load shows the empty-state copy pointing at New Task; creating a Task switches to the "Select a Task" copy — afbcdd1
+- [x] 4.5 With network throttled in `npm run preview`, the skeleton shows and the swap to the live planner causes no visible layout jump — afbcdd1
+- [x] 4.6 With JavaScript disabled, the page shows the skeleton and the `<noscript>` line, no CSP errors — afbcdd1
+- [x] 4.7 Screenshot at 1440 of empty state and of the skeleton — afbcdd1
 
 ### Phase 5: Visual gate — dev-only kitchen sink
 
 #### Automated
 
-- [x] 5.1 `npm run build` emits no `kitchen-sink` file in `dist/` and no `/kitchen-sink` URL in the sitemap — 2ec3315
-- [x] 5.2 Probe: the CSS files in `dist/` are byte-identical between a build with `src/dev/` and one with it temporarily removed — 2ec3315
-- [x] 5.3 `npm run lint && npx astro check && npm test` pass — 2ec3315
+- [x] 5.1 `npm run build` emits no `kitchen-sink` file in `dist/` and no `/kitchen-sink` URL in the sitemap — c4d807c
+- [x] 5.2 Probe: the CSS files in `dist/` are byte-identical between a build with `src/dev/` and one with it temporarily removed — c4d807c
+- [x] 5.3 `npm run lint && npx astro check && npm test` pass — c4d807c
 
 #### Manual
 
-- [x] 5.4 `npm run dev` → `/kitchen-sink` shows all seven cells, each shown or N/A with a reason; mobile width marked N/A (PRD Non-Goal) — 2ec3315
-- [x] 5.5 Screenshots of the kitchen sink at 1440 and 1024 saved to `context/changes/planner-ui-contract/screenshots/` — 2ec3315
+- [x] 5.4 `npm run dev` → `/kitchen-sink` shows all seven cells, each shown or N/A with a reason; mobile width marked N/A (PRD Non-Goal) — c4d807c
+- [x] 5.5 Screenshots of the kitchen sink at 1440 and 1024 saved to `context/changes/planner-ui-contract/screenshots/` — c4d807c
 
 ### Phase 6: Guard
 
 #### Automated
 
-- [x] 6.1 `npm run lint && npx astro check && npm test && npm run build` pass — 2da5121
-- [x] 6.2 Probe: a temporary `bg-blue-500`, `#fff` and `p-[13px]` in a planner `.tsx` file each make `npm run lint` fail; removing them makes it pass — 2da5121
-- [x] 6.3 Probe: a temporary `<div onClick={…}>` without a key handler in a planner `.tsx` file makes `npm run lint` fail — 2da5121
-- [x] 6.4 `package.json` dependencies unchanged — 2da5121
+- [x] 6.1 `npm run lint && npx astro check && npm test && npm run build` pass — 2541fe1
+- [x] 6.2 Probe: a temporary `bg-blue-500`, `#fff` and `p-[13px]` in a planner `.tsx` file each make `npm run lint` fail; removing them makes it pass — 2541fe1
+- [x] 6.3 Probe: a temporary `<div onClick={…}>` without a key handler in a planner `.tsx` file makes `npm run lint` fail — 2541fe1
+- [x] 6.4 `package.json` dependencies unchanged — 2541fe1
 
 #### Manual
 
-- [x] 6.5 `PROJECT_RULES.md` UI block reads correctly and contradicts no existing rule — 2da5121
-- [x] 6.6 `research.md` charge statuses match what landed — 2da5121
-- [x] 6.7 `/10x-ui` merge checklist (`.claude/skills/10x-ui/references/ui-quality-checklist.md`) walked; `/10x-impl-review` run next — 2da5121
+- [x] 6.5 `PROJECT_RULES.md` UI block reads correctly and contradicts no existing rule — 2541fe1
+- [x] 6.6 `research.md` charge statuses match what landed — 2541fe1
+- [x] 6.7 `/10x-ui` merge checklist (`.claude/skills/10x-ui/references/ui-quality-checklist.md`) walked; `/10x-impl-review` run next — 2541fe1

@@ -1,10 +1,10 @@
 ---
 change_id: planner-ui-contract
 title: Planner UI contract
-status: impl_reviewed
+status: archived
 created: 2026-10-04
 updated: 2026-10-04
-archived_at: null
+archived_at: 2026-10-04T20:37:53Z
 ---
 
 ## Notes
