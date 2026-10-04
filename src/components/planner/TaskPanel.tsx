@@ -1,5 +1,5 @@
 import { XIcon } from "lucide-react";
-import { useId, useMemo, useState, type SubmitEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type SubmitEvent, type KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,12 @@ interface TaskPanelProps {
   task: Task;
   project: Project;
   actions: TaskPanelActions;
+  /**
+   * Set when this Task was selected by keyboard: each new value puts focus in
+   * "Task name", on mount and on a repeat request for the same Task alike.
+   * Undefined for a mouse selection, which leaves focus where it is.
+   */
+  focusRequest?: number;
 }
 
 /** "7: Name" — the id prefix tells apart Tasks that share a name. */
@@ -27,8 +33,13 @@ function taskLabel(task: Task): string {
  * Edits the selected Task. Mount it with `key={task.id}` so the rename draft
  * starts over whenever another Task is selected.
  */
-export function TaskPanel({ task, project, actions }: TaskPanelProps) {
+export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelProps) {
   const { renameTask, deleteTask, addPredecessor, removePredecessor } = actions;
+
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (focusRequest !== undefined) nameRef.current?.focus();
+  }, [focusRequest]);
 
   // The rename draft commits on Enter or blur, not per keystroke, so an
   // intermediate empty name is never rejected while the user is typing.
@@ -97,6 +108,7 @@ export function TaskPanel({ task, project, actions }: TaskPanelProps) {
       <form onSubmit={handleRenameSubmit} className="flex flex-col gap-2">
         <Label htmlFor={nameId}>Task name</Label>
         <Input
+          ref={nameRef}
           id={nameId}
           value={draft}
           onChange={(event) => {
