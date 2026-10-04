@@ -58,6 +58,9 @@ function projectNodes(project: Project): DiagramNode[] {
       id: taskNodeId(task.id),
       type: "task",
       data: { name: task.name, taskId: task.id },
+      // Enter or Space edits the Task, so it is announced as a button named after it.
+      ariaLabel: task.name,
+      ariaRole: "button",
       position: origin,
       width: TASK_NODE_WIDTH,
       height: TASK_NODE_HEIGHT,

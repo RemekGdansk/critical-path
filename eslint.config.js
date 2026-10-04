@@ -68,10 +68,12 @@ const jsxA11yConfig = defineConfig({ ...jsxA11yRecommended, files: ["**/*.tsx"] 
 // The hardcoded-value scan as a lint rule, pinned to the views on the design-system contract.
 // Each pattern is checked in string literals (className values included) and template literal text.
 const literalValuePatterns = [
-  String.raw`#[0-9a-fA-F]{3,8}\b`,
-  String.raw`\b(rgba?|hsla?|oklch)\(`,
-  String.raw`-\[[0-9.]+(px|rem)\]`,
-  String.raw`\b(bg|text|border|ring|outline|from|via|to|fill|stroke|shadow|divide)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|white|black)\b`,
+  // A hex colour as the whole string or after "[", "(", ":" or ",", so prose such as "Task #123" passes.
+  String.raw`(^|[\[(:,])#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b`,
+  String.raw`\b(rgba?|hsla?|hwb|(ok)?lab|(ok)?lch|color)\(`,
+  // Any arbitrary value (w-[50%], bg-[var(--x)], grid-cols-[…]); variants such as data-[state=open]: end in ":" and pass.
+  String.raw`-\[[^\]]+\](?!:)`,
+  String.raw`\b(bg|text|border(-[xytrblse])?|ring(-offset)?|inset-ring|outline|from|via|to|fill|stroke|shadow|inset-shadow|divide|decoration|accent|caret|placeholder)-(slate|gray|zinc|neutral|stone|mauve|olive|mist|taupe|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|white|black)\b`,
 ];
 const literalValueMessage =
   "Use a token class from src/styles/global.css instead of a literal colour, palette class or arbitrary value (PROJECT_RULES.md → UI).";
@@ -84,6 +86,8 @@ const plannerLiteralValuesConfig = defineConfig({
         { selector: `Literal[value=/${pattern}/]`, message: literalValueMessage },
         { selector: `TemplateElement[value.raw=/${pattern}/]`, message: literalValueMessage },
       ]),
+      // Inline styles bypass the tokens, and React sets them through the CSSOM, out of the CSP's reach.
+      { selector: "JSXAttribute[name.name='style']", message: literalValueMessage },
     ],
   },
 });
