@@ -316,39 +316,39 @@ Recorded after `reviews/impl-review.md`; these supersede the sections they name.
 
 #### Automated
 
-- [x] 1.1 `npm test` passes, including the new `calendar-date`, `validation-warnings` and `forecast` suites and the new `project` cases — 17f54a3
-- [x] 1.2 The forecast suite contains the PRD calendar-day example, the US-02 A/B/C/D case, the past-START case, the empty project, the later-created predecessor, the beyond-year-9999 and the PRD Done cases listed above — 17f54a3
-- [x] 1.3 `npm run lint && npx astro check && npm run build` pass — 17f54a3
+- [x] 1.1 `npm test` passes, including the new `calendar-date`, `validation-warnings` and `forecast` suites and the new `project` cases — a206c01
+- [x] 1.2 The forecast suite contains the PRD calendar-day example, the US-02 A/B/C/D case, the past-START case, the empty project, the later-created predecessor, the beyond-year-9999 and the PRD Done cases listed above — a206c01
+- [x] 1.3 `npm run lint && npx astro check && npm run build` pass — a206c01
 
 ### Phase 2: Editing UI
 
 #### Automated
 
-- [x] 2.1 `npm test` passes, including the updated `diagram-layout` assertions (START focusable and selectable, FINISH neither) — a055fe7
-- [x] 2.2 `npm run lint && npx astro check && npm run build` pass — a055fe7
+- [x] 2.1 `npm test` passes, including the updated `diagram-layout` assertions (START focusable and selectable, FINISH neither) — a206c01
+- [x] 2.2 `npm run lint && npx astro check && npm run build` pass — a206c01
 
 #### Manual
 
-- [x] 2.3 In `npm run dev`: typing 5 in Duration and pressing Enter keeps 5; `0`, `-1`, `2.5`, `1e3` and `abc` each show the rule message under the field and leave the Duration unchanged; Escape restores the committed value; clearing the field and pressing Enter removes the Duration — a055fe7
-- [x] 2.4 Clicking START selects it (selected ring) and shows the START panel, also with zero Tasks; clicking FINISH selects nothing; clicking the pane deselects — a055fe7
-- [x] 2.5 From New Task, Tab reaches START with the focus ring, then each Task node; Enter or Space on START puts the caret in START date — a055fe7
-- [x] 2.6 Setting, changing and clearing the START date (picker, typing and the Clear button) works in Chrome, Firefox and Safari; the unset and past-date notes show the expected copy — a055fe7
-- [x] 2.7 Switching selection between START and Tasks swaps the panels; Delete Task still returns focus to New Task — a055fe7
+- [x] 2.3 In `npm run dev`: typing 5 in Duration and pressing Enter keeps 5; `0`, `-1`, `2.5`, `1e3` and `abc` each show the rule message under the field and leave the Duration unchanged; Escape restores the committed value; clearing the field and pressing Enter removes the Duration — a206c01
+- [x] 2.4 Clicking START selects it (selected ring) and shows the START panel, also with zero Tasks; clicking FINISH selects nothing; clicking the pane deselects — a206c01
+- [x] 2.5 From New Task, Tab reaches START with the focus ring, then each Task node; Enter or Space on START puts the caret in START date — a206c01
+- [x] 2.6 Setting, changing and clearing the START date (picker, typing and the Clear button) works in Chrome, Firefox and Safari; the unset and past-date notes show the expected copy — a206c01
+- [x] 2.7 Switching selection between START and Tasks swaps the panels; Delete Task still returns focus to New Task — a206c01
 
 ### Phase 3: Forecast display and warnings
 
 #### Automated
 
-- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions for `durationMissing` and aria labels — 52afdd6
-- [x] 3.2 `npm run lint && npx astro check && npm run build` pass — 52afdd6
-- [x] 3.3 The built CSS in `dist/_astro/` defines `--warning` for both `:root` and `.dark` and the `text-warning` / `border-warning` utilities (read the built file, not `global.css`) — 52afdd6
-- [x] 3.4 `grep -rnwE "ETA|deadline|Deadline" src` returns nothing — 52afdd6
+- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions for `durationMissing` and aria labels — a206c01
+- [x] 3.2 `npm run lint && npx astro check && npm run build` pass — a206c01
+- [x] 3.3 The built CSS in `dist/_astro/` defines `--warning` for both `:root` and `.dark` and the `text-warning` / `border-warning` utilities (read the built file, not `global.css`) — a206c01
+- [x] 3.4 `grep -rnwE "ETA|deadline|Deadline" src` returns nothing — a206c01
 
 #### Manual
 
-- [x] 3.5 MVP flow steps 4–6 under `npm run build && npm run preview`: with START a few weeks ahead and A (5) → B (3) → C (2), both Project Finish Dates equal START + 10 days; adding D with A → D → C withholds them, the strip shows the Validation Warning naming D and D is highlighted; setting D to 4 shows Resource-Unconstrained START + 11 and Resource-Constrained START + 14 — 52afdd6
-- [x] 3.6 A START date in the past shows the forecasting-from-today note and dates computed from today; clearing it shows the not-set note; an empty project shows "Add Tasks to see a forecast." — 52afdd6
-- [x] 3.7 `tokens.md` records `--warning` at 4.5:1 or more against `--card`, `--sidebar` and `--background` in light and dark — 52afdd6
-- [x] 3.8 Kitchen sink at 1440 and 1024: the new cells render; the Duration line and "No Duration" are not clipped; a selected warned node still reads as warned — 52afdd6
-- [x] 3.9 200 ms NFR: in `npm run dev` with `?fixture=perf100`, committing a Duration change commits in under 200 ms in the React Profiler — 52afdd6
-- [x] 3.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — 52afdd6
+- [x] 3.5 MVP flow steps 4–6 under `npm run build && npm run preview`: with START a few weeks ahead and A (5) → B (3) → C (2), both Project Finish Dates equal START + 10 days; adding D with A → D → C withholds them, the strip shows the Validation Warning naming D and D is highlighted; setting D to 4 shows Resource-Unconstrained START + 11 and Resource-Constrained START + 14 — a206c01
+- [x] 3.6 A START date in the past shows the forecasting-from-today note and dates computed from today; clearing it shows the not-set note; an empty project shows "Add Tasks to see a forecast." — a206c01
+- [x] 3.7 `tokens.md` records `--warning` at 4.5:1 or more against `--card`, `--sidebar` and `--background` in light and dark — a206c01
+- [x] 3.8 Kitchen sink at 1440 and 1024: the new cells render; the Duration line and "No Duration" are not clipped; a selected warned node still reads as warned — a206c01
+- [x] 3.9 200 ms NFR: in `npm run dev` with `?fixture=perf100`, committing a Duration change commits in under 200 ms in the React Profiler — a206c01
+- [x] 3.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — a206c01
