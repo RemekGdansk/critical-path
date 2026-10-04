@@ -413,33 +413,33 @@ The keydown handler and focus request add no work per render; the 200 ms NFR che
 
 #### Automated
 
-- [x] 2.1 Hardcoded-value scan on the view files returns 0 hits
-- [x] 2.2 `grep -rn bg-cosmic src` returns nothing
-- [x] 2.3 `npm run lint && npx astro check && npm test && npm run build` pass
-- [x] 2.4 Built CSS in `dist/` contains the `--xy-*` overrides as `var(--…)` references (read the artifact, not `global.css`)
+- [x] 2.1 Hardcoded-value scan on the view files returns 0 hits — aeb0347
+- [x] 2.2 `grep -rn bg-cosmic src` returns nothing — aeb0347
+- [x] 2.3 `npm run lint && npx astro check && npm test && npm run build` pass — aeb0347
+- [x] 2.4 Built CSS in `dist/` contains the `--xy-*` overrides as `var(--…)` references (read the artifact, not `global.css`) — aeb0347
 
 #### Manual
 
-- [x] 2.5 Screenshot at 1440, before/after, with a small project: canvas is muted, Task nodes read as white cards, edges and arrowheads share one colour and are clearly visible, dots and zoom controls match the palette
-- [x] 2.6 Temporarily changing `--muted-foreground` in devtools recolours edges and arrowheads together
-- [x] 2.7 `npm run preview`: no CSP errors in the console
+- [x] 2.5 Screenshot at 1440, before/after, with a small project: canvas is muted, Task nodes read as white cards, edges and arrowheads share one colour and are clearly visible, dots and zoom controls match the palette — aeb0347
+- [x] 2.6 Temporarily changing `--muted-foreground` in devtools recolours edges and arrowheads together — aeb0347
+- [x] 2.7 `npm run preview`: no CSP errors in the console — aeb0347
 
 ### Phase 3: Keyboard path (C3)
 
 #### Automated
 
-- [ ] 3.1 `npm test` passes, including the new `diagram-layout` assertions
-- [ ] 3.2 Hardcoded-value scan on the view files returns 0 hits
-- [ ] 3.3 `npm run lint && npx astro check && npm run build` pass
+- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions
+- [x] 3.2 Hardcoded-value scan on the view files returns 0 hits
+- [x] 3.3 `npm run lint && npx astro check && npm run build` pass
 
 #### Manual
 
-- [ ] 3.4 From the New Task input, Tab reaches each Task node in turn, never START or FINISH; each focused node shows the `--ring` focus ring and scrolls into view on a large project (`?fixture=perf100` in dev)
-- [ ] 3.5 Enter and Space on a focused node select it and put the caret in "Task name"; re-selecting the same Task by keyboard also focuses it
-- [ ] 3.6 Clicking a node selects it without moving focus to the panel
-- [ ] 3.7 Delete Task (by keyboard or mouse) returns focus to the New Task input; the Delete and Backspace keys on a focused node do nothing
-- [ ] 3.8 Escape on a focused selected node does not leave the panel and the diagram out of sync
-- [ ] 3.9 Screenshot at 1440 with a focused (not selected) and a selected Task
+- [x] 3.4 From the New Task input, Tab reaches each Task node in turn, never START or FINISH; each focused node shows the `--ring` focus ring and scrolls into view on a large project (`?fixture=perf100` in dev)
+- [x] 3.5 Enter and Space on a focused node select it and put the caret in "Task name"; re-selecting the same Task by keyboard also focuses it
+- [x] 3.6 Clicking a node selects it without moving focus to the panel
+- [x] 3.7 Delete Task (by keyboard or mouse) returns focus to the New Task input; the Delete and Backspace keys on a focused node do nothing
+- [x] 3.8 Escape on a focused selected node does not leave the panel and the diagram out of sync
+- [x] 3.9 Screenshot at 1440 with a focused (not selected) and a selected Task
 
 ### Phase 4: Empty and loading states (C4, C5)
 

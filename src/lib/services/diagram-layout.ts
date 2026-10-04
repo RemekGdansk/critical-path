@@ -44,9 +44,16 @@ function edge(source: string, target: string): DiagramEdge {
 /** Nodes in a stable order (START, Tasks in creation order, FINISH), not yet positioned. */
 function projectNodes(project: Project): DiagramNode[] {
   const origin = { x: 0, y: 0 };
-  const size = { width: START_FINISH_NODE_WIDTH, height: START_FINISH_NODE_HEIGHT };
+  // START and FINISH select nothing, so they are neither selectable nor a tab stop.
+  // Task nodes leave both unset and follow the diagram-wide settings.
+  const terminal = {
+    width: START_FINISH_NODE_WIDTH,
+    height: START_FINISH_NODE_HEIGHT,
+    focusable: false,
+    selectable: false,
+  };
   return [
-    { id: START_NODE_ID, type: "start", data: {}, position: origin, ...size },
+    { id: START_NODE_ID, type: "start", data: {}, position: origin, ...terminal },
     ...project.tasks.map((task): TaskNodeType => ({
       id: taskNodeId(task.id),
       type: "task",
@@ -55,7 +62,7 @@ function projectNodes(project: Project): DiagramNode[] {
       width: TASK_NODE_WIDTH,
       height: TASK_NODE_HEIGHT,
     })),
-    { id: FINISH_NODE_ID, type: "finish", data: {}, position: origin, ...size },
+    { id: FINISH_NODE_ID, type: "finish", data: {}, position: origin, ...terminal },
   ];
 }
 

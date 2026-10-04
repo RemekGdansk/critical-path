@@ -121,6 +121,16 @@ describe("layoutDiagram projection", () => {
     expect(layoutDiagram(project)).toEqual(layoutDiagram(project));
   });
 
+  it("makes START and FINISH neither focusable nor selectable, and leaves Task nodes to the diagram settings", () => {
+    const { nodes } = layoutDiagram(projectWith("A"));
+    for (const id of [START_NODE_ID, FINISH_NODE_ID]) {
+      expect(nodeById(nodes, id)).toMatchObject({ focusable: false, selectable: false });
+    }
+    const task = nodeById(nodes, "1");
+    expect(task).not.toHaveProperty("focusable");
+    expect(task).not.toHaveProperty("selectable");
+  });
+
   it("does not mutate the project", () => {
     const project = withDependencies(projectWith("A", "B"), [1, 2]);
     const before = structuredClone(project);
