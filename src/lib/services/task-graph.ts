@@ -139,16 +139,6 @@ export function predecessorCandidates(project: Project, taskId: TaskId): Predece
     .map((candidate) => ({ task: candidate, closesCycle: descendants.has(candidate.id) }));
 }
 
-/**
- * Tasks that can become a predecessor of `taskId` without closing a cycle, in
- * ascending id order. Transitional: the picker moves to `predecessorCandidates`.
- */
-export function eligiblePredecessors(project: Project, taskId: TaskId): Task[] {
-  return predecessorCandidates(project, taskId)
-    .filter((candidate) => !candidate.closesCycle)
-    .map((candidate) => candidate.task);
-}
-
 /** Ids of the Tasks that have `taskId` as a predecessor, in creation order. */
 export function successorsOf(project: Project, taskId: TaskId): TaskId[] {
   return project.tasks.filter((task) => task.predecessors.includes(taskId)).map((task) => task.id);

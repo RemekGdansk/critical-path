@@ -28,11 +28,16 @@ function smallProject(): Project {
   return project;
 }
 
+/** Design alone: no other Task can become its predecessor. */
+function onlyTaskProject(): Project {
+  return accepted(createTask(createEmptyProject(), "Design"));
+}
+
 const FIXTURES = {
-  /** Build selected: one predecessor to remove, one eligible Task to add. */
+  /** Build selected: one predecessor to remove, one Task to add and one that would create a cycle. */
   "selected-task": { project: smallProject, selectedTaskId: BUILD },
-  /** Design selected: every other Task depends on it, so none can become its predecessor. */
-  "no-eligible-predecessor": { project: smallProject, selectedTaskId: DESIGN },
+  /** The only Task, selected: the picker has nothing to offer. */
+  "only-task": { project: onlyTaskProject, selectedTaskId: DESIGN },
   empty: { project: createEmptyProject, selectedTaskId: undefined },
 } satisfies Record<string, { project: () => Project; selectedTaskId: TaskId | undefined }>;
 

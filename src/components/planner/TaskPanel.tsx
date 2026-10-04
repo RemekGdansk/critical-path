@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
 import { TASK_NAME_MAX_LENGTH, taskLabel } from "@/lib/services/project";
-import { eligiblePredecessors } from "@/lib/services/task-graph";
+import { predecessorCandidates } from "@/lib/services/task-graph";
 import type { Project, Task } from "@/types";
 
 type TaskPanelActions = Pick<ProjectActions, "renameTask" | "deleteTask" | "addPredecessor" | "removePredecessor">;
@@ -47,15 +47,26 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
   const predecessorsHeadingId = useId();
   const pickerId = useId();
   const pickerNoteId = useId();
+  const predecessorErrorId = useId();
 
   const tasksById = useMemo(() => new Map(project.tasks.map((candidate) => [candidate.id, candidate])), [project]);
-  const eligible = useMemo(() => eligiblePredecessors(project, task.id), [project, task.id]);
+  const candidates = useMemo(() => predecessorCandidates(project, task.id), [project, task.id]);
 
   // The picker only chooses; "Add" commits. A closed select fires `change` on arrow
   // keys and type-ahead, so adding on change would add Tasks the user only browsed past.
   const [pickedValue, setPickedValue] = useState("");
-  // A choice that another edit made ineligible resolves to the placeholder.
-  const picked = eligible.some((candidate) => String(candidate.id) === pickedValue) ? pickedValue : "";
+  // A choice that another edit removed from the candidates resolves to the placeholder.
+  // A refused choice stays picked, so the user sees which Task was refused.
+  const picked = candidates.some((candidate) => String(candidate.task.id) === pickedValue) ? pickedValue : "";
+  const pickerNote =
+    candidates.length > 0
+      ? undefined
+      : project.tasks.length === 1
+        ? "No other Task exists yet."
+        : "No Task is available: every other Task is already a predecessor.";
+  // Never both: a refusal needs a picked candidate, and the note shows only when there is none.
+  const pickerDescribedBy =
+    predecessorError !== undefined ? predecessorErrorId : pickerNote !== undefined ? pickerNoteId : undefined;
 
   function commitRename() {
     if (draft === task.name) {
@@ -66,6 +77,8 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
     if (result.ok) {
       setDraft(result.project.tasks.find((candidate) => candidate.id === task.id)?.name ?? draft);
       setRenameError(undefined);
+      // A shown predecessor error names this Task by its old label.
+      setPredecessorError(undefined);
     } else {
       setRenameError(result.error.message);
     }
@@ -173,17 +186,18 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
               value={picked}
               onChange={(event) => {
                 setPickedValue(event.target.value);
+                setPredecessorError(undefined);
               }}
-              disabled={eligible.length === 0}
-              aria-describedby={eligible.length === 0 ? pickerNoteId : undefined}
+              disabled={pickerNote !== undefined}
+              aria-describedby={pickerDescribedBy}
               className="bg-background"
             >
               <NativeSelectOption value="" disabled>
                 Choose a Task…
               </NativeSelectOption>
-              {eligible.map((candidate) => (
+              {candidates.map(({ task: candidate, closesCycle }) => (
                 <NativeSelectOption key={candidate.id} value={candidate.id}>
-                  {taskLabel(candidate)}
+                  {closesCycle ? `${taskLabel(candidate)} (would create a cycle)` : taskLabel(candidate)}
                 </NativeSelectOption>
               ))}
             </NativeSelect>
@@ -192,13 +206,13 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
             Add
           </Button>
         </form>
-        {eligible.length === 0 && (
+        {pickerNote !== undefined && (
           <p id={pickerNoteId} className="text-muted-foreground text-sm">
-            No Task is available: every other Task is already a predecessor or would create a cycle.
+            {pickerNote}
           </p>
         )}
         {predecessorError !== undefined && (
-          <p role="alert" className="text-destructive text-sm">
+          <p id={predecessorErrorId} role="alert" className="text-destructive text-sm">
             {predecessorError}
           </p>
         )}

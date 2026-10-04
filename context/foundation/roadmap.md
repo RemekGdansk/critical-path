@@ -125,7 +125,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:**
   - Which plain-text format (YAML or JSON) and what stable ordering rules keep exports diff-friendly and hand-editable? — Owner: user. Block: no (decide during planning).
-- **Risk:** The file format should cover every project field listed in US-03 (Durations, Statuses, completion dates, START date, name, day-counting mode) from the start, so later slices fill fields without changing the format; each later rule-owning slice (S-04, S-07) adds its rules to import validation as well as to editing.
+- **Risk:** The file format should cover every project field listed in US-03 (Durations, Statuses, completion dates, START date, name, day-counting mode) from the start, so later slices fill fields without changing the format; each later rule-owning slice (S-04, S-07) adds its rules to import validation as well as to editing. Import must compose S-02's `findCycle` with the START/FINISH Validation Errors (START with a predecessor, a Task depending on FINISH) and with the rest of S-01 follow-up F1 (`context/archive/2026-09-27-capture-task-graph/follow-ups/review-fixes.md`): exported `checkTaskName`, unknown predecessor ids, unique Task ids, no duplicate or unsorted predecessors, and `nextTaskId` above every Task id.
 - **Status:** proposed
 
 ### S-04: Forecast finish dates

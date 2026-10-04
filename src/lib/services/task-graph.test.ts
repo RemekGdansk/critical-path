@@ -1,13 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createPerfProject } from "@/lib/services/fixtures";
-import {
-  cyclePathFor,
-  eligiblePredecessors,
-  findCycle,
-  predecessorCandidates,
-  successorsOf,
-} from "@/lib/services/task-graph";
+import { cyclePathFor, findCycle, predecessorCandidates, successorsOf } from "@/lib/services/task-graph";
 import type { Project, TaskId } from "@/types";
 
 /** Builds a project from `[id, predecessors]` pairs; Task names are "T<id>". */
@@ -196,14 +190,6 @@ describe("predecessorCandidates", () => {
   });
 });
 
-describe("eligiblePredecessors", () => {
-  it("lists the candidates that close no cycle", () => {
-    const ids = (taskId: TaskId) => eligiblePredecessors(diamond, taskId).map((task) => task.id);
-    expect(ids(1)).toEqual([5]);
-    expect(ids(2)).toEqual([3, 5]);
-  });
-});
-
 describe("successorsOf", () => {
   it("lists the Tasks that have the Task as a predecessor", () => {
     expect(successorsOf(diamond, 1)).toEqual([2, 3]);
@@ -268,7 +254,6 @@ describe("graph queries", () => {
     cyclePathFor(project, 1, 3);
     findCycle(project);
     predecessorCandidates(project, 1);
-    eligiblePredecessors(project, 1);
     successorsOf(project, 1);
 
     expect(project).toEqual(before);
