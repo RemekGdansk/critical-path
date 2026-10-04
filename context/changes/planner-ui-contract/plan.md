@@ -428,33 +428,33 @@ The keydown handler and focus request add no work per render; the 200 ms NFR che
 
 #### Automated
 
-- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions
-- [x] 3.2 Hardcoded-value scan on the view files returns 0 hits
-- [x] 3.3 `npm run lint && npx astro check && npm run build` pass
+- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions — 2c06759
+- [x] 3.2 Hardcoded-value scan on the view files returns 0 hits — 2c06759
+- [x] 3.3 `npm run lint && npx astro check && npm run build` pass — 2c06759
 
 #### Manual
 
-- [x] 3.4 From the New Task input, Tab reaches each Task node in turn, never START or FINISH; each focused node shows the `--ring` focus ring and scrolls into view on a large project (`?fixture=perf100` in dev)
-- [x] 3.5 Enter and Space on a focused node select it and put the caret in "Task name"; re-selecting the same Task by keyboard also focuses it
-- [x] 3.6 Clicking a node selects it without moving focus to the panel
-- [x] 3.7 Delete Task (by keyboard or mouse) returns focus to the New Task input; the Delete and Backspace keys on a focused node do nothing
-- [x] 3.8 Escape on a focused selected node does not leave the panel and the diagram out of sync
-- [x] 3.9 Screenshot at 1440 with a focused (not selected) and a selected Task
+- [x] 3.4 From the New Task input, Tab reaches each Task node in turn, never START or FINISH; each focused node shows the `--ring` focus ring and scrolls into view on a large project (`?fixture=perf100` in dev) — 2c06759
+- [x] 3.5 Enter and Space on a focused node select it and put the caret in "Task name"; re-selecting the same Task by keyboard also focuses it — 2c06759
+- [x] 3.6 Clicking a node selects it without moving focus to the panel — 2c06759
+- [x] 3.7 Delete Task (by keyboard or mouse) returns focus to the New Task input; the Delete and Backspace keys on a focused node do nothing — 2c06759
+- [x] 3.8 Escape on a focused selected node does not leave the panel and the diagram out of sync — 2c06759
+- [x] 3.9 Screenshot at 1440 with a focused (not selected) and a selected Task — 2c06759
 
 ### Phase 4: Empty and loading states (C4, C5)
 
 #### Automated
 
-- [ ] 4.1 `dist/index.html` contains the skeleton markup and the `<noscript>` line (read the built file)
-- [ ] 4.2 Hardcoded-value scan on the view files (now including `PlannerSkeleton.astro`) returns 0 hits
-- [ ] 4.3 `npm run lint && npx astro check && npm test && npm run build` pass
+- [x] 4.1 `dist/index.html` contains the skeleton markup and the `<noscript>` line (read the built file)
+- [x] 4.2 Hardcoded-value scan on the view files (now including `PlannerSkeleton.astro`) returns 0 hits
+- [x] 4.3 `npm run lint && npx astro check && npm test && npm run build` pass
 
 #### Manual
 
-- [ ] 4.4 First load shows the empty-state copy pointing at New Task; creating a Task switches to the "Select a Task" copy
-- [ ] 4.5 With network throttled in `npm run preview`, the skeleton shows and the swap to the live planner causes no visible layout jump
-- [ ] 4.6 With JavaScript disabled, the page shows the skeleton and the `<noscript>` line, no CSP errors
-- [ ] 4.7 Screenshot at 1440 of empty state and of the skeleton
+- [x] 4.4 First load shows the empty-state copy pointing at New Task; creating a Task switches to the "Select a Task" copy
+- [x] 4.5 With network throttled in `npm run preview`, the skeleton shows and the swap to the live planner causes no visible layout jump
+- [x] 4.6 With JavaScript disabled, the page shows the skeleton and the `<noscript>` line, no CSP errors
+- [x] 4.7 Screenshot at 1440 of empty state and of the skeleton
 
 ### Phase 5: Visual gate — dev-only kitchen sink
 
