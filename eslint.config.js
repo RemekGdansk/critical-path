@@ -3,6 +3,7 @@ import eslint from "@eslint/js";
 import { defineConfig, includeIgnoreFile } from "eslint/config";
 import eslintPluginPrettier from "eslint-plugin-prettier/recommended";
 import eslintPluginAstro from "eslint-plugin-astro";
+import jsxA11y from "eslint-plugin-jsx-a11y";
 import pluginReact from "eslint-plugin-react";
 import eslintPluginReactHooks from "eslint-plugin-react-hooks";
 import path from "node:path";
@@ -57,6 +58,36 @@ const reactConfig = defineConfig({
   },
 });
 
+// eslint-plugin-astro's jsx-a11y config covers .astro files only; this gives the React views the same rules.
+// eslint-plugin-jsx-a11y ships no type declarations, so its config is typed here by hand.
+/** @type {import("eslint").Linter.Config} */
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access -- untyped plugin, see above
+const jsxA11yRecommended = jsxA11y.flatConfigs.recommended;
+const jsxA11yConfig = defineConfig({ ...jsxA11yRecommended, files: ["**/*.tsx"] });
+
+// The hardcoded-value scan as a lint rule, pinned to the views on the design-system contract.
+// Each pattern is checked in string literals (className values included) and template literal text.
+const literalValuePatterns = [
+  String.raw`#[0-9a-fA-F]{3,8}\b`,
+  String.raw`\b(rgba?|hsla?|oklch)\(`,
+  String.raw`-\[[0-9.]+(px|rem)\]`,
+  String.raw`\b(bg|text|border|ring|outline|from|via|to|fill|stroke|shadow|divide)-(slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|white|black)\b`,
+];
+const literalValueMessage =
+  "Use a token class from src/styles/global.css instead of a literal colour, palette class or arbitrary value (PROJECT_RULES.md → UI).";
+const plannerLiteralValuesConfig = defineConfig({
+  files: ["src/components/planner/**/*.{ts,tsx,astro}"],
+  rules: {
+    "no-restricted-syntax": [
+      "error",
+      ...literalValuePatterns.flatMap((pattern) => [
+        { selector: `Literal[value=/${pattern}/]`, message: literalValueMessage },
+        { selector: `TemplateElement[value.raw=/${pattern}/]`, message: literalValueMessage },
+      ]),
+    ],
+  },
+});
+
 const astroConfig = defineConfig({
   files: ["**/*.astro"],
   languageOptions: {
@@ -81,9 +112,11 @@ export default defineConfig(
   includeIgnoreFile(gitignorePath),
   baseConfig,
   reactConfig,
+  jsxA11yConfig,
   eslintPluginAstro.configs["flat/recommended"],
   eslintPluginAstro.configs["flat/jsx-a11y-recommended"],
   astroConfig,
+  plannerLiteralValuesConfig,
   scriptsConfig,
   eslintPluginPrettier,
 );

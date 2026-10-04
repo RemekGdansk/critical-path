@@ -34,11 +34,19 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 
 - Path alias `@/*` → `./src/*`.
 - No `"use client"` — this is not Next.js.
-- Merge Tailwind classes with `cn()` from `@/lib/utils`; never concatenate class strings.
-- shadcn/ui ("new-york" variant) in `src/components/ui/`; add with `npx shadcn@latest add [name]`.
 - Hooks in `src/hooks/` (matches the `hooks` alias in @components.json), helpers in `src/lib/`, extracted business logic in `src/lib/services/`, shared types in `src/types.ts`.
 - Node 24.21.0 (@.nvmrc), read by CI and by Cloudflare Workers Builds. The app has no environment variables or secrets; the only repo secret is `ROADMAP_SYNC_TOKEN`, used solely by @.github/workflows/roadmap-sync.yml.
 - GitHub Issues with the `roadmap` label are mirrored from @context/foundation/roadmap.md by `scripts/sync-roadmap.mjs` (run on push to `main`, or `node scripts/sync-roadmap.mjs --dry-run` locally). Change roadmap items in the roadmap, never in the issue title or body; the next sync overwrites them. Close a slice's issue with `Closes #N` in its PR, then mark the slice done in the roadmap.
+
+### UI
+
+- Token values live in `:root` (and `.dark`) of @src/styles/global.css and are published as Tailwind classes via `@theme inline`. Reference them by role (`bg-card`, `text-muted-foreground`, `border-sidebar-border`); add a missing role there, never in a view.
+- React Flow is themed through its `--xy-*` variables, mapped onto the tokens in the `.react-flow` block of @src/styles/global.css. Change the canvas colours there, not in props or components.
+- No literal colours (hex, `rgb()`, `hsl()`, `oklch()`), Tailwind palette classes (`bg-blue-500`, `text-white`) or arbitrary values (`p-[13px]`) in views. `npm run lint` rejects them in `src/components/planner/`, and applies jsx-a11y to every `.tsx` file.
+- Check `src/components/ui/` (shadcn/ui, "new-york" variant) before creating a component; add a missing one with `npx shadcn@latest add <name>` instead of hand-building it in a view.
+- After `npx shadcn@latest add`, check that the component imports `cn` from `@/lib/utils` and that no `cn` package was added to @package.json; CLI 4.21.1 does both despite @components.json.
+- Merge Tailwind classes with `cn()` from `@/lib/utils`; never concatenate class strings.
+- The kitchen sink at `/kitchen-sink` (under `npm run dev` only, from `src/dev/`) shows the planner in every state; check UI changes there.
 
 ## Testing
 
