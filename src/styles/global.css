@@ -37,10 +37,10 @@
   --destructive: oklch(0.577 0.245 27.325);
   /* Validation Warnings, kept apart from --destructive (Validation Errors). One role for
      text, icon and border, so it holds 4.5:1 on every surface; contrast in
-     context/changes/forecast-finish-dates/tokens.md. */
+     context/archive/2026-10-04-forecast-finish-dates/tokens.md. */
   --warning: oklch(0.555 0.13 60);
   /* The dots on the diagram canvas: decorative, but visible (2.38:1 on --muted);
-     contrast in context/changes/forecast-finish-dates/tokens.md. */
+     contrast in context/archive/2026-10-04-forecast-finish-dates/tokens.md. */
   --canvas-pattern: oklch(0.708 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
@@ -141,7 +141,7 @@
    setting the non-default name here overrides its hex defaults without a
    specificity fight. Only var(--token) references, so the canvas follows the
    same palette as the rest of the view (and a future .dark with it). Mapping,
-   defaults and contrast: context/changes/planner-ui-contract/tokens.md. */
+   defaults and contrast: context/archive/2026-10-04-planner-ui-contract/tokens.md. */
 .react-flow {
   --xy-edge-stroke: var(--muted-foreground);
   --xy-edge-stroke-selected: var(--foreground);
