@@ -473,13 +473,13 @@ The keydown handler and focus request add no work per render; the 200 ms NFR che
 
 #### Automated
 
-- [x] 6.1 `npm run lint && npx astro check && npm test && npm run build` pass
-- [x] 6.2 Probe: a temporary `bg-blue-500`, `#fff` and `p-[13px]` in a planner `.tsx` file each make `npm run lint` fail; removing them makes it pass
-- [x] 6.3 Probe: a temporary `<div onClick={…}>` without a key handler in a planner `.tsx` file makes `npm run lint` fail
-- [x] 6.4 `package.json` dependencies unchanged
+- [x] 6.1 `npm run lint && npx astro check && npm test && npm run build` pass — 2da5121
+- [x] 6.2 Probe: a temporary `bg-blue-500`, `#fff` and `p-[13px]` in a planner `.tsx` file each make `npm run lint` fail; removing them makes it pass — 2da5121
+- [x] 6.3 Probe: a temporary `<div onClick={…}>` without a key handler in a planner `.tsx` file makes `npm run lint` fail — 2da5121
+- [x] 6.4 `package.json` dependencies unchanged — 2da5121
 
 #### Manual
 
-- [x] 6.5 `PROJECT_RULES.md` UI block reads correctly and contradicts no existing rule
-- [x] 6.6 `research.md` charge statuses match what landed
-- [x] 6.7 `/10x-ui` merge checklist (`.claude/skills/10x-ui/references/ui-quality-checklist.md`) walked; `/10x-impl-review` run next
+- [x] 6.5 `PROJECT_RULES.md` UI block reads correctly and contradicts no existing rule — 2da5121
+- [x] 6.6 `research.md` charge statuses match what landed — 2da5121
+- [x] 6.7 `/10x-ui` merge checklist (`.claude/skills/10x-ui/references/ui-quality-checklist.md`) walked; `/10x-impl-review` run next — 2da5121
