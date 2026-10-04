@@ -65,6 +65,8 @@ export function Diagram({ project, selectedTaskId, onSelect }: DiagramProps) {
       nodesFocusable={false}
       edgesFocusable={false}
       colorMode="light"
+      // null drops React Flow's inline arrowhead colour, so arrowheads read --xy-edge-stroke like the edges.
+      defaultMarkerColor={null}
       fitView
     >
       <Background />
