@@ -147,7 +147,8 @@ export function successorsOf(project: Project, taskId: TaskId): TaskId[] {
 /**
  * Every Task id with each Task after all of its predecessors, in O(tasks +
  * links). Creation order is not enough: a Task may depend on one created after
- * it. Ties keep creation order, so the result is deterministic.
+ * it. The result is deterministic: Tasks without predecessors come in creation
+ * order, every other Task as soon as its last predecessor is placed.
  */
 export function topologicalOrder(project: Project): TaskId[] {
   const taskIds = new Set(project.tasks.map((task) => task.id));

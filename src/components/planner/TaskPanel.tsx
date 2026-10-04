@@ -57,7 +57,6 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
   const nameErrorId = useId();
   const durationId = useId();
   const durationErrorId = useId();
-  const durationNoteId = useId();
   const predecessorsHeadingId = useId();
   const pickerId = useId();
   const pickerNoteId = useId();
@@ -195,18 +194,11 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
           autoComplete="off"
           className="bg-background"
           aria-invalid={durationError !== undefined}
-          aria-describedby={
-            durationError !== undefined ? durationErrorId : task.duration === undefined ? durationNoteId : undefined
-          }
+          aria-describedby={durationError === undefined ? undefined : durationErrorId}
         />
         {durationError !== undefined && (
           <p id={durationErrorId} role="alert" className="text-destructive text-sm">
             {durationError}
-          </p>
-        )}
-        {task.duration === undefined && (
-          <p id={durationNoteId} className="text-muted-foreground text-sm">
-            No Duration yet: a Validation Warning. Both Project Finish Dates are withheld until this Task has one.
           </p>
         )}
       </form>

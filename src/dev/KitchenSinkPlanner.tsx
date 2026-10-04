@@ -67,7 +67,7 @@ const FIXTURES = {
   "selected-task": { project: smallProject, initialSelection: BUILD },
   /** The only Task, selected: the picker has nothing to offer. */
   "only-task": { project: onlyTaskProject, initialSelection: DESIGN },
-  /** Test has no Duration and is selected: warned node, withheld strip, Duration note. */
+  /** Test has no Duration and is selected: warned node, withheld strip. */
   "validation-warning": { project: warnedProject, initialSelection: TEST },
   /** START selected with a past START date: the forecasting-from-today notes. */
   "start-selected": { project: pastStartProject, initialSelection: "start" },

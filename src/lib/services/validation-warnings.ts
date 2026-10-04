@@ -14,7 +14,7 @@ export interface ValidationWarning {
  * One warning per not-Done Task without a Duration, in creation order. A Done
  * Task needs no Duration: only remaining work is forecast.
  */
-export function validationWarnings(project: Project): ValidationWarning[] {
+export function validationWarnings(project: Pick<Project, "tasks">): ValidationWarning[] {
   return project.tasks
     .filter((task) => task.status !== "done" && task.duration === undefined)
     .map((task) => ({ rule: "duration-missing", taskId: task.id, message: `${task.name} has no Duration.` }));

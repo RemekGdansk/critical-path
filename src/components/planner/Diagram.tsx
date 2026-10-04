@@ -26,10 +26,12 @@ interface DiagramProps {
 
 /**
  * The laid-out project. Nodes and edges are derived, never stored: layout runs
- * only when the project changes, and selection is applied in a second, cheap pass.
+ * only when the Tasks change (not on a START date edit), and selection is
+ * applied in a second, cheap pass.
  */
 export function Diagram({ project, selection, onSelect, onEdit }: DiagramProps) {
-  const diagram = useMemo(() => layoutDiagram(project), [project]);
+  const { tasks } = project;
+  const diagram = useMemo(() => layoutDiagram({ tasks }), [tasks]);
   const nodes = useMemo(
     () =>
       selection === null

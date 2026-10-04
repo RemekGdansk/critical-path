@@ -57,7 +57,7 @@ function edge(source: string, target: string): DiagramEdge {
 }
 
 /** Nodes in a stable order (START, Tasks in creation order, FINISH), not yet positioned. */
-function projectNodes(project: Project): DiagramNode[] {
+function projectNodes(project: Pick<Project, "tasks">): DiagramNode[] {
   const origin = { x: 0, y: 0 };
   const warned = new Set(validationWarnings(project).map((warning) => warning.taskId));
   const terminal = { width: START_FINISH_NODE_WIDTH, height: START_FINISH_NODE_HEIGHT };
@@ -102,7 +102,7 @@ function projectNodes(project: Project): DiagramNode[] {
 }
 
 /** Predecessor links plus the synthetic START and FINISH links, in O(tasks + links). */
-function projectEdges(project: Project): DiagramEdge[] {
+function projectEdges(project: Pick<Project, "tasks">): DiagramEdge[] {
   if (project.tasks.length === 0) return [edge(START_NODE_ID, FINISH_NODE_ID)];
 
   // The edit functions never leave a predecessor id without its Task; skipping
@@ -125,7 +125,7 @@ function projectEdges(project: Project): DiagramEdge[] {
   return edges;
 }
 
-export function layoutDiagram(project: Project): Diagram {
+export function layoutDiagram(project: Pick<Project, "tasks">): Diagram {
   const nodes = projectNodes(project);
   const edges = projectEdges(project);
 

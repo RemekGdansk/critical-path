@@ -92,7 +92,7 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
       <div className="flex h-full flex-col">
         <header className="flex items-start justify-between gap-6 border-b px-4 py-3">
           <NewTaskForm ref={newTaskInputRef} createTask={createTask} />
-          <ForecastSummary forecast={projectForecast} taskCount={project.tasks.length} startDate={project.start.date} />
+          <ForecastSummary forecast={projectForecast} tasks={project.tasks} startDate={project.start.date} />
         </header>
         <div className="flex min-h-0 flex-1">
           <div className="min-w-0 flex-1">

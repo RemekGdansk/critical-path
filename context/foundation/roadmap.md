@@ -125,7 +125,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:**
   - Which plain-text format (YAML or JSON) and what stable ordering rules keep exports diff-friendly and hand-editable? — Owner: user. Block: no (decide during planning).
-- **Risk:** The file format should cover every project field listed in US-03 (Durations, Statuses, completion dates, START date, name, day-counting mode) from the start, so later slices fill fields without changing the format; each later rule-owning slice (S-04, S-07) adds its rules to import validation as well as to editing. Import must compose S-02's `findCycle` with the START/FINISH Validation Errors (START with a predecessor, a Task depending on FINISH) and with the rest of S-01 follow-up F1 (`context/archive/2026-09-27-capture-task-graph/follow-ups/review-fixes.md`): exported `checkTaskName`, unknown predecessor ids, unique Task ids, no duplicate or unsorted predecessors, and `nextTaskId` above every Task id.
+- **Risk:** The file format should cover every project field listed in US-03 (Durations, Statuses, completion dates, START date, name, day-counting mode) from the start, so later slices fill fields without changing the format; each later rule-owning slice (S-04, S-07) adds its rules to import validation as well as to editing. Import must compose S-02's `findCycle` with the START/FINISH Validation Errors (START with a predecessor, a Task depending on FINISH) and with the rest of S-01 follow-up F1 (`context/archive/2026-09-27-capture-task-graph/follow-ups/review-fixes.md`): exported `checkTaskName`, unknown predecessor ids, unique Task ids, no duplicate or unsorted predecessors, and `nextTaskId` above every Task id. Import must also validate through the checks S-04 exports (`isIsoDate` for the START date, `isPositiveWholeDays` for Durations) and reject `dayCountingMode: "weekdays"` until S-06 lands: `forecast()` runs during render and throws on a malformed date or a cycle, which would blank the planner.
 - **Status:** proposed
 
 ### S-04: Forecast finish dates
@@ -173,7 +173,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Parallel with:** S-05, S-06, S-08
 - **Blockers:** —
 - **Unknowns:** —
-- **Risk:** The densest rule set in the PRD (seven US-04 acceptance criteria, several indirect-edit rejections); sequenced after the file round-trip so its rules land in editing and import at once.
+- **Risk:** The densest rule set in the PRD (seven US-04 acceptance criteria, several indirect-edit rejections); sequenced after the file round-trip so its rules land in editing and import at once. Done Tasks need no Duration, so S-04's withheld copy ("Forecast not possible until every Task has one." in `ForecastSummary`) must be reworded for not-Done Tasks.
 - **Status:** proposed
 
 ### S-08: Start a new project safely
