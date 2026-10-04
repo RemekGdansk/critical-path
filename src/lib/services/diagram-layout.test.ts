@@ -129,6 +129,7 @@ describe("layoutDiagram projection", () => {
     const task = nodeById(nodes, "1");
     expect(task).not.toHaveProperty("focusable");
     expect(task).not.toHaveProperty("selectable");
+    expect(task).toMatchObject({ ariaLabel: "A", ariaRole: "button" });
   });
 
   it("does not mutate the project", () => {

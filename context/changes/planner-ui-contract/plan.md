@@ -96,6 +96,8 @@ Replace the hand-built predecessor `<select>` with shadcn's `NativeSelect`, adde
 
 **Implementation Note**: After automated verification passes, pause for manual confirmation before the next phase.
 
+**Evidence note (impl-review 2026-10-04)**: 1.1 — `npx shadcn@latest add native-select` did add the `cn` npm package to `package.json`. Instead of stopping as the Contract says, the implementation reverted it and pointed the import at `@/lib/utils` (commit f45aa7d), so the end state is unchanged. The CLI behaviour is now a rule in `PROJECT_RULES.md` → UI. 1.6 — the before/after screenshots were viewed during the phase and not saved; only the Phase 5 kitchen-sink screenshots are in `screenshots/`.
+
 ---
 
 ## Phase 2: Token values (C2)
@@ -154,6 +156,8 @@ Route every colour React Flow draws through roles in `global.css`, give the canv
 - `npm run preview`: no CSP errors in the console
 
 **Implementation Note**: After automated verification passes, pause for manual confirmation before the next phase.
+
+**Evidence note (impl-review 2026-10-04)**: 2.5 — the before/after screenshots were viewed during the phase and not saved. The canvas states are shown in `screenshots/kitchen-sink-*.png`.
 
 ---
 
@@ -216,6 +220,8 @@ Make Task nodes reachable and selectable by keyboard and hand focus to the panel
 
 **Implementation Note**: After automated verification passes, pause for manual confirmation before the next phase.
 
+**Evidence note (impl-review 2026-10-04)**: 3.9 — the focused and selected screenshots were viewed during the phase and not saved. The kitchen sink's focus-visible cell is "shown on action", so no saved image shows the focus ring.
+
 ---
 
 ## Phase 4: Empty and loading states (C4, C5)
@@ -258,6 +264,8 @@ Give the first-run empty project a real empty state, and the `client:only` islan
 - Screenshot at 1440 of empty state and of the skeleton
 
 **Implementation Note**: After automated verification passes, pause for manual confirmation before the next phase.
+
+**Evidence note (impl-review 2026-10-04)**: 4.7 — the empty-state and skeleton screenshots were viewed during the phase and not saved. Both states appear in `screenshots/kitchen-sink-*.png` (empty and loading cells).
 
 ---
 
@@ -390,6 +398,16 @@ The keydown handler and focus request add no work per render; the 200 ms NFR che
 - `/10x-ui` contract and 7-state matrix: `.claude/skills/10x-ui/SKILL.md`
 - Lessons: `context/foundation/lessons.md` ("Verify the artifact, not the config", "Pin the build's input set")
 - React Flow theming variables: `node_modules/@xyflow/react/dist/style.css:6-47`
+
+## Addenda
+
+Changes that landed outside the phases' Changes Required, recorded by `/10x-impl-review` (2026-10-04). All use token classes only.
+
+- Phase 2 (aeb0347): `.react-flow__attribution a { color: var(--muted-foreground) }` in `global.css`. React Flow sets that link's colour as a literal with no `--xy-*` variable; recorded in `tokens.md`.
+- Phase 4 (d212c61): `<main>` in `src/pages/index.astro` became `flex h-dvh flex-col`, so the skeleton's `flex-1` fills the page and the swap to the island does not jump.
+- Phase 5 (2ec3315): hover states the gate surfaced: `transition-colors` and `hover:border-ring` on unselected Task nodes (`TaskNode.tsx`), and hover backgrounds on the remove (×) button and on Delete Task (`TaskPanel.tsx`).
+- Phase 5 (2ec3315): a new deferred charge, C6 (no refit when the container is resized), in `research.md`.
+- Review fixes (impl-review F1, F2, F6): Task nodes carry `ariaLabel`/`ariaRole` plus a corrected React Flow node description; the planner literal-value lint is wider than the `/10x-ui` scan; and `PlannerSkeleton` has a visually hidden loading status. See `reviews/impl-review.md`.
 
 ## Progress
 

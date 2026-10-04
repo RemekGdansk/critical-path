@@ -9,6 +9,10 @@ import type { Project, TaskId } from "@/types";
 
 // Module scope: an inline object would make React Flow re-mount every node on each render.
 const nodeTypes = { task: TaskNode, start: StartNode, finish: FinishNode };
+// Module scope for the same reason. React Flow's default node description
+// (shown while keyboard a11y is on, despite the key's name) promises arrow-key
+// moves and Delete, and neither exists here.
+const ariaLabelConfig = { "node.a11yDescription.keyboardDisabled": "Press Enter or Space to edit this Task." };
 
 interface DiagramProps {
   project: Project;
@@ -90,6 +94,7 @@ export function Diagram({ project, selectedTaskId, onSelect, onEdit }: DiagramPr
       edgesFocusable={false}
       // Delete Task has no confirmation, so no key on the diagram may delete anything.
       deleteKeyCode={null}
+      ariaLabelConfig={ariaLabelConfig}
       colorMode="light"
       // null drops React Flow's inline arrowhead colour, so arrowheads read --xy-edge-stroke like the edges.
       defaultMarkerColor={null}
