@@ -7,10 +7,12 @@
 import { Graph, layout, type EdgeLabel, type GraphLabel, type NodeLabel } from "@dagrejs/dagre";
 import type { Edge as FlowEdge, Node } from "@xyflow/react";
 
-import type { Project, TaskId } from "@/types";
+import { validationWarnings } from "@/lib/services/validation-warnings";
+import type { Project, Task, TaskId } from "@/types";
 
 export const TASK_NODE_WIDTH = 180;
-export const TASK_NODE_HEIGHT = 44;
+/** Two lines: the name, then the Duration or "No Duration". */
+export const TASK_NODE_HEIGHT = 52;
 export const START_FINISH_NODE_WIDTH = 96;
 export const START_FINISH_NODE_HEIGHT = 40;
 /** Horizontal gap between the right edge of one rank and the left edge of the next. */
@@ -19,8 +21,11 @@ export const RANK_SEPARATION = 60;
 export const START_NODE_ID = "start";
 export const FINISH_NODE_ID = "finish";
 
-/** Click handling reads `data.taskId`; the node id is `String(taskId)` and is never parsed. */
-export type TaskNodeType = Node<{ name: string; taskId: TaskId }, "task">;
+/**
+ * Click handling reads `data.taskId`; the node id is `String(taskId)` and is never parsed.
+ * `durationMissing` is the Task's duration-missing Validation Warning, from validationWarnings.
+ */
+export type TaskNodeType = Node<{ name: string; taskId: TaskId; duration?: number; durationMissing: boolean }, "task">;
 export type StartNodeType = Node<Record<string, never>, "start">;
 export type FinishNodeType = Node<Record<string, never>, "finish">;
 export type DiagramNode = TaskNodeType | StartNodeType | FinishNodeType;
@@ -37,6 +42,16 @@ function taskNodeId(taskId: TaskId): string {
   return String(taskId);
 }
 
+/** "1 day", "5 days". */
+export function formatDuration(days: number): string {
+  return days === 1 ? "1 day" : `${days} days`;
+}
+
+function taskAriaLabel(task: Task, durationMissing: boolean): string {
+  if (durationMissing) return `${task.name}, no Duration (Validation Warning)`;
+  return task.duration === undefined ? task.name : `${task.name}, ${formatDuration(task.duration)}`;
+}
+
 function edge(source: string, target: string): DiagramEdge {
   return { id: `${source}->${target}`, source, target, markerEnd: { type: "arrowclosed" } };
 }
@@ -44,6 +59,7 @@ function edge(source: string, target: string): DiagramEdge {
 /** Nodes in a stable order (START, Tasks in creation order, FINISH), not yet positioned. */
 function projectNodes(project: Project): DiagramNode[] {
   const origin = { x: 0, y: 0 };
+  const warned = new Set(validationWarnings(project).map((warning) => warning.taskId));
   const terminal = { width: START_FINISH_NODE_WIDTH, height: START_FINISH_NODE_HEIGHT };
   return [
     // START and Task nodes leave focusable and selectable unset and follow the
@@ -60,8 +76,13 @@ function projectNodes(project: Project): DiagramNode[] {
     ...project.tasks.map((task): TaskNodeType => ({
       id: taskNodeId(task.id),
       type: "task",
-      data: { name: task.name, taskId: task.id },
-      ariaLabel: task.name,
+      data: {
+        name: task.name,
+        taskId: task.id,
+        ...(task.duration === undefined ? {} : { duration: task.duration }),
+        durationMissing: warned.has(task.id),
+      },
+      ariaLabel: taskAriaLabel(task, warned.has(task.id)),
       ariaRole: "button",
       position: origin,
       width: TASK_NODE_WIDTH,

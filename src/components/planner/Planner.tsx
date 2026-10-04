@@ -1,13 +1,15 @@
 import { ReactFlowProvider } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import { Diagram } from "@/components/planner/Diagram";
+import { ForecastSummary } from "@/components/planner/ForecastSummary";
 import { NewTaskForm } from "@/components/planner/NewTaskForm";
 import { StartPanel } from "@/components/planner/StartPanel";
 import { TaskPanel } from "@/components/planner/TaskPanel";
 import { useProject, type Selection } from "@/hooks/useProject";
 import { todayIsoDate } from "@/lib/services/calendar-date";
 import { createPerfProject } from "@/lib/services/fixtures";
+import { forecast } from "@/lib/services/forecast";
 import { createEmptyProject } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
 
@@ -48,6 +50,7 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
 
   // Read on every render, so any edit after midnight picks up the new day.
   const today = todayIsoDate(new Date());
+  const projectForecast = useMemo(() => forecast(project, today), [project, today]);
 
   // A keyboard selection asks the panel to focus its first field ("Task name"
   // or "START date"). The request names its target and carries a fresh number
@@ -87,8 +90,9 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
     // useReactFlow() in Diagram throws without a provider above it.
     <ReactFlowProvider>
       <div className="flex h-full flex-col">
-        <header className="border-b px-4 py-3">
+        <header className="flex items-start justify-between gap-6 border-b px-4 py-3">
           <NewTaskForm ref={newTaskInputRef} createTask={createTask} />
+          <ForecastSummary forecast={projectForecast} taskCount={project.tasks.length} startDate={project.start.date} />
         </header>
         <div className="flex min-h-0 flex-1">
           <div className="min-w-0 flex-1">
