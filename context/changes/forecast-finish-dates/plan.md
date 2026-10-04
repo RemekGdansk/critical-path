@@ -304,24 +304,24 @@ None: no persisted data exists before S-03. Existing projects in memory have no 
 
 #### Automated
 
-- [x] 1.1 `npm test` passes, including the new `calendar-date`, `validation-warnings` and `forecast` suites and the new `project` cases
-- [x] 1.2 The forecast suite contains the PRD calendar-day example, the US-02 A/B/C/D case, the past-START case, the empty project, the later-created predecessor, the beyond-year-9999 and the PRD Done cases listed above
-- [x] 1.3 `npm run lint && npx astro check && npm run build` pass
+- [x] 1.1 `npm test` passes, including the new `calendar-date`, `validation-warnings` and `forecast` suites and the new `project` cases — 17f54a3
+- [x] 1.2 The forecast suite contains the PRD calendar-day example, the US-02 A/B/C/D case, the past-START case, the empty project, the later-created predecessor, the beyond-year-9999 and the PRD Done cases listed above — 17f54a3
+- [x] 1.3 `npm run lint && npx astro check && npm run build` pass — 17f54a3
 
 ### Phase 2: Editing UI
 
 #### Automated
 
-- [ ] 2.1 `npm test` passes, including the updated `diagram-layout` assertions (START focusable and selectable, FINISH neither)
-- [ ] 2.2 `npm run lint && npx astro check && npm run build` pass
+- [x] 2.1 `npm test` passes, including the updated `diagram-layout` assertions (START focusable and selectable, FINISH neither)
+- [x] 2.2 `npm run lint && npx astro check && npm run build` pass
 
 #### Manual
 
-- [ ] 2.3 In `npm run dev`: typing 5 in Duration and pressing Enter keeps 5; `0`, `-1`, `2.5`, `1e3` and `abc` each show the rule message under the field and leave the Duration unchanged; Escape restores the committed value; clearing the field and pressing Enter removes the Duration
-- [ ] 2.4 Clicking START selects it (selected ring) and shows the START panel, also with zero Tasks; clicking FINISH selects nothing; clicking the pane deselects
-- [ ] 2.5 From New Task, Tab reaches START with the focus ring, then each Task node; Enter or Space on START puts the caret in START date
-- [ ] 2.6 Setting, changing and clearing the START date (picker, typing and the Clear button) works in Chrome, Firefox and Safari; the unset and past-date notes show the expected copy
-- [ ] 2.7 Switching selection between START and Tasks swaps the panels; Delete Task still returns focus to New Task
+- [x] 2.3 In `npm run dev`: typing 5 in Duration and pressing Enter keeps 5; `0`, `-1`, `2.5`, `1e3` and `abc` each show the rule message under the field and leave the Duration unchanged; Escape restores the committed value; clearing the field and pressing Enter removes the Duration
+- [x] 2.4 Clicking START selects it (selected ring) and shows the START panel, also with zero Tasks; clicking FINISH selects nothing; clicking the pane deselects
+- [x] 2.5 From New Task, Tab reaches START with the focus ring, then each Task node; Enter or Space on START puts the caret in START date
+- [x] 2.6 Setting, changing and clearing the START date (picker, typing and the Clear button) works in Chrome, Firefox and Safari; the unset and past-date notes show the expected copy
+- [x] 2.7 Switching selection between START and Tasks swaps the panels; Delete Task still returns focus to New Task
 
 ### Phase 3: Forecast display and warnings
 

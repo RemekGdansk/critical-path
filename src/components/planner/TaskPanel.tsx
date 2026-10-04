@@ -10,7 +10,10 @@ import { TASK_NAME_MAX_LENGTH, taskLabel } from "@/lib/services/project";
 import { predecessorCandidates } from "@/lib/services/task-graph";
 import type { Project, Task } from "@/types";
 
-type TaskPanelActions = Pick<ProjectActions, "renameTask" | "deleteTask" | "addPredecessor" | "removePredecessor">;
+type TaskPanelActions = Pick<
+  ProjectActions,
+  "renameTask" | "deleteTask" | "addPredecessor" | "removePredecessor" | "setDuration"
+>;
 
 interface TaskPanelProps {
   task: Task;
@@ -24,12 +27,17 @@ interface TaskPanelProps {
   focusRequest?: number;
 }
 
+/** The Duration as the field shows it; empty when unset. */
+function durationText(task: Task): string {
+  return task.duration === undefined ? "" : String(task.duration);
+}
+
 /**
- * Edits the selected Task. Mount it with `key={task.id}` so the rename draft
- * starts over whenever another Task is selected.
+ * Edits the selected Task. Mount it with `key={task.id}` so the rename and
+ * Duration drafts start over whenever another Task is selected.
  */
 export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelProps) {
-  const { renameTask, deleteTask, addPredecessor, removePredecessor } = actions;
+  const { renameTask, deleteTask, addPredecessor, removePredecessor, setDuration } = actions;
 
   const nameRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -41,9 +49,15 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
   const [draft, setDraft] = useState(task.name);
   const [renameError, setRenameError] = useState<string | undefined>(undefined);
   const [predecessorError, setPredecessorError] = useState<string | undefined>(undefined);
+  // The Duration draft commits the same way, on Enter or blur.
+  const [durationDraft, setDurationDraft] = useState(durationText(task));
+  const [durationError, setDurationError] = useState<string | undefined>(undefined);
 
   const nameId = useId();
   const nameErrorId = useId();
+  const durationId = useId();
+  const durationErrorId = useId();
+  const durationNoteId = useId();
   const predecessorsHeadingId = useId();
   const pickerId = useId();
   const pickerNoteId = useId();
@@ -97,6 +111,35 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
     }
   }
 
+  function commitDuration() {
+    if (durationDraft === durationText(task)) {
+      setDurationError(undefined);
+      return;
+    }
+    const result = setDuration(task.id, durationDraft);
+    if (result.ok) {
+      // Shows the Duration as stored: "05" becomes "5", " 3 " becomes "3".
+      const updated = result.project.tasks.find((candidate) => candidate.id === task.id);
+      setDurationDraft(updated === undefined ? durationDraft : durationText(updated));
+      setDurationError(undefined);
+    } else {
+      setDurationError(result.error.message);
+    }
+  }
+
+  // The CSP's form-action 'none' blocks native submission; the form never navigates.
+  function handleDurationSubmit(event: SubmitEvent<HTMLFormElement>) {
+    event.preventDefault();
+    commitDuration();
+  }
+
+  function handleDurationKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      setDurationDraft(durationText(task));
+      setDurationError(undefined);
+    }
+  }
+
   // The CSP's form-action 'none' blocks native submission; the form never navigates.
   function handleAddPredecessor(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -133,6 +176,37 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
         {renameError !== undefined && (
           <p id={nameErrorId} role="alert" className="text-destructive text-sm">
             {renameError}
+          </p>
+        )}
+      </form>
+
+      <form onSubmit={handleDurationSubmit} className="flex flex-col gap-2">
+        <Label htmlFor={durationId}>Duration (days)</Label>
+        <Input
+          id={durationId}
+          type="text"
+          inputMode="numeric"
+          value={durationDraft}
+          onChange={(event) => {
+            setDurationDraft(event.target.value);
+          }}
+          onBlur={commitDuration}
+          onKeyDown={handleDurationKeyDown}
+          autoComplete="off"
+          className="bg-background"
+          aria-invalid={durationError !== undefined}
+          aria-describedby={
+            durationError !== undefined ? durationErrorId : task.duration === undefined ? durationNoteId : undefined
+          }
+        />
+        {durationError !== undefined && (
+          <p id={durationErrorId} role="alert" className="text-destructive text-sm">
+            {durationError}
+          </p>
+        )}
+        {task.duration === undefined && (
+          <p id={durationNoteId} className="text-muted-foreground text-sm">
+            No Duration yet: a Validation Warning. Both Project Finish Dates are withheld until this Task has one.
           </p>
         )}
       </form>

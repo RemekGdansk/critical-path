@@ -3,8 +3,10 @@ import { useCallback, useRef, useState } from "react";
 
 import { Diagram } from "@/components/planner/Diagram";
 import { NewTaskForm } from "@/components/planner/NewTaskForm";
+import { StartPanel } from "@/components/planner/StartPanel";
 import { TaskPanel } from "@/components/planner/TaskPanel";
-import { useProject } from "@/hooks/useProject";
+import { useProject, type Selection } from "@/hooks/useProject";
+import { todayIsoDate } from "@/lib/services/calendar-date";
 import { createPerfProject } from "@/lib/services/fixtures";
 import { createEmptyProject } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
@@ -24,31 +26,46 @@ function initialProject(): Project {
 interface PlannerProps {
   /** Starts from this project instead of the default one; the dev-only kitchen sink passes its fixtures here. */
   initialProject?: Project;
-  /** The Task selected on first render; none by default. */
-  initialSelectedTaskId?: TaskId;
+  /** What is selected on first render; nothing by default. */
+  initialSelection?: Selection;
 }
 
 /** The single React island: toolbar across the top, diagram filling the rest, side panel on the right. */
-export function Planner({ initialProject: givenProject, initialSelectedTaskId }: PlannerProps = {}) {
-  const { project, selectedTask, select, createTask, renameTask, deleteTask, addPredecessor, removePredecessor } =
-    useProject(givenProject ?? initialProject, initialSelectedTaskId);
+export function Planner({ initialProject: givenProject, initialSelection }: PlannerProps = {}) {
+  const {
+    project,
+    selection,
+    selectedTask,
+    select,
+    createTask,
+    renameTask,
+    deleteTask,
+    addPredecessor,
+    removePredecessor,
+    setDuration,
+    setStartDate,
+  } = useProject(givenProject ?? initialProject, initialSelection);
 
-  // A keyboard selection asks the panel to focus "Task name". The request names
-  // its Task and carries a fresh number each time, so the panel honours it on
-  // mount and when the same Task is selected again by keyboard; a mouse
-  // selection clears it, so a click never moves focus.
-  const [focusRequest, setFocusRequest] = useState<{ taskId: TaskId; id: number } | null>(null);
+  // Read on every render, so any edit after midnight picks up the new day.
+  const today = todayIsoDate(new Date());
+
+  // A keyboard selection asks the panel to focus its first field ("Task name"
+  // or "START date"). The request names its target and carries a fresh number
+  // each time, so the panel honours it on mount and when the same target is
+  // selected again by keyboard; a mouse selection clears it, so a click never
+  // moves focus.
+  const [focusRequest, setFocusRequest] = useState<{ target: TaskId | "start"; id: number } | null>(null);
   const handleSelect = useCallback(
-    (taskId: TaskId | null) => {
-      select(taskId);
+    (target: Selection) => {
+      select(target);
       setFocusRequest(null);
     },
     [select],
   );
   const handleEdit = useCallback(
-    (taskId: TaskId) => {
-      select(taskId);
-      setFocusRequest((previous) => ({ taskId, id: (previous?.id ?? 0) + 1 }));
+    (target: TaskId | "start") => {
+      select(target);
+      setFocusRequest((previous) => ({ target, id: (previous?.id ?? 0) + 1 }));
     },
     [select],
   );
@@ -75,25 +92,32 @@ export function Planner({ initialProject: givenProject, initialSelectedTaskId }:
         </header>
         <div className="flex min-h-0 flex-1">
           <div className="min-w-0 flex-1">
-            <Diagram project={project} selectedTaskId={selectedTask?.id} onSelect={handleSelect} onEdit={handleEdit} />
+            <Diagram project={project} selection={selection} onSelect={handleSelect} onEdit={handleEdit} />
           </div>
           <aside
-            aria-label="Selected Task"
+            aria-label={selection === "start" ? "START" : "Selected Task"}
             className="border-sidebar-border bg-sidebar text-sidebar-foreground w-80 shrink-0 overflow-y-auto border-l p-4"
           >
-            {project.tasks.length === 0 ? (
+            {selection === "start" ? (
+              <StartPanel
+                project={project}
+                today={today}
+                setStartDate={setStartDate}
+                focusRequest={focusRequest?.target === "start" ? focusRequest.id : undefined}
+              />
+            ) : project.tasks.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 No Tasks yet. Type a name in New Task above and press Enter.
               </p>
             ) : selectedTask === undefined ? (
-              <p className="text-muted-foreground text-sm">Select a Task on the diagram to edit it.</p>
+              <p className="text-muted-foreground text-sm">Select START or a Task on the diagram to edit it.</p>
             ) : (
               <TaskPanel
                 key={selectedTask.id}
                 task={selectedTask}
                 project={project}
-                actions={{ renameTask, deleteTask: handleDeleteTask, addPredecessor, removePredecessor }}
-                focusRequest={focusRequest?.taskId === selectedTask.id ? focusRequest.id : undefined}
+                actions={{ renameTask, deleteTask: handleDeleteTask, addPredecessor, removePredecessor, setDuration }}
+                focusRequest={focusRequest?.target === selectedTask.id ? focusRequest.id : undefined}
               />
             )}
           </aside>

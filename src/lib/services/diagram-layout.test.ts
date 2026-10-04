@@ -121,15 +121,16 @@ describe("layoutDiagram projection", () => {
     expect(layoutDiagram(project)).toEqual(layoutDiagram(project));
   });
 
-  it("makes START and FINISH neither focusable nor selectable, and leaves Task nodes to the diagram settings", () => {
+  it("leaves START to the diagram settings like a Task node; FINISH is neither focusable nor selectable", () => {
     const { nodes } = layoutDiagram(projectWith("A"));
-    for (const id of [START_NODE_ID, FINISH_NODE_ID]) {
-      expect(nodeById(nodes, id)).toMatchObject({ focusable: false, selectable: false });
+    expect(nodeById(nodes, FINISH_NODE_ID)).toMatchObject({ focusable: false, selectable: false });
+    for (const id of [START_NODE_ID, "1"]) {
+      const node = nodeById(nodes, id);
+      expect(node).not.toHaveProperty("focusable");
+      expect(node).not.toHaveProperty("selectable");
     }
-    const task = nodeById(nodes, "1");
-    expect(task).not.toHaveProperty("focusable");
-    expect(task).not.toHaveProperty("selectable");
-    expect(task).toMatchObject({ ariaLabel: "A", ariaRole: "button" });
+    expect(nodeById(nodes, START_NODE_ID)).toMatchObject({ ariaLabel: "START", ariaRole: "button" });
+    expect(nodeById(nodes, "1")).toMatchObject({ ariaLabel: "A", ariaRole: "button" });
   });
 
   it("does not mutate the project", () => {

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, type KeyboardEvent } from "react";
 import { FinishNode } from "@/components/planner/FinishNode";
 import { StartNode } from "@/components/planner/StartNode";
 import { TaskNode } from "@/components/planner/TaskNode";
-import { layoutDiagram, type DiagramEdge, type DiagramNode } from "@/lib/services/diagram-layout";
+import type { Selection } from "@/hooks/useProject";
+import { layoutDiagram, START_NODE_ID, type DiagramEdge, type DiagramNode } from "@/lib/services/diagram-layout";
 import type { Project, TaskId } from "@/types";
 
 // Module scope: an inline object would make React Flow re-mount every node on each render.
@@ -12,31 +13,34 @@ const nodeTypes = { task: TaskNode, start: StartNode, finish: FinishNode };
 // Module scope for the same reason. React Flow's default node description
 // (shown while keyboard a11y is on, despite the key's name) promises arrow-key
 // moves and Delete, and neither exists here.
-const ariaLabelConfig = { "node.a11yDescription.keyboardDisabled": "Press Enter or Space to edit this Task." };
+const ariaLabelConfig = { "node.a11yDescription.keyboardDisabled": "Press Enter or Space to edit it." };
 
 interface DiagramProps {
   project: Project;
-  selectedTaskId: TaskId | undefined;
-  /** Mouse selection: a click on a Task node, or `null` for a click on the empty canvas. */
-  onSelect: (taskId: TaskId | null) => void;
-  /** Keyboard selection: Enter or Space on a focused Task node, which also asks the panel to take focus. */
-  onEdit: (taskId: TaskId) => void;
+  selection: Selection;
+  /** Mouse selection: a click on START or a Task node, or `null` for a click on the empty canvas. */
+  onSelect: (target: Selection) => void;
+  /** Keyboard selection: Enter or Space on focused START or a Task node, which also asks the panel to take focus. */
+  onEdit: (target: TaskId | "start") => void;
 }
 
 /**
  * The laid-out project. Nodes and edges are derived, never stored: layout runs
  * only when the project changes, and selection is applied in a second, cheap pass.
  */
-export function Diagram({ project, selectedTaskId, onSelect, onEdit }: DiagramProps) {
+export function Diagram({ project, selection, onSelect, onEdit }: DiagramProps) {
   const diagram = useMemo(() => layoutDiagram(project), [project]);
   const nodes = useMemo(
     () =>
-      selectedTaskId === undefined
+      selection === null
         ? diagram.nodes
         : diagram.nodes.map((node) =>
-            node.type === "task" && node.data.taskId === selectedTaskId ? { ...node, selected: true } : node,
+            (selection === "start" && node.id === START_NODE_ID) ||
+            (node.type === "task" && node.data.taskId === selection)
+              ? { ...node, selected: true }
+              : node,
           ),
-    [diagram, selectedTaskId],
+    [diagram, selection],
   );
 
   // Refit when Tasks are created or deleted, not on rename or selection.
@@ -49,8 +53,9 @@ export function Diagram({ project, selectedTaskId, onSelect, onEdit }: DiagramPr
 
   const handleNodeClick = useCallback<NodeMouseHandler<DiagramNode>>(
     (_event, node) => {
-      // START and FINISH have nothing to edit yet, so clicking them selects nothing.
+      // FINISH has nothing to edit, so clicking it selects nothing.
       if (node.type === "task") onSelect(node.data.taskId);
+      else if (node.type === "start") onSelect("start");
     },
     [onSelect],
   );
@@ -69,11 +74,11 @@ export function Diagram({ project, selectedTaskId, onSelect, onEdit }: DiagramPr
       const target = event.target;
       if (!(target instanceof HTMLElement) || !target.classList.contains("react-flow__node")) return;
       const node = diagram.nodes.find((candidate) => candidate.id === target.dataset.id);
-      if (node?.type !== "task") return;
+      if (node?.type !== "task" && node?.type !== "start") return;
       // The panel takes focus during this keydown; without this the key would
-      // type a space into "Task name" or submit its form.
+      // type a space into the focused field or submit its form.
       event.preventDefault();
-      onEdit(node.data.taskId);
+      onEdit(node.type === "task" ? node.data.taskId : "start");
     },
     [diagram, onEdit],
   );
@@ -88,8 +93,8 @@ export function Diagram({ project, selectedTaskId, onSelect, onEdit }: DiagramPr
       onKeyDown={handleKeyDown}
       nodesDraggable={false}
       nodesConnectable={false}
-      // Task nodes are tab stops so they can be selected by keyboard (handleKeyDown);
-      // START and FINISH opt out per node in diagram-layout.
+      // START and Task nodes are tab stops so they can be selected by keyboard
+      // (handleKeyDown); FINISH opts out per node in diagram-layout.
       nodesFocusable
       edgesFocusable={false}
       // Delete Task has no confirmation, so no key on the diagram may delete anything.

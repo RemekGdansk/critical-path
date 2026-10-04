@@ -44,28 +44,39 @@ function edge(source: string, target: string): DiagramEdge {
 /** Nodes in a stable order (START, Tasks in creation order, FINISH), not yet positioned. */
 function projectNodes(project: Project): DiagramNode[] {
   const origin = { x: 0, y: 0 };
-  // START and FINISH select nothing, so they are neither selectable nor a tab stop.
-  // Task nodes leave both unset and follow the diagram-wide settings.
-  const terminal = {
-    width: START_FINISH_NODE_WIDTH,
-    height: START_FINISH_NODE_HEIGHT,
-    focusable: false,
-    selectable: false,
-  };
+  const terminal = { width: START_FINISH_NODE_WIDTH, height: START_FINISH_NODE_HEIGHT };
   return [
-    { id: START_NODE_ID, type: "start", data: {}, position: origin, ...terminal },
+    // START and Task nodes leave focusable and selectable unset and follow the
+    // diagram-wide settings: Enter or Space edits them, so each is announced as a button.
+    {
+      id: START_NODE_ID,
+      type: "start",
+      data: {},
+      ariaLabel: "START",
+      ariaRole: "button",
+      position: origin,
+      ...terminal,
+    },
     ...project.tasks.map((task): TaskNodeType => ({
       id: taskNodeId(task.id),
       type: "task",
       data: { name: task.name, taskId: task.id },
-      // Enter or Space edits the Task, so it is announced as a button named after it.
       ariaLabel: task.name,
       ariaRole: "button",
       position: origin,
       width: TASK_NODE_WIDTH,
       height: TASK_NODE_HEIGHT,
     })),
-    { id: FINISH_NODE_ID, type: "finish", data: {}, position: origin, ...terminal },
+    // FINISH has nothing to edit, so it is neither selectable nor a tab stop.
+    {
+      id: FINISH_NODE_ID,
+      type: "finish",
+      data: {},
+      position: origin,
+      ...terminal,
+      focusable: false,
+      selectable: false,
+    },
   ];
 }
 

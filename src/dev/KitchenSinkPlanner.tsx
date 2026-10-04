@@ -5,6 +5,7 @@
 import { useState } from "react";
 
 import { Planner } from "@/components/planner/Planner";
+import type { Selection } from "@/hooks/useProject";
 import { addPredecessor, createEmptyProject, createTask, type EditResult } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
 
@@ -35,17 +36,17 @@ function onlyTaskProject(): Project {
 
 const FIXTURES = {
   /** Build selected: one predecessor to remove, one Task to add and one that would create a cycle. */
-  "selected-task": { project: smallProject, selectedTaskId: BUILD },
+  "selected-task": { project: smallProject, initialSelection: BUILD },
   /** The only Task, selected: the picker has nothing to offer. */
-  "only-task": { project: onlyTaskProject, selectedTaskId: DESIGN },
-  empty: { project: createEmptyProject, selectedTaskId: undefined },
-} satisfies Record<string, { project: () => Project; selectedTaskId: TaskId | undefined }>;
+  "only-task": { project: onlyTaskProject, initialSelection: DESIGN },
+  empty: { project: createEmptyProject, initialSelection: null },
+} satisfies Record<string, { project: () => Project; initialSelection: Selection }>;
 
 export type KitchenSinkFixture = keyof typeof FIXTURES;
 
 export function KitchenSinkPlanner({ fixture }: { fixture: KitchenSinkFixture }) {
-  const { project: build, selectedTaskId } = FIXTURES[fixture];
+  const { project: build, initialSelection } = FIXTURES[fixture];
   // Built once: the Planner reads its initial project on the first render only.
   const [project] = useState(build);
-  return <Planner initialProject={project} initialSelectedTaskId={selectedTaskId} />;
+  return <Planner initialProject={project} initialSelection={initialSelection} />;
 }

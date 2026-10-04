@@ -5,9 +5,9 @@ import { TerminalNode } from "@/components/planner/TerminalNode";
 import type { StartNodeType } from "@/lib/services/diagram-layout";
 
 // Handles only anchor edges: never connectable, and not drawn.
-function StartNodeComponent(_props: NodeProps<StartNodeType>) {
+function StartNodeComponent({ selected }: NodeProps<StartNodeType>) {
   return (
-    <TerminalNode label="START">
+    <TerminalNode label="START" interactive selected={selected}>
       <Handle type="source" position={Position.Right} isConnectable={false} className="opacity-0" />
     </TerminalNode>
   );
