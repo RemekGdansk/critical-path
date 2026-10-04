@@ -74,7 +74,11 @@ export function Planner() {
             aria-label="Selected Task"
             className="border-sidebar-border bg-sidebar text-sidebar-foreground w-80 shrink-0 overflow-y-auto border-l p-4"
           >
-            {selectedTask === undefined ? (
+            {project.tasks.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No Tasks yet. Type a name in New Task above and press Enter.
+              </p>
+            ) : selectedTask === undefined ? (
               <p className="text-muted-foreground text-sm">Select a Task on the diagram to edit it.</p>
             ) : (
               <TaskPanel
