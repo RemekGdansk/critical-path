@@ -304,9 +304,9 @@ None: no persisted data exists before S-03. Existing projects in memory have no 
 
 #### Automated
 
-- [ ] 1.1 `npm test` passes, including the new `calendar-date`, `validation-warnings` and `forecast` suites and the new `project` cases
-- [ ] 1.2 The forecast suite contains the PRD calendar-day example, the US-02 A/B/C/D case, the past-START case, the empty project, the later-created predecessor, the beyond-year-9999 and the PRD Done cases listed above
-- [ ] 1.3 `npm run lint && npx astro check && npm run build` pass
+- [x] 1.1 `npm test` passes, including the new `calendar-date`, `validation-warnings` and `forecast` suites and the new `project` cases
+- [x] 1.2 The forecast suite contains the PRD calendar-day example, the US-02 A/B/C/D case, the past-START case, the empty project, the later-created predecessor, the beyond-year-9999 and the PRD Done cases listed above
+- [x] 1.3 `npm run lint && npx astro check && npm run build` pass
 
 ### Phase 2: Editing UI
 

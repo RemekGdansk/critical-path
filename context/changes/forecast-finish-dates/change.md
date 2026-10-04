@@ -1,7 +1,7 @@
 ---
 change_id: forecast-finish-dates
 title: Forecast Resource-Unconstrained and Resource-Constrained Project Finish Dates
-status: plan_reviewed
+status: implementing
 created: 2026-10-04
 updated: 2026-10-05
 archived_at: null

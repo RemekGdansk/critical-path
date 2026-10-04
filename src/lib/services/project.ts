@@ -1,6 +1,7 @@
 // The only way to change a project. Every edit is a pure function that returns
 // either the new project or the Validation Error the edit would create; the
 // input project is never mutated, so a rejected edit leaves it as it was.
+import { isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { cyclePathFor } from "@/lib/services/task-graph";
 import type { Project, Task, TaskId } from "@/types";
 
@@ -12,7 +13,9 @@ export type ValidationErrorRule =
   | "task-name-malformed"
   | "task-name-control-character"
   | "unknown-task"
-  | "cycle";
+  | "cycle"
+  | "duration-not-positive-whole-number"
+  | "start-date-not-a-date";
 
 export interface ValidationError {
   rule: ValidationErrorRule;
@@ -144,4 +147,50 @@ export function removePredecessor(project: Project, taskId: TaskId, predecessorI
   return accept(
     replaceTask(project, { ...task, predecessors: task.predecessors.filter((id) => id !== predecessorId) }),
   );
+}
+
+/** True for a Duration the project may hold: a positive whole number of days, exact as a JavaScript number. */
+export function isPositiveWholeDays(value: number): boolean {
+  return Number.isSafeInteger(value) && value > 0;
+}
+
+const DIGITS_ONLY = /^[0-9]+$/;
+
+/**
+ * Sets the Task's Duration from what the user typed: trimmed, ASCII digits
+ * only, a positive whole number of days. Empty input clears the Duration,
+ * which is allowed and raises a Validation Warning instead.
+ */
+export function setDuration(project: Project, taskId: TaskId, input: string): EditResult {
+  const task = findTask(project, taskId);
+  if (task === undefined) return unknownTask(taskId);
+
+  const trimmed = input.trim();
+  if (trimmed === "") {
+    const cleared = { ...task };
+    delete cleared.duration;
+    return accept(replaceTask(project, cleared));
+  }
+  const duration = Number(trimmed);
+  if (!DIGITS_ONLY.test(trimmed) || !isPositiveWholeDays(duration)) {
+    return reject("duration-not-positive-whole-number", "A Duration must be a positive whole number of days.");
+  }
+  return accept(replaceTask(project, { ...task, duration }));
+}
+
+/** Sets the START date from an ISO date (yyyy-mm-dd); empty input clears it, so the forecast starts from today. */
+export function setStartDate(project: Project, input: string): EditResult {
+  const trimmed = input.trim();
+  if (trimmed === "") {
+    const start = { ...project.start };
+    delete start.date;
+    return accept({ ...project, start });
+  }
+  if (!isIsoDate(trimmed)) {
+    return reject(
+      "start-date-not-a-date",
+      `The START date must be a calendar date from ${MIN_ISO_DATE} to ${MAX_ISO_DATE}.`,
+    );
+  }
+  return accept({ ...project, start: { ...project.start, date: trimmed } });
 }
