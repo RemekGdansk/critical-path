@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 
 interface TerminalNodeProps {
   label: string;
+  /** A second, quieter line under the label. */
+  detail?: string;
   children: ReactNode;
   /** START opens its panel; FINISH has nothing to edit. */
   interactive: boolean;
@@ -13,11 +15,11 @@ interface TerminalNodeProps {
 // START and FINISH share one pill shape, visibly different from the rectangular Task nodes.
 // The interactive one (START) draws hover, focus ring and selected ring the way TaskNode
 // does; the inert one (FINISH) resets the pointer cursor React Flow gives selectable nodes.
-export function TerminalNode({ label, children, interactive, selected = false }: TerminalNodeProps) {
+export function TerminalNode({ label, detail, children, interactive, selected = false }: TerminalNodeProps) {
   return (
     <div
       className={cn(
-        "bg-primary text-primary-foreground flex h-full w-full items-center justify-center rounded-full text-xs font-semibold tracking-widest transition-colors",
+        "bg-primary text-primary-foreground flex h-full w-full flex-col items-center justify-center rounded-full text-xs leading-tight font-semibold tracking-widest transition-colors",
         interactive
           ? cn(
               "in-focus-visible:outline-ring/50 in-focus-visible:outline-3 in-focus-visible:outline-offset-2",
@@ -27,6 +29,7 @@ export function TerminalNode({ label, children, interactive, selected = false }:
       )}
     >
       {label}
+      {detail !== undefined && <span className="font-normal tracking-normal tabular-nums">{detail}</span>}
       {children}
     </div>
   );

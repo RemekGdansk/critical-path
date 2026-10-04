@@ -26,7 +26,8 @@ export const FINISH_NODE_ID = "finish";
  * `durationMissing` is the Task's duration-missing Validation Warning, from validationWarnings.
  */
 export type TaskNodeType = Node<{ name: string; taskId: TaskId; duration?: number; durationMissing: boolean }, "task">;
-export type StartNodeType = Node<Record<string, never>, "start">;
+/** `date` is the START date; layout leaves it out and Diagram adds it, so a date edit never re-runs layout. */
+export type StartNodeType = Node<{ date?: string }, "start">;
 export type FinishNodeType = Node<Record<string, never>, "finish">;
 export type DiagramNode = TaskNodeType | StartNodeType | FinishNodeType;
 export type DiagramEdge = FlowEdge;

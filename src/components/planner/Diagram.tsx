@@ -5,7 +5,7 @@ import { FinishNode } from "@/components/planner/FinishNode";
 import { StartNode } from "@/components/planner/StartNode";
 import { TaskNode } from "@/components/planner/TaskNode";
 import type { Selection } from "@/hooks/useProject";
-import { layoutDiagram, START_NODE_ID, type DiagramEdge, type DiagramNode } from "@/lib/services/diagram-layout";
+import { layoutDiagram, type DiagramEdge, type DiagramNode } from "@/lib/services/diagram-layout";
 import type { Project, TaskId } from "@/types";
 
 // Module scope: an inline object would make React Flow re-mount every node on each render.
@@ -26,23 +26,27 @@ interface DiagramProps {
 
 /**
  * The laid-out project. Nodes and edges are derived, never stored: layout runs
- * only when the Tasks change (not on a START date edit), and selection is
- * applied in a second, cheap pass.
+ * only when the Tasks change, and the selection and the START date are applied
+ * in a second, cheap pass.
  */
 export function Diagram({ project, selection, onSelect, onEdit }: DiagramProps) {
   const { tasks } = project;
   const diagram = useMemo(() => layoutDiagram({ tasks }), [tasks]);
+  const startDate = project.start.date;
   const nodes = useMemo(
     () =>
-      selection === null
-        ? diagram.nodes
-        : diagram.nodes.map((node) =>
-            (selection === "start" && node.id === START_NODE_ID) ||
-            (node.type === "task" && node.data.taskId === selection)
-              ? { ...node, selected: true }
-              : node,
-          ),
-    [diagram, selection],
+      diagram.nodes.map((node): DiagramNode => {
+        if (node.type === "start") {
+          return {
+            ...node,
+            data: startDate === undefined ? {} : { date: startDate },
+            ariaLabel: `START, ${startDate ?? "today"}`,
+            selected: selection === "start",
+          };
+        }
+        return node.type === "task" && node.data.taskId === selection ? { ...node, selected: true } : node;
+      }),
+    [diagram, selection, startDate],
   );
 
   // Refit when Tasks are created or deleted, not on rename or selection.
