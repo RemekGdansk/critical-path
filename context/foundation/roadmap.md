@@ -39,17 +39,17 @@ Early-stage project planning needs near-zero-friction task capture, with details
 
 ## At a glance
 
-| ID   | Change ID                   | Outcome (user can …)                                                                        | Prerequisites | PRD refs                              | Status      |
-| ---- | --------------------------- | ------------------------------------------------------------------------------------------- | ------------- | ------------------------------------- | ----------- |
-| F-01 | domain-test-gate            | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic            | done        |
-| S-01 | capture-task-graph          | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008        | done        |
-| S-02 | reject-invalid-dependencies | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                 | in-progress |
-| S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | proposed    |
-| S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | proposed    |
-| S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | proposed    |
-| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | proposed    |
-| S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | proposed    |
-| S-08 | start-new-project           | user can start a new empty project, confirming first if changes were not exported           | S-03          | FR-016                                | proposed    |
+| ID   | Change ID                   | Outcome (user can …)                                                                        | Prerequisites | PRD refs                              | Status   |
+| ---- | --------------------------- | ------------------------------------------------------------------------------------------- | ------------- | ------------------------------------- | -------- |
+| F-01 | domain-test-gate            | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic            | done     |
+| S-01 | capture-task-graph          | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008        | done     |
+| S-02 | reject-invalid-dependencies | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                 | done     |
+| S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | proposed |
+| S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | proposed |
+| S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | proposed |
+| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | proposed |
+| S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | proposed |
+| S-08 | start-new-project           | user can start a new empty project, confirming first if changes were not exported           | S-03          | FR-016                                | proposed |
 
 ## Streams
 
@@ -113,7 +113,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Placed before the north star because import (S-03) must reject hand-edited files containing a cycle, and it should reuse the same rule check rather than a second implementation that could disagree.
-- **Status:** in-progress
+- **Status:** done
 
 ### S-03: Project file round-trip
 
@@ -227,3 +227,4 @@ None open. The PRD's `## Open Questions` has none; the one cross-cutting decisio
 
 - **F-01: (foundation) automated checks of pure domain logic can be written and run locally, and they run in both the pre-merge quality gate and the deploy build, so a failing rule check blocks a merge and a deploy.** — Archived 2026-09-26 → `context/archive/2026-09-26-domain-test-gate/`. Lesson: —.
 - **S-01: user can create a Task by name only, rename and delete it, add and remove its predecessors in a side panel, and see the project as an auto-arranged diagram in which Tasks without predecessors hang off START and Tasks without successors feed FINISH.** — Archived 2026-09-29 → `context/archive/2026-09-27-capture-task-graph/`. Lesson: —.
+- **S-02: user who tries to add a dependency that would create a cycle, give START a predecessor, or make a Task depend on FINISH is refused, the project stays unchanged, and the message names the rule — for a cycle, the cycle itself (e.g. A → B → C → A).** — Archived 2026-10-04 → `context/archive/2026-10-04-reject-invalid-dependencies/`. Lesson: —.

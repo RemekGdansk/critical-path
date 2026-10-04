@@ -1,10 +1,10 @@
 ---
 change_id: reject-invalid-dependencies
 title: Reject cycles and START/FINISH violations with explanation
-status: impl_reviewed
+status: archived
 created: 2026-10-04
 updated: 2026-10-05
-archived_at: null
+archived_at: 2026-10-04T22:40:36Z
 ---
 
 ## Notes

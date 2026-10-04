@@ -227,28 +227,28 @@ None: no persisted data exists yet (S-03 introduces the file).
 
 #### Automated
 
-- [x] 1.1 Domain tests pass, including the new `cyclePathFor`, `findCycle`, `predecessorCandidates` and cross-check cases: `npm test` — efced48
-- [x] 1.2 `grep -rn wouldCreateCycle src` returns nothing — efced48
-- [x] 1.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build` — efced48
+- [x] 1.1 Domain tests pass, including the new `cyclePathFor`, `findCycle`, `predecessorCandidates` and cross-check cases: `npm test` — 643c0da
+- [x] 1.2 `grep -rn wouldCreateCycle src` returns nothing — 643c0da
+- [x] 1.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build` — 643c0da
 
 #### Manual
 
-- [x] 1.4 In `npm run dev`, adding and removing predecessors and deleting Tasks behave exactly as before (the picker still hides cycle-closing Tasks until Phase 2) — efced48
+- [x] 1.4 In `npm run dev`, adding and removing predecessors and deleting Tasks behave exactly as before (the picker still hides cycle-closing Tasks until Phase 2) — 643c0da
 
 ### Phase 2: Picker offers, flags and explains
 
 #### Automated
 
-- [x] 2.1 `grep -rn "eligiblePredecessors\|no-eligible-predecessor" src` returns nothing — 46e5765
-- [x] 2.2 `grep -n "findCycle" context/foundation/roadmap.md` finds the S-03 entry — 46e5765
-- [x] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build` — 46e5765
+- [x] 2.1 `grep -rn "eligiblePredecessors\|no-eligible-predecessor" src` returns nothing — 643c0da
+- [x] 2.2 `grep -n "findCycle" context/foundation/roadmap.md` finds the S-03 entry — 643c0da
+- [x] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build` — 643c0da
 
 #### Manual
 
-- [x] 2.4 MVP step 3 under `npm run build && npm run preview`: create A, B, C and set A → B, B → C; select A; the picker shows "2: B (would create a cycle)" and "3: C (would create a cycle)"; pick 3: C and press Add; the message reads "Adding 3: C as a predecessor of 1: A would create the cycle 1: A → 2: B → 3: C → 1: A."; A's predecessor list, the diagram and every Task are unchanged — 46e5765
-- [x] 2.5 After the rejection, picking another option clears the message; adding a predecessor that closes no cycle succeeds and resets the picker — 46e5765
-- [x] 2.6 Two Tasks named "Review" in a cycle are told apart in the message by their "N: " prefixes — 46e5765
-- [x] 2.7 With a single Task, the picker and Add are disabled and the note reads "No other Task exists yet."; with every other Task already a predecessor, the note reads "No Task is available: every other Task is already a predecessor." — 46e5765
-- [x] 2.8 `npm run dev` → `/kitchen-sink`: the "disabled" cell shows the single selected Task with the disabled picker and its note; following the "error" cell's action shows the Build → Test cycle message — 46e5765
-- [x] 2.9 In `npm run dev` with `?fixture=perf100`, a successful Add and a refused Add on a cycle-closing candidate each finish rendering in under 200 ms in the React Profiler — 46e5765
-- [x] 2.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — 46e5765
+- [x] 2.4 MVP step 3 under `npm run build && npm run preview`: create A, B, C and set A → B, B → C; select A; the picker shows "2: B (would create a cycle)" and "3: C (would create a cycle)"; pick 3: C and press Add; the message reads "Adding 3: C as a predecessor of 1: A would create the cycle 1: A → 2: B → 3: C → 1: A."; A's predecessor list, the diagram and every Task are unchanged — 643c0da
+- [x] 2.5 After the rejection, picking another option clears the message; adding a predecessor that closes no cycle succeeds and resets the picker — 643c0da
+- [x] 2.6 Two Tasks named "Review" in a cycle are told apart in the message by their "N: " prefixes — 643c0da
+- [x] 2.7 With a single Task, the picker and Add are disabled and the note reads "No other Task exists yet."; with every other Task already a predecessor, the note reads "No Task is available: every other Task is already a predecessor." — 643c0da
+- [x] 2.8 `npm run dev` → `/kitchen-sink`: the "disabled" cell shows the single selected Task with the disabled picker and its note; following the "error" cell's action shows the Build → Test cycle message — 643c0da
+- [x] 2.9 In `npm run dev` with `?fixture=perf100`, a successful Add and a refused Add on a cycle-closing candidate each finish rendering in under 200 ms in the React Profiler — 643c0da
+- [x] 2.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — 643c0da
