@@ -399,30 +399,30 @@ The keydown handler and focus request add no work per render; the 200 ms NFR che
 
 #### Automated
 
-- [x] 1.1 `package.json` and `package-lock.json` unchanged by the shadcn add
-- [x] 1.2 Hardcoded-value scan on the view files returns 0 hits
-- [x] 1.3 `npm run lint && npx astro check && npm test && npm run build` pass
+- [x] 1.1 `package.json` and `package-lock.json` unchanged by the shadcn add — f45aa7d
+- [x] 1.2 Hardcoded-value scan on the view files returns 0 hits — f45aa7d
+- [x] 1.3 `npm run lint && npx astro check && npm test && npm run build` pass — f45aa7d
 
 #### Manual
 
-- [x] 1.4 Picker fills the row beside "Add" and shows the chevron; focus ring matches the "Task name" input; disabled state (Task with no eligible predecessor) looks disabled and shows the note
-- [x] 1.5 Adding and removing predecessors works as before, including arrow-key browsing that does not add a Task until "Add"
-- [x] 1.6 Screenshot at 1440 of the panel with a Task selected, before/after
+- [x] 1.4 Picker fills the row beside "Add" and shows the chevron; focus ring matches the "Task name" input; disabled state (Task with no eligible predecessor) looks disabled and shows the note — f45aa7d
+- [x] 1.5 Adding and removing predecessors works as before, including arrow-key browsing that does not add a Task until "Add" — f45aa7d
+- [x] 1.6 Screenshot at 1440 of the panel with a Task selected, before/after — f45aa7d
 
 ### Phase 2: Token values (C2)
 
 #### Automated
 
-- [ ] 2.1 Hardcoded-value scan on the view files returns 0 hits
-- [ ] 2.2 `grep -rn bg-cosmic src` returns nothing
-- [ ] 2.3 `npm run lint && npx astro check && npm test && npm run build` pass
-- [ ] 2.4 Built CSS in `dist/` contains the `--xy-*` overrides as `var(--…)` references (read the artifact, not `global.css`)
+- [x] 2.1 Hardcoded-value scan on the view files returns 0 hits
+- [x] 2.2 `grep -rn bg-cosmic src` returns nothing
+- [x] 2.3 `npm run lint && npx astro check && npm test && npm run build` pass
+- [x] 2.4 Built CSS in `dist/` contains the `--xy-*` overrides as `var(--…)` references (read the artifact, not `global.css`)
 
 #### Manual
 
-- [ ] 2.5 Screenshot at 1440, before/after, with a small project: canvas is muted, Task nodes read as white cards, edges and arrowheads share one colour and are clearly visible, dots and zoom controls match the palette
-- [ ] 2.6 Temporarily changing `--muted-foreground` in devtools recolours edges and arrowheads together
-- [ ] 2.7 `npm run preview`: no CSP errors in the console
+- [x] 2.5 Screenshot at 1440, before/after, with a small project: canvas is muted, Task nodes read as white cards, edges and arrowheads share one colour and are clearly visible, dots and zoom controls match the palette
+- [x] 2.6 Temporarily changing `--muted-foreground` in devtools recolours edges and arrowheads together
+- [x] 2.7 `npm run preview`: no CSP errors in the console
 
 ### Phase 3: Keyboard path (C3)
 

@@ -121,8 +121,28 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-@utility bg-cosmic {
-  background-image: linear-gradient(to bottom, #0a0e1a, #0f1529, #0a0e1a);
+/* React Flow on the tokens. React Flow's theming route is its --xy-* custom
+   properties: every rule reads var(--xy-NAME, var(--xy-NAME-default)), so
+   setting the non-default name here overrides its hex defaults without a
+   specificity fight. Only var(--token) references, so the canvas follows the
+   same palette as the rest of the view (and a future .dark with it). Mapping,
+   defaults and contrast: context/changes/planner-ui-contract/tokens.md. */
+.react-flow {
+  --xy-edge-stroke: var(--muted-foreground);
+  --xy-edge-stroke-selected: var(--foreground);
+  --xy-background-color: var(--muted);
+  --xy-background-pattern-color: var(--border);
+  --xy-controls-button-background-color: var(--card);
+  --xy-controls-button-background-color-hover: var(--accent);
+  --xy-controls-button-color: var(--foreground);
+  --xy-controls-button-color-hover: var(--accent-foreground);
+  --xy-controls-button-border-color: var(--border);
+  --xy-attribution-background-color: var(--muted);
+}
+
+/* The attribution link's colour is a literal in React Flow's stylesheet, with no --xy-* variable to reach it. */
+.react-flow__attribution a {
+  color: var(--muted-foreground);
 }
 
 @layer base {
