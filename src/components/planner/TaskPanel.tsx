@@ -4,10 +4,10 @@ import { useId, useMemo, useState, type SubmitEvent, type KeyboardEvent } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
 import { TASK_NAME_MAX_LENGTH } from "@/lib/services/project";
 import { eligiblePredecessors } from "@/lib/services/task-graph";
-import { cn } from "@/lib/utils";
 import type { Project, Task } from "@/types";
 
 type TaskPanelActions = Pick<ProjectActions, "renameTask" | "deleteTask" | "addPredecessor" | "removePredecessor">;
@@ -158,29 +158,28 @@ export function TaskPanel({ task, project, actions }: TaskPanelProps) {
           Add predecessor
         </Label>
         <form onSubmit={handleAddPredecessor} className="flex gap-2">
-          <select
-            id={pickerId}
-            value={picked}
-            onChange={(event) => {
-              setPickedValue(event.target.value);
-            }}
-            disabled={eligible.length === 0}
-            aria-describedby={eligible.length === 0 ? pickerNoteId : undefined}
-            className={cn(
-              "border-input bg-background h-9 min-w-0 flex-1 rounded-md border px-3 text-sm shadow-xs outline-none",
-              "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
-              "disabled:cursor-not-allowed disabled:opacity-50",
-            )}
-          >
-            <option value="" disabled>
-              Choose a Task…
-            </option>
-            {eligible.map((candidate) => (
-              <option key={candidate.id} value={candidate.id}>
-                {taskLabel(candidate)}
-              </option>
-            ))}
-          </select>
+          {/* NativeSelect's wrapper is w-fit and takes no className, so this one fills the row. */}
+          <div className="min-w-0 flex-1 *:w-full">
+            <NativeSelect
+              id={pickerId}
+              value={picked}
+              onChange={(event) => {
+                setPickedValue(event.target.value);
+              }}
+              disabled={eligible.length === 0}
+              aria-describedby={eligible.length === 0 ? pickerNoteId : undefined}
+              className="bg-background"
+            >
+              <NativeSelectOption value="" disabled>
+                Choose a Task…
+              </NativeSelectOption>
+              {eligible.map((candidate) => (
+                <NativeSelectOption key={candidate.id} value={candidate.id}>
+                  {taskLabel(candidate)}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
+          </div>
           <Button type="submit" variant="outline" disabled={picked === ""}>
             Add
           </Button>
