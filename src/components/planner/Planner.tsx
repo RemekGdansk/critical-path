@@ -21,10 +21,17 @@ function initialProject(): Project {
   return createEmptyProject();
 }
 
+interface PlannerProps {
+  /** Starts from this project instead of the default one; the dev-only kitchen sink passes its fixtures here. */
+  initialProject?: Project;
+  /** The Task selected on first render; none by default. */
+  initialSelectedTaskId?: TaskId;
+}
+
 /** The single React island: toolbar across the top, diagram filling the rest, side panel on the right. */
-export function Planner() {
+export function Planner({ initialProject: givenProject, initialSelectedTaskId }: PlannerProps = {}) {
   const { project, selectedTask, select, createTask, renameTask, deleteTask, addPredecessor, removePredecessor } =
-    useProject(initialProject);
+    useProject(givenProject ?? initialProject, initialSelectedTaskId);
 
   // A keyboard selection asks the panel to focus "Task name". The request names
   // its Task and carries a fresh number each time, so the panel honours it on

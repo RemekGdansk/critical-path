@@ -1,0 +1,176 @@
+---
+/**
+ * The /10x-ui visual gate: the real Planner in every cell of the 7-state
+ * matrix, side by side. Served under `astro dev` only (astro.config.mjs injects
+ * the route for the dev command alone), so the production build has no page
+ * and no sitemap entry for it. global.css excludes src/dev from Tailwind's
+ * sources, so this page's own layout is the scoped <style> below, on tokens.
+ */
+import Layout from "@/layouts/Layout.astro";
+import PlannerSkeleton from "@/components/planner/PlannerSkeleton.astro";
+import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
+---
+
+<Layout title="Kitchen sink · Critical Path">
+  <main>
+    <header>
+      <h1>Planner kitchen sink</h1>
+      <p>
+        Every cell of the 7-state matrix, rendered by the real Planner on fixture projects. Dev only: not in the
+        production build.
+      </p>
+      <p>
+        Widths: screenshots at 1440 and 1024. Mobile width: N/A — mobile and small-screen support is a PRD Non-Goal.
+      </p>
+    </header>
+
+    <div class="cells">
+      <figure>
+        <figcaption>
+          <h2>default</h2>
+          <p>
+            Four Tasks with dependencies; Build is selected, so the panel shows Task name, Predecessors and Delete Task.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="selected-task" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>hover</h2>
+          <p>Shown on action.</p>
+          <p class="action">Hover a Task node, a zoom control, the remove (×) button or Delete Task.</p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="selected-task" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>focus-visible</h2>
+          <p>Shown on action.</p>
+          <p class="action">
+            Click into New Task, then press Tab to reach a Task node; keep pressing Tab through the zoom controls and
+            the panel.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="selected-task" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>disabled</h2>
+          <p>
+            Design is selected and every other Task depends on it, so Add predecessor and Add are disabled and the note
+            says why.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="no-eligible-predecessor" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>error</h2>
+          <p>Shown on action.</p>
+          <p class="action">
+            Clear Task name and press Enter: the rule shows under the field. Enter on an empty New Task shows it too.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="selected-task" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>empty</h2>
+          <p>No Tasks: START feeds FINISH and the panel says how to create the first Task.</p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="empty" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>loading</h2>
+          <p>PlannerSkeleton, the fallback the page shows while the island loads, held here in place.</p>
+        </figcaption>
+        <div class="frame">
+          <PlannerSkeleton />
+        </div>
+      </figure>
+    </div>
+  </main>
+</Layout>
+
+<style>
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 6);
+    padding: calc(var(--spacing) * 6);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  h2 {
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  p {
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+  }
+
+  header,
+  figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing);
+  }
+
+  /* Two cells per row at 1440, one at 1024: a Planner narrower than this squeezes the diagram to nothing. */
+  .cells {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(calc(var(--spacing) * 160), 1fr));
+    gap: calc(var(--spacing) * 6);
+  }
+
+  figure {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--spacing) * 2);
+    margin: 0;
+  }
+
+  .action {
+    color: var(--foreground);
+  }
+
+  /* A definite size, so the Planner's h-full and React Flow's canvas resolve; a
+     flex column, so PlannerSkeleton's flex-1 fills it as in index.astro. */
+  .frame {
+    display: flex;
+    flex-direction: column;
+    block-size: calc(var(--spacing) * 120);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--background);
+  }
+</style>
