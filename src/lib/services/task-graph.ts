@@ -143,3 +143,38 @@ export function predecessorCandidates(project: Project, taskId: TaskId): Predece
 export function successorsOf(project: Project, taskId: TaskId): TaskId[] {
   return project.tasks.filter((task) => task.predecessors.includes(taskId)).map((task) => task.id);
 }
+
+/**
+ * Every Task id with each Task after all of its predecessors, in O(tasks +
+ * links). Creation order is not enough: a Task may depend on one created after
+ * it. The result is deterministic: Tasks without predecessors come in creation
+ * order, every other Task as soon as its last predecessor is placed.
+ */
+export function topologicalOrder(project: Project): TaskId[] {
+  const taskIds = new Set(project.tasks.map((task) => task.id));
+  const remainingPredecessors = new Map<TaskId, number>();
+  const successors = new Map<TaskId, TaskId[]>();
+  for (const task of project.tasks) {
+    // A stray id without its Task is ignored, as the diagram ignores it.
+    const predecessors = task.predecessors.filter((id) => taskIds.has(id));
+    remainingPredecessors.set(task.id, predecessors.length);
+    for (const predecessorId of predecessors) {
+      const list = successors.get(predecessorId);
+      if (list === undefined) successors.set(predecessorId, [task.id]);
+      else list.push(task.id);
+    }
+  }
+
+  const order = project.tasks.filter((task) => remainingPredecessors.get(task.id) === 0).map((task) => task.id);
+  // The array iterator reads the length on every step, so Tasks pushed below are visited too.
+  for (const taskId of order) {
+    for (const successorId of successors.get(taskId) ?? []) {
+      const remaining = (remainingPredecessors.get(successorId) ?? 0) - 1;
+      remainingPredecessors.set(successorId, remaining);
+      if (remaining === 0) order.push(successorId);
+    }
+  }
+  // The edit functions never let a cycle in; a Task left out would mean one.
+  if (order.length !== project.tasks.length) throw new Error("The project contains a cycle.");
+  return order;
+}

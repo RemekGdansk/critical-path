@@ -6,8 +6,11 @@ import {
   createTask,
   deleteTask,
   type EditResult,
+  isPositiveWholeDays,
   removePredecessor,
   renameTask,
+  setDuration,
+  setStartDate,
   TASK_NAME_MAX_LENGTH,
   taskLabel,
   type ValidationErrorRule,
@@ -274,5 +277,78 @@ describe("removePredecessor", () => {
 
   it("rejects an unknown Task id", () => {
     expectRejected(edit(removePredecessor, projectWith("A"), 2, 1), "unknown-task");
+  });
+});
+
+describe("setDuration", () => {
+  it("sets a positive whole number of days, trimmed, leading zeros allowed", () => {
+    const project = projectWith("A");
+    expect(accepted(edit(setDuration, project, 1, " 5 ")).tasks[0]?.duration).toBe(5);
+    expect(accepted(edit(setDuration, project, 1, "05")).tasks[0]?.duration).toBe(5);
+  });
+
+  it("clears the Duration on empty input by removing the field", () => {
+    const project = accepted(setDuration(projectWith("A"), 1, "5"));
+    const cleared = accepted(edit(setDuration, project, 1, "  "));
+    expect(cleared.tasks[0]).toEqual({ id: 1, name: "A", predecessors: [], status: "to-do" });
+    expect(cleared.tasks[0]).not.toHaveProperty("duration");
+  });
+
+  it("rejects anything but a positive whole number of days", () => {
+    const project = accepted(setDuration(projectWith("A"), 1, "5"));
+    for (const input of ["0", "-1", "2.5", "1e3", "+5", "abc", "5 days", "٥", "9007199254740992"]) {
+      expectRejected(edit(setDuration, project, 1, input), "duration-not-positive-whole-number");
+    }
+    expect(accepted(edit(setDuration, project, 1, "9007199254740991")).tasks[0]?.duration).toBe(
+      Number.MAX_SAFE_INTEGER,
+    );
+  });
+
+  it("names the rule in the message", () => {
+    const result = edit(setDuration, projectWith("A"), 1, "0");
+    if (result.ok) throw new Error("Expected a rejection");
+    expect(result.error.message).toBe("A Duration must be a positive whole number of days.");
+  });
+
+  it("rejects an unknown id", () => {
+    expectRejected(edit(setDuration, projectWith("A"), 2, "5"), "unknown-task");
+  });
+});
+
+describe("isPositiveWholeDays", () => {
+  it("accepts positive safe integers only", () => {
+    expect([1, 5, Number.MAX_SAFE_INTEGER].map(isPositiveWholeDays)).toEqual([true, true, true]);
+    expect([0, -1, 2.5, Number.NaN, Infinity, 2 ** 53].map(isPositiveWholeDays)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+});
+
+describe("setStartDate", () => {
+  it("sets an ISO date, trimmed", () => {
+    expect(accepted(edit(setStartDate, createEmptyProject(), " 2026-09-01 ")).start).toEqual({ date: "2026-09-01" });
+    expect(accepted(edit(setStartDate, createEmptyProject(), "0002-01-01")).start).toEqual({ date: "0002-01-01" });
+  });
+
+  it("clears the START date on empty input by removing the field", () => {
+    const project = accepted(setStartDate(createEmptyProject(), "2026-09-01"));
+    expect(accepted(edit(setStartDate, project, "")).start).toEqual({});
+  });
+
+  it("rejects anything but a calendar date from 0001-01-01 to 9999-12-31", () => {
+    for (const input of ["2026-02-29", "0000-01-01", "10000-01-01", "2026-9-1", "1 Sep 2026", "today"]) {
+      expectRejected(edit(setStartDate, createEmptyProject(), input), "start-date-not-a-date");
+    }
+  });
+
+  it("names the rule in the message", () => {
+    const result = edit(setStartDate, createEmptyProject(), "2026-02-30");
+    if (result.ok) throw new Error("Expected a rejection");
+    expect(result.error.message).toBe("The START date must be a calendar date from 0001-01-01 to 9999-12-31.");
   });
 });

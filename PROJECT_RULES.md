@@ -14,7 +14,7 @@ Two commits exist solely to fix drift here. Do not introduce synonyms in identif
 
 - **Validation Error** — a state the project may never hold. Reject the edit at input and name the rule it would break. Not "invalid", "conflict" or "blocked".
 - **Validation Warning** — may exist, be exported and be imported; withholds the forecast while present.
-- **Resource-Unconstrained Project Finish Date** / **Resource-Constrained Project Finish Date** — never "ETA", "deadline" or "finish date" alone. "Completion date" is reserved for a Done Task's own date.
+- **Resource-Unconstrained Project Finish Date** / **Resource-Constrained Project Finish Date** — never "ETA", "deadline" or "finish date" alone. "Project Finish Dates" (plural, e.g. "the header shows both Project Finish Dates") refers to the two together. "Completion date" is reserved for a Done Task's own date.
 
 Full lists and forecast rules: @context/foundation/prd.md.
 

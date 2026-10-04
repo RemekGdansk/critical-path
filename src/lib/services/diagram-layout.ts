@@ -7,10 +7,12 @@
 import { Graph, layout, type EdgeLabel, type GraphLabel, type NodeLabel } from "@dagrejs/dagre";
 import type { Edge as FlowEdge, Node } from "@xyflow/react";
 
-import type { Project, TaskId } from "@/types";
+import { validationWarnings } from "@/lib/services/validation-warnings";
+import type { Project, Task, TaskId } from "@/types";
 
 export const TASK_NODE_WIDTH = 180;
-export const TASK_NODE_HEIGHT = 44;
+/** Two lines: the name, then the Duration or "No Duration". */
+export const TASK_NODE_HEIGHT = 52;
 export const START_FINISH_NODE_WIDTH = 96;
 export const START_FINISH_NODE_HEIGHT = 40;
 /** Horizontal gap between the right edge of one rank and the left edge of the next. */
@@ -19,9 +21,13 @@ export const RANK_SEPARATION = 60;
 export const START_NODE_ID = "start";
 export const FINISH_NODE_ID = "finish";
 
-/** Click handling reads `data.taskId`; the node id is `String(taskId)` and is never parsed. */
-export type TaskNodeType = Node<{ name: string; taskId: TaskId }, "task">;
-export type StartNodeType = Node<Record<string, never>, "start">;
+/**
+ * Click handling reads `data.taskId`; the node id is `String(taskId)` and is never parsed.
+ * `durationMissing` is the Task's duration-missing Validation Warning, from validationWarnings.
+ */
+export type TaskNodeType = Node<{ name: string; taskId: TaskId; duration?: number; durationMissing: boolean }, "task">;
+/** `date` is the START date; layout leaves it out and Diagram adds it, so a date edit never re-runs layout. */
+export type StartNodeType = Node<{ date?: string }, "start">;
 export type FinishNodeType = Node<Record<string, never>, "finish">;
 export type DiagramNode = TaskNodeType | StartNodeType | FinishNodeType;
 export type DiagramEdge = FlowEdge;
@@ -37,40 +43,67 @@ function taskNodeId(taskId: TaskId): string {
   return String(taskId);
 }
 
+/** "1 day", "5 days". */
+export function formatDuration(days: number): string {
+  return days === 1 ? "1 day" : `${days} days`;
+}
+
+function taskAriaLabel(task: Task, durationMissing: boolean): string {
+  if (durationMissing) return `${task.name}, no Duration (Validation Warning)`;
+  return task.duration === undefined ? task.name : `${task.name}, ${formatDuration(task.duration)}`;
+}
+
 function edge(source: string, target: string): DiagramEdge {
   return { id: `${source}->${target}`, source, target, markerEnd: { type: "arrowclosed" } };
 }
 
 /** Nodes in a stable order (START, Tasks in creation order, FINISH), not yet positioned. */
-function projectNodes(project: Project): DiagramNode[] {
+function projectNodes(project: Pick<Project, "tasks">): DiagramNode[] {
   const origin = { x: 0, y: 0 };
-  // START and FINISH select nothing, so they are neither selectable nor a tab stop.
-  // Task nodes leave both unset and follow the diagram-wide settings.
-  const terminal = {
-    width: START_FINISH_NODE_WIDTH,
-    height: START_FINISH_NODE_HEIGHT,
-    focusable: false,
-    selectable: false,
-  };
+  const warned = new Set(validationWarnings(project).map((warning) => warning.taskId));
+  const terminal = { width: START_FINISH_NODE_WIDTH, height: START_FINISH_NODE_HEIGHT };
   return [
-    { id: START_NODE_ID, type: "start", data: {}, position: origin, ...terminal },
+    // START and Task nodes leave focusable and selectable unset and follow the
+    // diagram-wide settings: Enter or Space edits them, so each is announced as a button.
+    {
+      id: START_NODE_ID,
+      type: "start",
+      data: {},
+      ariaLabel: "START",
+      ariaRole: "button",
+      position: origin,
+      ...terminal,
+    },
     ...project.tasks.map((task): TaskNodeType => ({
       id: taskNodeId(task.id),
       type: "task",
-      data: { name: task.name, taskId: task.id },
-      // Enter or Space edits the Task, so it is announced as a button named after it.
-      ariaLabel: task.name,
+      data: {
+        name: task.name,
+        taskId: task.id,
+        ...(task.duration === undefined ? {} : { duration: task.duration }),
+        durationMissing: warned.has(task.id),
+      },
+      ariaLabel: taskAriaLabel(task, warned.has(task.id)),
       ariaRole: "button",
       position: origin,
       width: TASK_NODE_WIDTH,
       height: TASK_NODE_HEIGHT,
     })),
-    { id: FINISH_NODE_ID, type: "finish", data: {}, position: origin, ...terminal },
+    // FINISH has nothing to edit, so it is neither selectable nor a tab stop.
+    {
+      id: FINISH_NODE_ID,
+      type: "finish",
+      data: {},
+      position: origin,
+      ...terminal,
+      focusable: false,
+      selectable: false,
+    },
   ];
 }
 
 /** Predecessor links plus the synthetic START and FINISH links, in O(tasks + links). */
-function projectEdges(project: Project): DiagramEdge[] {
+function projectEdges(project: Pick<Project, "tasks">): DiagramEdge[] {
   if (project.tasks.length === 0) return [edge(START_NODE_ID, FINISH_NODE_ID)];
 
   // The edit functions never leave a predecessor id without its Task; skipping
@@ -93,7 +126,7 @@ function projectEdges(project: Project): DiagramEdge[] {
   return edges;
 }
 
-export function layoutDiagram(project: Project): Diagram {
+export function layoutDiagram(project: Pick<Project, "tasks">): Diagram {
   const nodes = projectNodes(project);
   const edges = projectEdges(project);
 

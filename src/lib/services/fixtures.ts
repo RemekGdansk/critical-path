@@ -1,6 +1,6 @@
 // Deterministic projects for tests and the dev-only 200 ms check. Built only
 // through the edit functions, so a fixture never holds a Validation Error.
-import { addPredecessor, createEmptyProject, createTask, type EditResult } from "@/lib/services/project";
+import { addPredecessor, createEmptyProject, createTask, type EditResult, setDuration } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
 
 // Tasks per layer, repeated until the Task count is reached.
@@ -16,6 +16,7 @@ function accepted(result: EditResult): Project {
  * first layer hangs off START; every later Task depends on one Task of the
  * previous layer (branches), every odd-positioned one on a second (joins), and
  * every fifth one also on a Task two layers back (links that skip a layer).
+ * Every Task has a Duration of 1–5 days, so the project forecasts.
  */
 export function createPerfProject(taskCount = 100): Project {
   let project = createEmptyProject();
@@ -30,6 +31,7 @@ export function createPerfProject(taskCount = 100): Project {
     for (let position = 0; position < size; position++) {
       const taskId = project.nextTaskId;
       project = accepted(createTask(project, `Task ${taskId}`));
+      project = accepted(setDuration(project, taskId, String((taskId % 5) + 1)));
       layer.push(taskId);
 
       const predecessorIds = new Set<TaskId>();

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { createPerfProject } from "@/lib/services/fixtures";
-import { cyclePathFor, findCycle, predecessorCandidates, successorsOf } from "@/lib/services/task-graph";
+import {
+  cyclePathFor,
+  findCycle,
+  predecessorCandidates,
+  successorsOf,
+  topologicalOrder,
+} from "@/lib/services/task-graph";
 import type { Project, TaskId } from "@/types";
 
 /** Builds a project from `[id, predecessors]` pairs; Task names are "T<id>". */
@@ -236,6 +242,25 @@ describe("cycle checks on the 100-Task fixture", () => {
   });
 });
 
+describe("topologicalOrder", () => {
+  it("puts every Task after its predecessors, keeping creation order on ties", () => {
+    expect(topologicalOrder(diamond)).toEqual([1, 5, 2, 3, 4]);
+  });
+
+  it("handles a Task that depends on one created after it", () => {
+    const project = projectOf([
+      [1, [3]],
+      [2, []],
+      [3, [2]],
+    ]);
+    expect(topologicalOrder(project)).toEqual([2, 3, 1]);
+  });
+
+  it("is empty for a project without Tasks", () => {
+    expect(topologicalOrder(projectOf([]))).toEqual([]);
+  });
+});
+
 describe("graph queries", () => {
   it("leave the input project unmutated", () => {
     const project = projectOf([
@@ -255,6 +280,7 @@ describe("graph queries", () => {
     findCycle(project);
     predecessorCandidates(project, 1);
     successorsOf(project, 1);
+    topologicalOrder(project);
 
     expect(project).toEqual(before);
   });

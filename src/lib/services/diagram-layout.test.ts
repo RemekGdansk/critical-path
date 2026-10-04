@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   type DiagramNode,
   FINISH_NODE_ID,
+  formatDuration,
   layoutDiagram,
   RANK_SEPARATION,
   START_FINISH_NODE_HEIGHT,
@@ -12,7 +13,14 @@ import {
   TASK_NODE_WIDTH,
 } from "@/lib/services/diagram-layout";
 import { createPerfProject } from "@/lib/services/fixtures";
-import { addPredecessor, createEmptyProject, createTask, deleteTask, type EditResult } from "@/lib/services/project";
+import {
+  addPredecessor,
+  createEmptyProject,
+  createTask,
+  deleteTask,
+  type EditResult,
+  setDuration,
+} from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
 
 function accepted(result: EditResult): Project {
@@ -82,7 +90,10 @@ describe("layoutDiagram projection", () => {
 
   it("links a lone Task from START and to FINISH", () => {
     const { nodes } = layoutDiagram(projectWith("Design"));
-    expect(nodeById(nodes, "1")).toMatchObject({ type: "task", data: { name: "Design", taskId: 1 } });
+    expect(nodeById(nodes, "1")).toMatchObject({
+      type: "task",
+      data: { name: "Design", taskId: 1, durationMissing: true },
+    });
     expect(edgeIds(projectWith("Design"))).toEqual(["1->finish", "start->1"]);
   });
 
@@ -121,15 +132,52 @@ describe("layoutDiagram projection", () => {
     expect(layoutDiagram(project)).toEqual(layoutDiagram(project));
   });
 
-  it("makes START and FINISH neither focusable nor selectable, and leaves Task nodes to the diagram settings", () => {
+  it("leaves START to the diagram settings like a Task node; FINISH is neither focusable nor selectable", () => {
     const { nodes } = layoutDiagram(projectWith("A"));
-    for (const id of [START_NODE_ID, FINISH_NODE_ID]) {
-      expect(nodeById(nodes, id)).toMatchObject({ focusable: false, selectable: false });
+    expect(nodeById(nodes, FINISH_NODE_ID)).toMatchObject({ focusable: false, selectable: false });
+    for (const id of [START_NODE_ID, "1"]) {
+      const node = nodeById(nodes, id);
+      expect(node).not.toHaveProperty("focusable");
+      expect(node).not.toHaveProperty("selectable");
     }
-    const task = nodeById(nodes, "1");
-    expect(task).not.toHaveProperty("focusable");
-    expect(task).not.toHaveProperty("selectable");
-    expect(task).toMatchObject({ ariaLabel: "A", ariaRole: "button" });
+    expect(nodeById(nodes, START_NODE_ID)).toMatchObject({ ariaLabel: "START", ariaRole: "button" });
+    expect(nodeById(nodes, "1")).toMatchObject({ ariaRole: "button" });
+  });
+
+  it("carries the Duration, or flags its absence as a Validation Warning, in node data and aria label", () => {
+    const project = accepted(setDuration(accepted(setDuration(projectWith("A", "B", "C"), 1, "5")), 2, "1"));
+    const { nodes } = layoutDiagram(project);
+
+    expect(nodeById(nodes, "1")).toMatchObject({
+      data: { duration: 5, durationMissing: false },
+      ariaLabel: "A, 5 days",
+    });
+    expect(nodeById(nodes, "2")).toMatchObject({
+      data: { duration: 1, durationMissing: false },
+      ariaLabel: "B, 1 day",
+    });
+    expect(nodeById(nodes, "3")).toMatchObject({
+      data: { durationMissing: true },
+      ariaLabel: "C, no Duration (Validation Warning)",
+    });
+    expect(nodeById(nodes, "3").data).not.toHaveProperty("duration");
+  });
+
+  it("raises no warning on a Done Task without a Duration", () => {
+    // Built by hand: no edit sets Done yet (S-07).
+    const project: Project = {
+      ...createEmptyProject(),
+      nextTaskId: 2,
+      tasks: [{ id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03" }],
+    };
+    expect(nodeById(layoutDiagram(project).nodes, "1")).toMatchObject({
+      data: { durationMissing: false },
+      ariaLabel: "A",
+    });
+  });
+
+  it("formats Durations in days", () => {
+    expect([1, 2, 30].map(formatDuration)).toEqual(["1 day", "2 days", "30 days"]);
   });
 
   it("does not mutate the project", () => {
@@ -213,5 +261,9 @@ describe("createPerfProject", () => {
   it("is deterministic", () => {
     expect(createPerfProject()).toEqual(createPerfProject());
     expect(createPerfProject(7).tasks).toHaveLength(7);
+  });
+
+  it("gives every Task a Duration, so the fixture forecasts", () => {
+    expect(createPerfProject().tasks.every((task) => task.duration !== undefined)).toBe(true);
   });
 });

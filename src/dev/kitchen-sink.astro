@@ -29,7 +29,8 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
         <figcaption>
           <h2>default</h2>
           <p>
-            Four Tasks with dependencies; Build is selected, so the panel shows Task name, Predecessors and Delete Task.
+            Four Tasks with dependencies and Durations; Build is selected, so the panel shows Task name, Duration,
+            Predecessors and Delete Task, and the header shows both Project Finish Dates from today.
           </p>
         </figcaption>
         <div class="frame">
@@ -77,7 +78,8 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
           <h2>error</h2>
           <p>Shown on action.</p>
           <p class="action">
-            Clear Task name and press Enter: the rule shows under the field. Enter on an empty New Task shows it too.
+            Clear Task name and press Enter: the rule shows under the field. Enter on an empty New Task shows it too,
+            and so does typing 0 in Duration and pressing Enter.
           </p>
           <p class="action">
             Pick "3: Test (would create a cycle)" in Add predecessor and press Add: "Adding 3: Test as a predecessor of
@@ -91,8 +93,39 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
 
       <figure>
         <figcaption>
+          <h2>validation-warning</h2>
+          <p>
+            Test has no Duration and is selected: its node shows "No Duration" in the warning colour, and the header
+            withholds both Project Finish Dates with "1 Task without Duration." Hovering or focusing the warning lists
+            Test.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="validation-warning" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>start-selected</h2>
+          <p>
+            START is selected with the past START date 2020-01-01: the START node shows the date, and the START panel
+            and the header both say the forecast starts from today. With no START date (every other cell) the node shows
+            "today".
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="start-selected" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
           <h2>empty</h2>
-          <p>No Tasks: START feeds FINISH and the panel says how to create the first Task.</p>
+          <p>
+            No Tasks: START feeds FINISH, the panel says how to create the first Task and the header says to add Tasks
+            to see a forecast.
+          </p>
         </figcaption>
         <div class="frame">
           <KitchenSinkPlanner client:only="react" fixture="empty" />
