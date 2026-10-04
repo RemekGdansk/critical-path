@@ -1,7 +1,7 @@
 // The only way to change a project. Every edit is a pure function that returns
 // either the new project or the Validation Error the edit would create; the
 // input project is never mutated, so a rejected edit leaves it as it was.
-import { wouldCreateCycle } from "@/lib/services/task-graph";
+import { cyclePathFor } from "@/lib/services/task-graph";
 import type { Project, Task, TaskId } from "@/types";
 
 export const TASK_NAME_MAX_LENGTH = 200;
@@ -35,6 +35,22 @@ function unknownTask(taskId: TaskId): EditResult {
 
 function findTask(project: Project, taskId: TaskId): Task | undefined {
   return project.tasks.find((task) => task.id === taskId);
+}
+
+/** "7: Name" — the id prefix tells apart Tasks that share a name. */
+export function taskLabel(task: Task): string {
+  return `${task.id}: ${task.name}`;
+}
+
+/** "1: A → 2: B → 1: A" — one lookup map, so labelling a long path stays linear. */
+function pathLabel(project: Project, path: TaskId[]): string {
+  const tasksById = new Map(project.tasks.map((task) => [task.id, task]));
+  return path
+    .map((id) => {
+      const task = tasksById.get(id);
+      return task === undefined ? String(id) : taskLabel(task);
+    })
+    .join(" → ");
 }
 
 // Whitespace and invisible format characters (zero-width space, joiners, BOM…):
@@ -105,10 +121,15 @@ export function deleteTask(project: Project, taskId: TaskId): EditResult {
 export function addPredecessor(project: Project, taskId: TaskId, predecessorId: TaskId): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
-  if (findTask(project, predecessorId) === undefined) return unknownTask(predecessorId);
+  const predecessor = findTask(project, predecessorId);
+  if (predecessor === undefined) return unknownTask(predecessorId);
   if (task.predecessors.includes(predecessorId)) return accept(project);
-  if (wouldCreateCycle(project, taskId, predecessorId)) {
-    return reject("cycle", "Adding this predecessor would create a cycle.");
+  const cycle = cyclePathFor(project, taskId, predecessorId);
+  if (cycle !== undefined) {
+    return reject(
+      "cycle",
+      `Adding ${taskLabel(predecessor)} as a predecessor of ${taskLabel(task)} would create the cycle ${pathLabel(project, cycle)}.`,
+    );
   }
 
   const predecessors = [...task.predecessors, predecessorId].toSorted((a, b) => a - b);

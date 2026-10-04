@@ -65,13 +65,10 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
       <figure>
         <figcaption>
           <h2>disabled</h2>
-          <p>
-            Design is selected and every other Task depends on it, so Add predecessor and Add are disabled and the note
-            says why.
-          </p>
+          <p>The only Task is selected, so Add predecessor and Add are disabled and the note says why.</p>
         </figcaption>
         <div class="frame">
-          <KitchenSinkPlanner client:only="react" fixture="no-eligible-predecessor" />
+          <KitchenSinkPlanner client:only="react" fixture="only-task" />
         </div>
       </figure>
 
@@ -81,6 +78,10 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
           <p>Shown on action.</p>
           <p class="action">
             Clear Task name and press Enter: the rule shows under the field. Enter on an empty New Task shows it too.
+          </p>
+          <p class="action">
+            Pick "3: Test (would create a cycle)" in Add predecessor and press Add: "Adding 3: Test as a predecessor of
+            2: Build would create the cycle 2: Build → 3: Test → 2: Build." shows under the picker.
           </p>
         </figcaption>
         <div class="frame">

@@ -9,6 +9,7 @@ import {
   removePredecessor,
   renameTask,
   TASK_NAME_MAX_LENGTH,
+  taskLabel,
   type ValidationErrorRule,
 } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
@@ -199,17 +200,39 @@ describe("deleteTask", () => {
 });
 
 describe("addPredecessor", () => {
-  it("rejects a Task as its own predecessor", () => {
-    expectRejected(edit(addPredecessor, projectWith("A"), 1, 1), "cycle");
+  it("rejects a Task as its own predecessor and names the cycle", () => {
+    const result = edit(addPredecessor, projectWith("A"), 1, 1);
+
+    expectRejected(result, "cycle");
+    if (!result.ok) {
+      expect(result.error.message).toBe("Adding 1: A as a predecessor of 1: A would create the cycle 1: A → 1: A.");
+    }
   });
 
-  it("rejects a transitive cycle", () => {
+  it("rejects a transitive cycle and names it", () => {
     // A → B → C, add C as predecessor of A.
     const project = withDependencies(projectWith("A", "B", "C"), [1, 2], [2, 3]);
     const result = edit(addPredecessor, project, 1, 3);
 
     expectRejected(result, "cycle");
-    if (!result.ok) expect(result.error.message).toBe("Adding this predecessor would create a cycle.");
+    if (!result.ok) {
+      expect(result.error.message).toBe(
+        "Adding 3: C as a predecessor of 1: A would create the cycle 1: A → 2: B → 3: C → 1: A.",
+      );
+    }
+  });
+
+  it("tells apart same-named Tasks in the cycle by their ids", () => {
+    // Review → Review, add the second as predecessor of the first.
+    const project = withDependencies(projectWith("Review", "Review"), [1, 2]);
+    const result = edit(addPredecessor, project, 1, 2);
+
+    expectRejected(result, "cycle");
+    if (!result.ok) {
+      expect(result.error.message).toBe(
+        "Adding 2: Review as a predecessor of 1: Review would create the cycle 1: Review → 2: Review → 1: Review.",
+      );
+    }
   });
 
   it("returns the project unchanged for an existing predecessor", () => {
@@ -228,6 +251,12 @@ describe("addPredecessor", () => {
     const project = projectWith("A");
     expectRejected(edit(addPredecessor, project, 2, 1), "unknown-task");
     expectRejected(edit(addPredecessor, project, 1, 2), "unknown-task");
+  });
+});
+
+describe("taskLabel", () => {
+  it("prefixes the name with the id", () => {
+    expect(taskLabel({ id: 7, name: "Name", predecessors: [], status: "to-do" })).toBe("7: Name");
   });
 });
 
