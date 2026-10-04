@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type SubmitEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,18 +57,17 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
     setError(result.ok ? undefined : result.error.message);
   }
 
-  // The CSP's form-action 'none' blocks native submission; the form never navigates.
-  function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    commit(draft);
-  }
-
+  // Enter is handled here, not by a form: a date input does not submit its form.
   function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Escape") {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      typing.current = false;
+      commit(event.currentTarget.value);
+    } else if (event.key === "Escape") {
       typing.current = false;
       setDraft(date ?? "");
       setError(undefined);
-    } else if (event.key !== "Enter") {
+    } else {
       typing.current = true;
     }
   }
@@ -76,7 +75,7 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
   return (
     <section className="flex flex-col gap-6">
       <h2 className="text-sm font-semibold tracking-widest">START</h2>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor={dateId}>START date</Label>
         <div className="flex gap-2">
           <Input
@@ -127,7 +126,7 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
             {note}
           </p>
         )}
-      </form>
+      </div>
     </section>
   );
 }
