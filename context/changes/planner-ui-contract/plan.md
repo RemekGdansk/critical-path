@@ -460,26 +460,26 @@ The keydown handler and focus request add no work per render; the 200 ms NFR che
 
 #### Automated
 
-- [x] 5.1 `npm run build` emits no `kitchen-sink` file in `dist/` and no `/kitchen-sink` URL in the sitemap
-- [x] 5.2 Probe: the CSS files in `dist/` are byte-identical between a build with `src/dev/` and one with it temporarily removed
-- [x] 5.3 `npm run lint && npx astro check && npm test` pass
+- [x] 5.1 `npm run build` emits no `kitchen-sink` file in `dist/` and no `/kitchen-sink` URL in the sitemap — 2ec3315
+- [x] 5.2 Probe: the CSS files in `dist/` are byte-identical between a build with `src/dev/` and one with it temporarily removed — 2ec3315
+- [x] 5.3 `npm run lint && npx astro check && npm test` pass — 2ec3315
 
 #### Manual
 
-- [x] 5.4 `npm run dev` → `/kitchen-sink` shows all seven cells, each shown or N/A with a reason; mobile width marked N/A (PRD Non-Goal)
-- [x] 5.5 Screenshots of the kitchen sink at 1440 and 1024 saved to `context/changes/planner-ui-contract/screenshots/`
+- [x] 5.4 `npm run dev` → `/kitchen-sink` shows all seven cells, each shown or N/A with a reason; mobile width marked N/A (PRD Non-Goal) — 2ec3315
+- [x] 5.5 Screenshots of the kitchen sink at 1440 and 1024 saved to `context/changes/planner-ui-contract/screenshots/` — 2ec3315
 
 ### Phase 6: Guard
 
 #### Automated
 
-- [ ] 6.1 `npm run lint && npx astro check && npm test && npm run build` pass
-- [ ] 6.2 Probe: a temporary `bg-blue-500`, `#fff` and `p-[13px]` in a planner `.tsx` file each make `npm run lint` fail; removing them makes it pass
-- [ ] 6.3 Probe: a temporary `<div onClick={…}>` without a key handler in a planner `.tsx` file makes `npm run lint` fail
-- [ ] 6.4 `package.json` dependencies unchanged
+- [x] 6.1 `npm run lint && npx astro check && npm test && npm run build` pass
+- [x] 6.2 Probe: a temporary `bg-blue-500`, `#fff` and `p-[13px]` in a planner `.tsx` file each make `npm run lint` fail; removing them makes it pass
+- [x] 6.3 Probe: a temporary `<div onClick={…}>` without a key handler in a planner `.tsx` file makes `npm run lint` fail
+- [x] 6.4 `package.json` dependencies unchanged
 
 #### Manual
 
-- [ ] 6.5 `PROJECT_RULES.md` UI block reads correctly and contradicts no existing rule
-- [ ] 6.6 `research.md` charge statuses match what landed
-- [ ] 6.7 `/10x-ui` merge checklist (`.claude/skills/10x-ui/references/ui-quality-checklist.md`) walked; `/10x-impl-review` run next
+- [x] 6.5 `PROJECT_RULES.md` UI block reads correctly and contradicts no existing rule
+- [x] 6.6 `research.md` charge statuses match what landed
+- [x] 6.7 `/10x-ui` merge checklist (`.claude/skills/10x-ui/references/ui-quality-checklist.md`) walked; `/10x-impl-review` run next
