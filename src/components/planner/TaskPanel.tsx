@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
-import { TASK_NAME_MAX_LENGTH } from "@/lib/services/project";
+import { TASK_NAME_MAX_LENGTH, taskLabel } from "@/lib/services/project";
 import { eligiblePredecessors } from "@/lib/services/task-graph";
 import type { Project, Task } from "@/types";
 
@@ -22,11 +22,6 @@ interface TaskPanelProps {
    * Undefined for a mouse selection, which leaves focus where it is.
    */
   focusRequest?: number;
-}
-
-/** "7: Name" — the id prefix tells apart Tasks that share a name. */
-function taskLabel(task: Task): string {
-  return `${task.id}: ${task.name}`;
 }
 
 /**

@@ -1,9 +1,9 @@
 ---
 change_id: reject-invalid-dependencies
 title: Reject cycles and START/FINISH violations with explanation
-status: planned
+status: implementing
 created: 2026-10-04
-updated: 2026-10-04
+updated: 2026-10-05
 archived_at: null
 ---
 

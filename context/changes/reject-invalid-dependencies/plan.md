@@ -227,13 +227,13 @@ None: no persisted data exists yet (S-03 introduces the file).
 
 #### Automated
 
-- [ ] 1.1 Domain tests pass, including the new `cyclePathFor`, `findCycle`, `predecessorCandidates` and cross-check cases: `npm test`
-- [ ] 1.2 `grep -rn wouldCreateCycle src` returns nothing
-- [ ] 1.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build`
+- [x] 1.1 Domain tests pass, including the new `cyclePathFor`, `findCycle`, `predecessorCandidates` and cross-check cases: `npm test`
+- [x] 1.2 `grep -rn wouldCreateCycle src` returns nothing
+- [x] 1.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build`
 
 #### Manual
 
-- [ ] 1.4 In `npm run dev`, adding and removing predecessors and deleting Tasks behave exactly as before (the picker still hides cycle-closing Tasks until Phase 2)
+- [x] 1.4 In `npm run dev`, adding and removing predecessors and deleting Tasks behave exactly as before (the picker still hides cycle-closing Tasks until Phase 2)
 
 ### Phase 2: Picker offers, flags and explains
 
