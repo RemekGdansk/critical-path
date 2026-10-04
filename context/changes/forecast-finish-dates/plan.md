@@ -327,16 +327,16 @@ None: no persisted data exists before S-03. Existing projects in memory have no 
 
 #### Automated
 
-- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions for `durationMissing` and aria labels
-- [x] 3.2 `npm run lint && npx astro check && npm run build` pass
-- [x] 3.3 The built CSS in `dist/_astro/` defines `--warning` for both `:root` and `.dark` and the `text-warning` / `border-warning` utilities (read the built file, not `global.css`)
-- [x] 3.4 `grep -rnwE "ETA|deadline|Deadline" src` returns nothing
+- [x] 3.1 `npm test` passes, including the new `diagram-layout` assertions for `durationMissing` and aria labels — 52afdd6
+- [x] 3.2 `npm run lint && npx astro check && npm run build` pass — 52afdd6
+- [x] 3.3 The built CSS in `dist/_astro/` defines `--warning` for both `:root` and `.dark` and the `text-warning` / `border-warning` utilities (read the built file, not `global.css`) — 52afdd6
+- [x] 3.4 `grep -rnwE "ETA|deadline|Deadline" src` returns nothing — 52afdd6
 
 #### Manual
 
-- [x] 3.5 MVP flow steps 4–6 under `npm run build && npm run preview`: with START a few weeks ahead and A (5) → B (3) → C (2), both Project Finish Dates equal START + 10 days; adding D with A → D → C withholds them, the strip shows the Validation Warning naming D and D is highlighted; setting D to 4 shows Resource-Unconstrained START + 11 and Resource-Constrained START + 14
-- [x] 3.6 A START date in the past shows the forecasting-from-today note and dates computed from today; clearing it shows the not-set note; an empty project shows "Add Tasks to see a forecast."
-- [x] 3.7 `tokens.md` records `--warning` at 4.5:1 or more against `--card`, `--sidebar` and `--background` in light and dark
-- [x] 3.8 Kitchen sink at 1440 and 1024: the new cells render; the Duration line and "No Duration" are not clipped; a selected warned node still reads as warned
-- [x] 3.9 200 ms NFR: in `npm run dev` with `?fixture=perf100`, committing a Duration change commits in under 200 ms in the React Profiler
-- [x] 3.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow
+- [x] 3.5 MVP flow steps 4–6 under `npm run build && npm run preview`: with START a few weeks ahead and A (5) → B (3) → C (2), both Project Finish Dates equal START + 10 days; adding D with A → D → C withholds them, the strip shows the Validation Warning naming D and D is highlighted; setting D to 4 shows Resource-Unconstrained START + 11 and Resource-Constrained START + 14 — 52afdd6
+- [x] 3.6 A START date in the past shows the forecasting-from-today note and dates computed from today; clearing it shows the not-set note; an empty project shows "Add Tasks to see a forecast." — 52afdd6
+- [x] 3.7 `tokens.md` records `--warning` at 4.5:1 or more against `--card`, `--sidebar` and `--background` in light and dark — 52afdd6
+- [x] 3.8 Kitchen sink at 1440 and 1024: the new cells render; the Duration line and "No Duration" are not clipped; a selected warned node still reads as warned — 52afdd6
+- [x] 3.9 200 ms NFR: in `npm run dev` with `?fixture=perf100`, committing a Duration change commits in under 200 ms in the React Profiler — 52afdd6
+- [x] 3.10 Browser console under `npm run preview` shows zero CSP violations or errors during the whole flow — 52afdd6
