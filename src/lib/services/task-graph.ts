@@ -23,7 +23,7 @@ function descendantsOf(successors: Map<TaskId, TaskId[]>, taskId: TaskId): Set<T
   for (let id = pending.pop(); id !== undefined; id = pending.pop()) {
     if (reached.has(id)) continue;
     reached.add(id);
-    pending.push(...(successors.get(id) ?? []));
+    for (const successorId of successors.get(id) ?? []) pending.push(successorId);
   }
   return reached;
 }
@@ -69,7 +69,7 @@ export function cyclePathFor(project: Project, taskId: TaskId, predecessorId: Ta
 /** `[a, …, a]` rotated to start and end at its lowest id. */
 function rotateToLowestId(cycle: TaskId[]): TaskId[] {
   const open = cycle.slice(0, -1);
-  const start = open.indexOf(Math.min(...open));
+  const start = open.indexOf(open.reduce((lowest, id) => Math.min(lowest, id)));
   const rotated = [...open.slice(start), ...open.slice(0, start)];
   return [...rotated, open[start]];
 }

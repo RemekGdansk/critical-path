@@ -42,9 +42,15 @@ export function taskLabel(task: Task): string {
   return `${task.id}: ${task.name}`;
 }
 
-function labelOf(project: Project, taskId: TaskId): string {
-  const task = findTask(project, taskId);
-  return task === undefined ? String(taskId) : taskLabel(task);
+/** "1: A → 2: B → 1: A" — one lookup map, so labelling a long path stays linear. */
+function pathLabel(project: Project, path: TaskId[]): string {
+  const tasksById = new Map(project.tasks.map((task) => [task.id, task]));
+  return path
+    .map((id) => {
+      const task = tasksById.get(id);
+      return task === undefined ? String(id) : taskLabel(task);
+    })
+    .join(" → ");
 }
 
 // Whitespace and invisible format characters (zero-width space, joiners, BOM…):
@@ -120,10 +126,9 @@ export function addPredecessor(project: Project, taskId: TaskId, predecessorId: 
   if (task.predecessors.includes(predecessorId)) return accept(project);
   const cycle = cyclePathFor(project, taskId, predecessorId);
   if (cycle !== undefined) {
-    const path = cycle.map((id) => labelOf(project, id)).join(" → ");
     return reject(
       "cycle",
-      `Adding ${taskLabel(predecessor)} as a predecessor of ${taskLabel(task)} would create the cycle ${path}.`,
+      `Adding ${taskLabel(predecessor)} as a predecessor of ${taskLabel(task)} would create the cycle ${pathLabel(project, cycle)}.`,
     );
   }
 

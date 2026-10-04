@@ -189,6 +189,7 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
                 setPredecessorError(undefined);
               }}
               disabled={pickerNote !== undefined}
+              aria-invalid={predecessorError !== undefined}
               aria-describedby={pickerDescribedBy}
               className="bg-background"
             >
@@ -212,7 +213,7 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
           </p>
         )}
         {predecessorError !== undefined && (
-          <p id={predecessorErrorId} role="alert" className="text-destructive text-sm">
+          <p id={predecessorErrorId} role="alert" className="text-destructive text-sm wrap-break-word">
             {predecessorError}
           </p>
         )}
