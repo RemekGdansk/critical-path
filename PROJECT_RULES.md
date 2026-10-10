@@ -50,7 +50,7 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 
 ## Testing
 
-Vitest runs pure domain logic. Tests are colocated as `src/**/*.test.ts` — the only pattern Vitest discovers (@vitest.config.ts) and the pattern Tailwind ignores (@src/styles/global.css), so class names in tests never reach the production CSS. Domain logic lives in `src/lib/services/`, next to its tests. The CI gate is `astro sync` → lint → `astro check` → test → build, run both in @.github/workflows/ci.yml and in the Cloudflare Workers Builds build command. Run `npm run lint && npx astro check && npm test` before pushing.
+Vitest runs pure domain logic. Tests are colocated as `src/**/*.test.ts` — the only pattern Vitest discovers (@vitest.config.ts) and the pattern Tailwind ignores (@src/styles/global.css), so class names in tests never reach the production CSS. Domain logic lives in `src/lib/services/`, next to its tests. The CI gate is `astro sync` → lint → `astro check` → test → build, run both in @.github/workflows/ci.yml and in the Cloudflare Workers Builds build command. Vitest also checks a component's static output from a real domain result, via `react-dom/server` and `createElement` in a `.test.ts` file, never `.test.tsx` (neither discovered nor excluded from the Tailwind scan). The suite runs in the Europe/Warsaw time zone, pinned in @vitest.config.ts, and "today" is always passed in, never read from the clock; the pattern for a new test with a PRD oracle is §6.1 of @context/foundation/test-plan.md. Run `npm run lint && npx astro check && npm test` before pushing.
 
 ## Markdown
 

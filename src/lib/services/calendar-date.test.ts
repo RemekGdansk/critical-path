@@ -70,8 +70,14 @@ describe("compareIsoDates", () => {
 });
 
 describe("todayIsoDate", () => {
-  it("uses the local date components", () => {
-    expect(todayIsoDate(new Date(2026, 9, 5, 23, 59))).toBe("2026-10-05");
-    expect(todayIsoDate(new Date(2026, 0, 1, 0, 0))).toBe("2026-01-01");
+  it("today is the user's local date, not the UTC date", () => {
+    // Relies on TZ = Europe/Warsaw, pinned in vitest.config.ts. Each pair straddles local
+    // midnight, where the Warsaw date is a day ahead of the UTC date.
+    // CEST (UTC+2):
+    expect(todayIsoDate(new Date("2026-10-09T21:59:00Z"))).toBe("2026-10-09");
+    expect(todayIsoDate(new Date("2026-10-09T22:30:00Z"))).toBe("2026-10-10");
+    // CET (UTC+1), across a year boundary:
+    expect(todayIsoDate(new Date("2026-12-31T22:59:00Z"))).toBe("2026-12-31");
+    expect(todayIsoDate(new Date("2026-12-31T23:30:00Z"))).toBe("2027-01-01");
   });
 });
