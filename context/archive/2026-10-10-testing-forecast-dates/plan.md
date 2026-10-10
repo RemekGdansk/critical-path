@@ -276,46 +276,46 @@ Run `npm ci` first: the local `node_modules` has Vitest 5.0.2 while `package-loc
 
 #### Automated
 
-- [x] 1.1 `npm test` passes with the new `todayIsoDate` cases — 8447836
-- [x] 1.2 `npm run lint && npx astro check` pass — 8447836
+- [x] 1.1 `npm test` passes with the new `todayIsoDate` cases — ce58176
+- [x] 1.2 `npm run lint && npx astro check` pass — ce58176
 
 #### Manual
 
-- [x] 1.3 Probe: with the `TZ` line removed from `vitest.config.ts` and `TZ=UTC npm test`, the `todayIsoDate` test fails on the two after-midnight rows; restore the line and the suite passes again — 8447836
-- [x] 1.4 Probe: with `todayIsoDate` temporarily switched to `getUTC*` components, the test fails; revert and the suite passes — 8447836
+- [x] 1.3 Probe: with the `TZ` line removed from `vitest.config.ts` and `TZ=UTC npm test`, the `todayIsoDate` test fails on the two after-midnight rows; restore the line and the suite passes again — ce58176
+- [x] 1.4 Probe: with `todayIsoDate` temporarily switched to `getUTC*` components, the test fails; revert and the suite passes — ce58176
 
 ### Phase 2: PRD oracle table for the forecast
 
 #### Automated
 
-- [x] 2.1 `npm test` passes, including the new In Progress row — b0b0fdc
-- [x] 2.2 `npm run lint && npx astro check` pass — b0b0fdc
+- [x] 2.1 `npm test` passes, including the new In Progress row — ce58176
+- [x] 2.2 `npm run lint && npx astro check` pass — ce58176
 
 #### Manual
 
-- [x] 2.3 The diff of `forecast.test.ts` shows every previous expected date still present with the same value (moved, not changed or dropped) — b0b0fdc
-- [x] 2.4 Probe: changing `forecast.ts` to treat `in-progress` like `done` makes only the In Progress row fail; revert and the suite passes — b0b0fdc
+- [x] 2.3 The diff of `forecast.test.ts` shows every previous expected date still present with the same value (moved, not changed or dropped) — ce58176
+- [x] 2.4 Probe: changing `forecast.ts` to treat `in-progress` like `done` makes only the In Progress row fail; revert and the suite passes — ce58176
 
 ### Phase 3: Withheld render check
 
 #### Automated
 
-- [x] 3.1 `npm test` discovers and passes `src/components/planner/ForecastSummary.test.ts` — b3169ae
-- [x] 3.2 `npm run lint && npx astro check` pass — b3169ae
-- [x] 3.3 `npm run build` passes — b3169ae
+- [x] 3.1 `npm test` discovers and passes `src/components/planner/ForecastSummary.test.ts` — ce58176
+- [x] 3.2 `npm run lint && npx astro check` pass — ce58176
+- [x] 3.3 `npm run build` passes — ce58176
 
 #### Manual
 
-- [x] 3.4 Probe: making `ForecastSummary` render the date list in the withheld branch too makes the withheld case fail; revert and the suite passes — b3169ae
+- [x] 3.4 Probe: making `ForecastSummary` render the date list in the withheld branch too makes the withheld case fail; revert and the suite passes — ce58176
 
 ### Phase 4: Cookbook and hand-offs
 
 #### Automated
 
-- [x] 4.1 `npx prettier --check context/foundation/test-plan.md context/foundation/roadmap.md PROJECT_RULES.md` passes — ffebf2a
-- [x] 4.2 `node scripts/sync-roadmap.mjs --dry-run` (needs `gh` auth) reports the S-07 issue as the only roadmap change — ffebf2a
+- [x] 4.1 `npx prettier --check context/foundation/test-plan.md context/foundation/roadmap.md PROJECT_RULES.md` passes — ce58176
+- [x] 4.2 `node scripts/sync-roadmap.mjs --dry-run` (needs `gh` auth) reports the S-07 issue as the only roadmap change — ce58176
 
 #### Manual
 
-- [x] 4.3 §6.1 alone is enough to add a new PRD oracle row without reading this plan — ffebf2a
-- [x] 4.4 No synonym for the domain terms (Validation Warning, Resource-Unconstrained / Resource-Constrained Project Finish Date) slipped into the edited docs — ffebf2a
+- [x] 4.3 §6.1 alone is enough to add a new PRD oracle row without reading this plan — ce58176
+- [x] 4.4 No synonym for the domain terms (Validation Warning, Resource-Unconstrained / Resource-Constrained Project Finish Date) slipped into the edited docs — ce58176
