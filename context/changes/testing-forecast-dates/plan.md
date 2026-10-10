@@ -276,25 +276,25 @@ Run `npm ci` first: the local `node_modules` has Vitest 5.0.2 while `package-loc
 
 #### Automated
 
-- [x] 1.1 `npm test` passes with the new `todayIsoDate` cases
-- [x] 1.2 `npm run lint && npx astro check` pass
+- [x] 1.1 `npm test` passes with the new `todayIsoDate` cases — 8447836
+- [x] 1.2 `npm run lint && npx astro check` pass — 8447836
 
 #### Manual
 
-- [x] 1.3 Probe: with the `TZ` line removed from `vitest.config.ts` and `TZ=UTC npm test`, the `todayIsoDate` test fails on the two after-midnight rows; restore the line and the suite passes again
-- [x] 1.4 Probe: with `todayIsoDate` temporarily switched to `getUTC*` components, the test fails; revert and the suite passes
+- [x] 1.3 Probe: with the `TZ` line removed from `vitest.config.ts` and `TZ=UTC npm test`, the `todayIsoDate` test fails on the two after-midnight rows; restore the line and the suite passes again — 8447836
+- [x] 1.4 Probe: with `todayIsoDate` temporarily switched to `getUTC*` components, the test fails; revert and the suite passes — 8447836
 
 ### Phase 2: PRD oracle table for the forecast
 
 #### Automated
 
-- [ ] 2.1 `npm test` passes, including the new In Progress row
-- [ ] 2.2 `npm run lint && npx astro check` pass
+- [x] 2.1 `npm test` passes, including the new In Progress row
+- [x] 2.2 `npm run lint && npx astro check` pass
 
 #### Manual
 
-- [ ] 2.3 The diff of `forecast.test.ts` shows every previous expected date still present with the same value (moved, not changed or dropped)
-- [ ] 2.4 Probe: changing `forecast.ts` to treat `in-progress` like `done` makes only the In Progress row fail; revert and the suite passes
+- [x] 2.3 The diff of `forecast.test.ts` shows every previous expected date still present with the same value (moved, not changed or dropped)
+- [x] 2.4 Probe: changing `forecast.ts` to treat `in-progress` like `done` makes only the In Progress row fail; revert and the suite passes
 
 ### Phase 3: Withheld render check
 
