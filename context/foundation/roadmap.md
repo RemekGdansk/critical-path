@@ -172,7 +172,8 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Prerequisites:** S-03, S-04
 - **Parallel with:** S-05, S-06, S-08
 - **Blockers:** —
-- **Unknowns:** —
+- **Unknowns:**
+  - What are both Project Finish Dates when every Task is Done? The code returns the base date (i.e. today); the PRD is silent; raised by test-plan Phase 1. — Owner: user. Block: no (decide during planning).
 - **Risk:** The densest rule set in the PRD (seven US-04 acceptance criteria, several indirect-edit rejections); sequenced after the file round-trip so its rules land in editing and import at once. Done Tasks need no Duration, so S-04's withheld copy ("Forecast not possible until every Task has one." in `ForecastSummary`) must be reworded for not-Done Tasks.
 - **Status:** proposed
 

@@ -300,22 +300,22 @@ Run `npm ci` first: the local `node_modules` has Vitest 5.0.2 while `package-loc
 
 #### Automated
 
-- [x] 3.1 `npm test` discovers and passes `src/components/planner/ForecastSummary.test.ts`
-- [x] 3.2 `npm run lint && npx astro check` pass
-- [x] 3.3 `npm run build` passes
+- [x] 3.1 `npm test` discovers and passes `src/components/planner/ForecastSummary.test.ts` — b3169ae
+- [x] 3.2 `npm run lint && npx astro check` pass — b3169ae
+- [x] 3.3 `npm run build` passes — b3169ae
 
 #### Manual
 
-- [x] 3.4 Probe: making `ForecastSummary` render the date list in the withheld branch too makes the withheld case fail; revert and the suite passes
+- [x] 3.4 Probe: making `ForecastSummary` render the date list in the withheld branch too makes the withheld case fail; revert and the suite passes — b3169ae
 
 ### Phase 4: Cookbook and hand-offs
 
 #### Automated
 
-- [ ] 4.1 `npx prettier --check context/foundation/test-plan.md context/foundation/roadmap.md PROJECT_RULES.md` passes
-- [ ] 4.2 `node scripts/sync-roadmap.mjs --dry-run` (needs `gh` auth) reports the S-07 issue as the only roadmap change
+- [x] 4.1 `npx prettier --check context/foundation/test-plan.md context/foundation/roadmap.md PROJECT_RULES.md` passes
+- [x] 4.2 `node scripts/sync-roadmap.mjs --dry-run` (needs `gh` auth) reports the S-07 issue as the only roadmap change
 
 #### Manual
 
-- [ ] 4.3 §6.1 alone is enough to add a new PRD oracle row without reading this plan
-- [ ] 4.4 No synonym for the domain terms (Validation Warning, Resource-Unconstrained / Resource-Constrained Project Finish Date) slipped into the edited docs
+- [x] 4.3 §6.1 alone is enough to add a new PRD oracle row without reading this plan
+- [x] 4.4 No synonym for the domain terms (Validation Warning, Resource-Unconstrained / Resource-Constrained Project Finish Date) slipped into the edited docs

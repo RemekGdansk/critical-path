@@ -93,8 +93,12 @@ How to add new tests in this project. Each sub-section is filled in once the rel
 
 ### 6.1 Adding a domain unit test with a PRD oracle
 
-- TBD — see §3 Phase 1 for the forecast worked-example pattern (fixed clock, expected dates taken from the PRD).
-- Existing reference until then: colocated `src/lib/services/*.test.ts`; run with `npm test`.
+- **Location:** colocated next to the code under test as `src/**/*.test.ts` — `.ts` only. That is the only pattern Vitest discovers (`vitest.config.ts`) and the one Tailwind's scan excludes; a `.test.tsx` file would be neither run nor excluded. Domain logic and its tests live in `src/lib/services/`.
+- **Reference:** `src/lib/services/forecast.test.ts`, the `prdExamples` table run by the "PRD worked examples" `describe` block. To cover a new PRD rule, add one row: `rule` names the PRD source (section, user story or acceptance criterion) and doubles as the test name; `project` is built through the edit functions (or by hand only when no edit can reach the state yet); `today`, `baseDate`, `baseDateReason` and both Project Finish Dates are ISO literals. Derive the expected dates by hand from the PRD's convention (finish = start + Duration; a successor starts on its predecessor's finish or completion date) — never with `addDays`, `forecast` or any other production helper. A row whose expected value could also be produced by a plausible bug (e.g. In Progress treated as Done) should differ from its neighbour on exactly that point. A multi-step PRD story (US-02) stays a step-by-step `it` next to the table; non-PRD edge cases go outside the "PRD worked examples" block.
+- **"Today":** always injected as an ISO string (`forecast(project, today)`), never read from the clock — no `vi.useFakeTimers` or `vi.setSystemTime`. The only clock read is converted by `todayIsoDate`, tested in `src/lib/services/calendar-date.test.ts` against instants on either side of local midnight.
+- **Time zone:** the whole suite runs in Europe/Warsaw (`test.env.TZ` in `vitest.config.ts`) on every machine and in both CI gates; a local-day test relies on it and must not set `process.env.TZ` itself.
+- **Rendered output:** when a domain result must reach the screen correctly (e.g. no Project Finish Date while a Validation Warning exists), render the component statically from a real domain result — `renderToStaticMarkup(createElement(Component, props))` in a `.test.ts`, no DOM library, no hand-built domain objects — and assert on the text and the raw markup. Reference: `src/components/planner/ForecastSummary.test.ts`.
+- **Run:** `npm test` (whole suite) or `npx vitest run <file>` (one file).
 
 ### 6.2 Adding a planner-state test for a rejected edit
 
@@ -111,6 +115,13 @@ How to add new tests in this project. Each sub-section is filled in once the rel
 ### 6.5 Per-rollout-phase notes
 
 (Appended after each phase lands.)
+
+**§3 Phase 1 — Forecast oracle** (change `testing-forecast-dates`, 2026-10-10)
+
+- Landed: the suite's time zone is pinned to Europe/Warsaw, with a `todayIsoDate` test that fails if "today" is taken from UTC components or the pin is removed; the PRD worked examples are gathered into one oracle table in `forecast.test.ts`, with a new row proving In Progress is treated exactly like To Do; `ForecastSummary.test.ts` proves that while a Validation Warning exists neither Project Finish Date nor any date is rendered, and both appear once it is fixed. No production code changed.
+- Handed off: what both Project Finish Dates are when every Task is Done (the code returns the base date, i.e. today; the PRD is silent) is an Unknown on roadmap S-07, which settles it before writing its oracle rows.
+- Left to §3 Phase 2: a stale or memoized forecast after an edit, and the glue from the clock to the forecast in the planner view — both need the DOM harness Phase 2 introduces.
+- For the next `--refresh`: §4's "`vi.setSystemTime` controls 'today'" is superseded — no tested code reads the clock; "today" is injected and the time zone is pinned (§6.1).
 
 ## 7. What We Deliberately Don't Test
 
