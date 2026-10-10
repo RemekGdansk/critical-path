@@ -288,25 +288,25 @@ Run `npm ci` first: the local `node_modules` has Vitest 5.0.2 while `package-loc
 
 #### Automated
 
-- [x] 2.1 `npm test` passes, including the new In Progress row
-- [x] 2.2 `npm run lint && npx astro check` pass
+- [x] 2.1 `npm test` passes, including the new In Progress row — b0b0fdc
+- [x] 2.2 `npm run lint && npx astro check` pass — b0b0fdc
 
 #### Manual
 
-- [x] 2.3 The diff of `forecast.test.ts` shows every previous expected date still present with the same value (moved, not changed or dropped)
-- [x] 2.4 Probe: changing `forecast.ts` to treat `in-progress` like `done` makes only the In Progress row fail; revert and the suite passes
+- [x] 2.3 The diff of `forecast.test.ts` shows every previous expected date still present with the same value (moved, not changed or dropped) — b0b0fdc
+- [x] 2.4 Probe: changing `forecast.ts` to treat `in-progress` like `done` makes only the In Progress row fail; revert and the suite passes — b0b0fdc
 
 ### Phase 3: Withheld render check
 
 #### Automated
 
-- [ ] 3.1 `npm test` discovers and passes `src/components/planner/ForecastSummary.test.ts`
-- [ ] 3.2 `npm run lint && npx astro check` pass
-- [ ] 3.3 `npm run build` passes
+- [x] 3.1 `npm test` discovers and passes `src/components/planner/ForecastSummary.test.ts`
+- [x] 3.2 `npm run lint && npx astro check` pass
+- [x] 3.3 `npm run build` passes
 
 #### Manual
 
-- [ ] 3.4 Probe: making `ForecastSummary` render the date list in the withheld branch too makes the withheld case fail; revert and the suite passes
+- [x] 3.4 Probe: making `ForecastSummary` render the date list in the withheld branch too makes the withheld case fail; revert and the suite passes
 
 ### Phase 4: Cookbook and hand-offs
 
