@@ -174,6 +174,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:**
   - What are both Project Finish Dates when every Task is Done? The code returns the base date (i.e. today); the PRD is silent; raised by test-plan Phase 1. — Owner: user. Block: no (decide during planning).
+  - Once every direct successor of START is Done, should the forecast still say the START date is in the past? The PRD says the START date no longer matters then, but the code keeps `baseDateReason: "start-date-in-past"` and `ForecastSummary` shows "START date … is in the past"; the Done rows of the test-plan Phase 1 oracle table assert that label as the code's current choice, not a PRD value. — Owner: user. Block: no (decide during planning).
 - **Risk:** The densest rule set in the PRD (seven US-04 acceptance criteria, several indirect-edit rejections); sequenced after the file round-trip so its rules land in editing and import at once. Done Tasks need no Duration, so S-04's withheld copy ("Forecast not possible until every Task has one." in `ForecastSummary`) must be reworded for not-Done Tasks.
 - **Status:** proposed
 
