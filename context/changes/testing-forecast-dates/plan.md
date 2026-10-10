@@ -312,10 +312,10 @@ Run `npm ci` first: the local `node_modules` has Vitest 5.0.2 while `package-loc
 
 #### Automated
 
-- [x] 4.1 `npx prettier --check context/foundation/test-plan.md context/foundation/roadmap.md PROJECT_RULES.md` passes
-- [x] 4.2 `node scripts/sync-roadmap.mjs --dry-run` (needs `gh` auth) reports the S-07 issue as the only roadmap change
+- [x] 4.1 `npx prettier --check context/foundation/test-plan.md context/foundation/roadmap.md PROJECT_RULES.md` passes — ffebf2a
+- [x] 4.2 `node scripts/sync-roadmap.mjs --dry-run` (needs `gh` auth) reports the S-07 issue as the only roadmap change — ffebf2a
 
 #### Manual
 
-- [x] 4.3 §6.1 alone is enough to add a new PRD oracle row without reading this plan
-- [x] 4.4 No synonym for the domain terms (Validation Warning, Resource-Unconstrained / Resource-Constrained Project Finish Date) slipped into the edited docs
+- [x] 4.3 §6.1 alone is enough to add a new PRD oracle row without reading this plan — ffebf2a
+- [x] 4.4 No synonym for the domain terms (Validation Warning, Resource-Unconstrained / Resource-Constrained Project Finish Date) slipped into the edited docs — ffebf2a
