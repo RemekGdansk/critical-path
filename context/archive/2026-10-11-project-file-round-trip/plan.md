@@ -517,55 +517,55 @@ None. No file format existed before 0.1. Every later app version must import the
 
 #### Automated
 
-- [x] 1.1 Project edit and validation tests pass: `npx vitest run src/lib/services/project.test.ts` — e084ef8
-- [x] 1.2 Full unit suite passes: `npm test` — e084ef8
-- [x] 1.3 Lint passes: `npm run lint` — e084ef8
-- [x] 1.4 Type check passes: `npx astro check` — e084ef8
+- [x] 1.1 Project edit and validation tests pass: `npx vitest run src/lib/services/project.test.ts` — 7947701
+- [x] 1.2 Full unit suite passes: `npm test` — 7947701
+- [x] 1.3 Lint passes: `npm run lint` — 7947701
+- [x] 1.4 Type check passes: `npx astro check` — 7947701
 
 #### Manual
 
-- [x] 1.5 Every `validateProject` message reads as one domain-term sentence and uses "Validation Error" vocabulary consistently with the PRD — e084ef8
+- [x] 1.5 Every `validateProject` message reads as one domain-term sentence and uses "Validation Error" vocabulary consistently with the PRD — 7947701
 
 ### Phase 2: Project file format 0.1
 
 #### Automated
 
-- [x] 2.1 File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts` — 9c0c604
-- [x] 2.2 Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/` — 9c0c604
-- [x] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 9c0c604
-- [x] 2.4 No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice) — 9c0c604
+- [x] 2.1 File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts` — 7947701
+- [x] 2.2 Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/` — 7947701
+- [x] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 7947701
+- [x] 2.4 No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice) — 7947701
 
 #### Manual
 
-- [x] 2.5 Stryker on the module (`npm run test:mutation -- --mutate "src/lib/services/project-file.ts"`): each surviving mutant is killed with an assertion or noted as not user-visible — 9c0c604
-- [x] 2.6 The golden file reads cleanly by hand and matches the 0.1 shape above — 9c0c604
+- [x] 2.5 Stryker on the module (`npm run test:mutation -- --mutate "src/lib/services/project-file.ts"`): each surviving mutant is killed with an assertion or noted as not user-visible — 7947701
+- [x] 2.6 The golden file reads cleanly by hand and matches the 0.1 shape above — 7947701
 
 ### Phase 3: Planner UI: name, Export and Import
 
 #### Automated
 
-- [x] 3.1 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — c96d5aa
-- [x] 3.2 The CSP in the built HTML is unchanged: `npm run check:csp` passes and `git diff main -- astro.config.mjs` is empty — c96d5aa
+- [x] 3.1 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 7947701
+- [x] 3.2 The CSP in the built HTML is unchanged: `npm run check:csp` passes and `git diff main -- astro.config.mjs` is empty — 7947701
 
 #### Manual
 
-- [x] 3.3 Kitchen sink (`npm run dev`, `/kitchen-sink`): header fits without overlap in every cell; named and unnamed states read correctly — c96d5aa
-- [x] 3.4 Under `npm run preview` in Chrome: export a named project with a START date, Durations and a missing Duration; import it in a different browser profile, which shows the same Tasks, predecessors, Durations, warning, START date, name and both Project Finish Dates — c96d5aa
-- [x] 3.5 Under `npm run preview` in Firefox and Safari: Export downloads `<name>.json` with no CSP violation in the console — c96d5aa
+- [x] 3.3 Kitchen sink (`npm run dev`, `/kitchen-sink`): header fits without overlap in every cell; named and unnamed states read correctly — 7947701
+- [x] 3.4 Under `npm run preview` in Chrome: export a named project with a START date, Durations and a missing Duration; import it in a different browser profile, which shows the same Tasks, predecessors, Durations, warning, START date, name and both Project Finish Dates — 7947701
+- [x] 3.5 Under `npm run preview` in Firefox and Safari: Export downloads `<name>.json` with no CSP violation in the console — 7947701
   - Observed in both Firefox and Safari, confirmed by the user on 2026-10-11 (impl-review Phase 3, F3)
-- [x] 3.6 Unnamed Export focuses the name field and asks; typing a name and clicking Export downloads in one click — c96d5aa
-- [x] 3.7 Importing a hand-edited file with a cycle shows the alert naming the cycle; the previous project and the open panel are unchanged — c96d5aa
-- [x] 3.8 After a successful import the side panel shows nothing selected and the diagram fits the imported project — c96d5aa
-- [x] 3.9 Keyboard only: name field, Export and Import are reachable and operable; the alert is announced — c96d5aa
+- [x] 3.6 Unnamed Export focuses the name field and asks; typing a name and clicking Export downloads in one click — 7947701
+- [x] 3.7 Importing a hand-edited file with a cycle shows the alert naming the cycle; the previous project and the open panel are unchanged — 7947701
+- [x] 3.8 After a successful import the side panel shows nothing selected and the diagram fits the imported project — 7947701
+- [x] 3.9 Keyboard only: name field, Export and Import are reachable and operable; the alert is announced — 7947701
 
 ### Phase 4: Browser-level export and import (E2E, Chromium)
 
 #### Automated
 
-- [x] 4.1 E2E suite passes: `npx playwright test` — 5e06a2b
-- [x] 4.2 Unit gate still passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 5e06a2b
+- [x] 4.1 E2E suite passes: `npx playwright test` — 7947701
+- [x] 4.2 Unit gate still passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 7947701
 
 #### Manual
 
-- [x] 4.3 Each E2E test was seen red on a deliberate break (e.g. the download anchor removed, a cycle file accepted) and green again after reverting — 5e06a2b
-- [x] 4.4 Generated tests were reviewed against the five anti-patterns from `/10x-e2e` — 5e06a2b
+- [x] 4.3 Each E2E test was seen red on a deliberate break (e.g. the download anchor removed, a cycle file accepted) and green again after reverting — 7947701
+- [x] 4.4 Generated tests were reviewed against the five anti-patterns from `/10x-e2e` — 7947701
