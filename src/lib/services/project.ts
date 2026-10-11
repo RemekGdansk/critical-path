@@ -69,9 +69,11 @@ function pathLabel(project: Project, path: TaskId[]): string {
     .join(" → ");
 }
 
-// Whitespace and invisible format characters (zero-width space, joiners, BOM…):
-// a name made only of these looks empty.
-const INVISIBLE_ONLY = /^[\p{White_Space}\p{Cf}]*$/u;
+// Anything but whitespace and invisible format characters (zero-width space,
+// joiners, BOM…): a name without one looks empty. Searching for one character
+// never backtracks, so a name of millions of invisible characters (from an
+// imported file) cannot exhaust the regexp stack as an anchored `^[…]*$` does.
+const VISIBLE_CHARACTER = /[^\p{White_Space}\p{Cf}]/u;
 // Control characters (tab, line feed…) plus the Unicode line and paragraph separators.
 const CONTROL_CHARACTER = /[\p{Cc}\p{Zl}\p{Zp}]/u;
 
@@ -106,7 +108,7 @@ const PROJECT_NAME_RULES: NameRules = {
 /** Returns the Validation Error a trimmed name would create, if any. */
 function checkName(name: string, rules: NameRules): ValidationError | undefined {
   const { subject, maxLength } = rules;
-  if (INVISIBLE_ONLY.test(name)) return { rule: rules.empty, message: `${subject} cannot be empty.` };
+  if (!VISIBLE_CHARACTER.test(name)) return { rule: rules.empty, message: `${subject} cannot be empty.` };
   if (name.length > maxLength) {
     return { rule: rules.tooLong, message: `${subject} can be at most ${maxLength} characters.` };
   }

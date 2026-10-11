@@ -203,6 +203,7 @@ Pure functions for the file contract: serialize, parse and validate, and the fil
   - All keys are required except `name`, `start.date`, `duration` and `completionDate`.
   - Unknown keys are rejected.
   - Types are strict: `null` is never accepted, and ids and `nextTaskId` must be positive safe integers.
+  - Ids are capped (impl-review Phase 2, F2): `nextTaskId` is at most 2147483647 (2^31 − 1) and every Task and predecessor id at most 2147483646, so the raised `nextTaskId` never passes the cap. A file near `Number.MAX_SAFE_INTEGER` would otherwise import with an inexact `nextTaskId`, re-export a file it cannot import, and let `createTask` mint one id twice.
   - The START/FINISH spellings are detected as described in Critical Implementation Details.
 - **Normalisation (lossless):**
   - predecessors are sorted ascending and deduplicated;
@@ -528,15 +529,15 @@ None. No file format existed before 0.1. Every later app version must import the
 
 #### Automated
 
-- [x] 2.1 File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
-- [x] 2.2 Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/`
-- [x] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [x] 2.4 No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice)
+- [x] 2.1 File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts` — 9c0c604
+- [x] 2.2 Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/` — 9c0c604
+- [x] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 9c0c604
+- [x] 2.4 No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice) — 9c0c604
 
 #### Manual
 
-- [x] 2.5 Stryker on the module (`npm run test:mutation -- --mutate "src/lib/services/project-file.ts"`): each surviving mutant is killed with an assertion or noted as not user-visible
-- [x] 2.6 The golden file reads cleanly by hand and matches the 0.1 shape above
+- [x] 2.5 Stryker on the module (`npm run test:mutation -- --mutate "src/lib/services/project-file.ts"`): each surviving mutant is killed with an assertion or noted as not user-visible — 9c0c604
+- [x] 2.6 The golden file reads cleanly by hand and matches the 0.1 shape above — 9c0c604
 
 ### Phase 3: Planner UI: name, Export and Import
 

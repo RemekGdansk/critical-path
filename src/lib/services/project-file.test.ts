@@ -423,6 +423,31 @@ describe("parseProjectFile", () => {
       rule: "file-not-a-project",
       fragment: "The file is not a project file: forecast is not a known field.",
     },
+    // A key or version from the file is repeated quoted, escaped and cut to 40 characters, so it cannot pass for the message.
+    {
+      case: "an unknown key that reads like a message",
+      text: fileWith((file) => (file.tasks[1]["Import succeeded.\nAll good"] = true)),
+      rule: "file-not-a-project",
+      fragment: 'The file is not a project file: tasks[1]["Import succeeded.\\nAll good"] is not a known field.',
+    },
+    {
+      case: "a very long unknown key",
+      text: fileWith((file) => (file["k".repeat(1000)] = true)),
+      rule: "file-not-a-project",
+      fragment: `The file is not a project file: ["${"k".repeat(40)}…"] is not a known field.`,
+    },
+    {
+      case: "a very long version that is not a version",
+      text: fileWith((file) => (file.version = "v".repeat(1000))),
+      rule: "file-not-a-project",
+      fragment: `The file is not a project file: version "${"v".repeat(40)}…" is not a version this app reads.`,
+    },
+    {
+      case: "a very long newer version",
+      text: fileWith((file) => (file.version = "1".repeat(1000))),
+      rule: "file-version-newer",
+      fragment: `The file has version ${"1".repeat(40)}…, newer than version 0.1 that this app reads`,
+    },
     {
       case: "a key on FINISH",
       text: fileWith((file) => (file.finish = { date: "2026-12-01" })),
@@ -586,6 +611,25 @@ describe("parseProjectFile", () => {
       rule: "file-not-a-project",
       fragment: "nextTaskId must be a positive whole number, not 1.5",
     },
+    // Ids stay far below Number.MAX_SAFE_INTEGER (9007199254740991), and below nextTaskId's cap of 2147483647.
+    ...[2147483647, 9007199254740991].map((id) => ({
+      case: `a Task id of ${id}`,
+      text: fileWith((file) => (file.tasks[0].id = id)),
+      rule: "file-not-a-project" as const,
+      fragment: `The file is not a project file: tasks[0].id must be at most 2147483646, not ${id}.`,
+    })),
+    {
+      case: "a predecessor id above the cap",
+      text: fileWith((file) => (file.tasks[1].predecessors = [2147483647])),
+      rule: "file-not-a-project",
+      fragment: "The file is not a project file: tasks[1].predecessors[0] must be at most 2147483646, not 2147483647.",
+    },
+    {
+      case: "a nextTaskId above the cap",
+      text: fileWith((file) => (file.nextTaskId = 2147483648)),
+      rule: "file-not-a-project",
+      fragment: "The file is not a project file: nextTaskId must be at most 2147483647, not 2147483648.",
+    },
     {
       case: "a Task depending on FINISH whose id is not a Task id",
       text: fileWith((file) => {
@@ -611,19 +655,19 @@ describe("parseProjectFile", () => {
       case: "an In Progress Task",
       text: fileWith((file) => (file.tasks[1].status = "in-progress")),
       rule: "task-status-not-supported-yet",
-      fragment: "Task 2: Build is In Progress",
+      fragment: "Task 2 is In Progress, and this version of the app can import only To Do Tasks.",
     },
     {
       case: "a Done Task",
       text: fileWith((file) => (file.tasks[1].status = "done")),
       rule: "task-status-not-supported-yet",
-      fragment: "Task 2: Build is Done",
+      fragment: "Task 2 is Done, and this version of the app can import only To Do Tasks.",
     },
     {
       case: "a completion date",
       text: fileWith((file) => (file.tasks[1].completionDate = "2026-11-04")),
       rule: "task-status-not-supported-yet",
-      fragment: "Task 2: Build has a completion date",
+      fragment: "Task 2 has a completion date, and this version of the app cannot import completion dates yet.",
     },
   ];
 
@@ -653,6 +697,21 @@ describe("parseProjectFile", () => {
   it("does not let a __proto__ key through", () => {
     const text = fileWith(() => undefined).replace('"finish": {}', '"finish": { "__proto__": { "date": "x" } }');
     expectRejected(parseProjectFile(text), "file-not-a-project", "finish.__proto__ is not a known field");
+  });
+
+  it("rejects a name of ten million invisible characters instead of throwing", () => {
+    // An anchored ^[…]*$ check exhausts V8's regexp stack on a run this long (about 30 MB of file).
+    const invisible = "​".repeat(10_000_000);
+    expectRejected(
+      parseProjectFile(fileWith((file) => (file.tasks[1].name = invisible))),
+      "task-name-empty",
+      "Task 2: A Task name cannot be empty.",
+    );
+    expectRejected(
+      parseProjectFile(fileWith((file) => (file.name = invisible))),
+      "project-name-empty",
+      "A project name cannot be empty.",
+    );
   });
 
   it("checks the version before the shape", () => {
@@ -725,6 +784,14 @@ describe("parseProjectFile", () => {
     it("keeps a higher nextTaskId as it is", () => {
       const text = fileWith((file) => (file.nextTaskId = 10));
       expect(imported(parseProjectFile(text)).nextTaskId).toBe(10);
+    });
+
+    it("accepts the largest Task id, raises nextTaskId to its cap, and round-trips", () => {
+      const text = fileWith((file) => (file.tasks[2].id = 2147483646));
+      const project = imported(parseProjectFile(text));
+      expect(project.nextTaskId).toBe(2147483647);
+      expect(project.tasks.map((task) => task.id)).toStrictEqual([1, 2, 2147483646]);
+      expect(imported(parseProjectFile(serializeProject(project)))).toStrictEqual(project);
     });
 
     it("leaves out an absent START date and Duration rather than writing undefined", () => {

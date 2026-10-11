@@ -1,10 +1,11 @@
 // The project file, version 0.1: the only place that knows the file format.
 // Export writes JSON whose every byte the app controls, in a fixed key order,
-// so a re-export is byte-identical and Prettier leaves it as it is. Import runs
-// a pipeline of stages, each assuming the previous one passed: parse, version,
+// so a re-export is byte-identical, and Prettier leaves it as it is while each
+// predecessors list fits in 120 columns (see taskLines). Import runs a pipeline
+// of stages, each assuming the previous one passed: parse, version,
 // shape, normalise, unique ids, the pre-S-06/S-07 limits, then validateProject.
 // Only a project that passes every stage is returned.
-import { taskLabel, validateProject, type ValidationErrorRule } from "@/lib/services/project";
+import { validateProject, type ValidationErrorRule } from "@/lib/services/project";
 import type { DayCountingMode, Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
 
 export const PROJECT_FILE_VERSION = "0.1";
@@ -143,6 +144,26 @@ function at(path: string, key: string): string {
   return path === "" ? key : `${path}.${key}`;
 }
 
+// Text from the file that a message repeats is cut to this many characters, so
+// a hand-edited file cannot fill the alert.
+const ECHO_LENGTH = 40;
+
+function shortened(text: string): string {
+  return text.length > ECHO_LENGTH ? `${text.slice(0, ECHO_LENGTH)}…` : text;
+}
+
+/** Text from the file as a message repeats it: shortened, quoted and escaped, so it cannot pass for the message itself. */
+function quoted(text: string): string {
+  return JSON.stringify(shortened(text));
+}
+
+const PLAIN_KEY = /^[A-Za-z_$][\w$]*$/;
+
+/** The path of a key the file holds: `tasks[1].colour`, or `tasks[1]["two words"]` for any other key. */
+function keyPath(path: string, key: string): string {
+  return PLAIN_KEY.test(key) && key.length <= ECHO_LENGTH ? at(path, key) : `${path}[${quoted(key)}]`;
+}
+
 // --- Stage 2: version
 
 // A canonical `major` or `major.minor`: digits only, no leading zeros.
@@ -160,11 +181,11 @@ function checkVersion(root: JsonObject): void {
     if (Number(major) > 0 || Number(minor) > 1) {
       fail(
         "file-version-newer",
-        `The file has version ${version}, newer than version ${PROJECT_FILE_VERSION} that this app reads; open it in a newer version of the app.`,
+        `The file has version ${shortened(version)}, newer than version ${PROJECT_FILE_VERSION} that this app reads; open it in a newer version of the app.`,
       );
     }
   }
-  notAProject(`version ${JSON.stringify(version)} is not a version this app reads`);
+  notAProject(`version ${quoted(version)} is not a version this app reads`);
 }
 
 // --- Stage 3a: the START and FINISH spellings, before any generic shape error
@@ -214,7 +235,7 @@ const TASK_STATUSES: readonly TaskStatus[] = ["to-do", "in-progress", "done"];
 function readObject(value: unknown, path: string, keys: readonly string[]): JsonObject {
   if (!isObject(value)) notAProject(`${path} must be an object, not ${jsonType(value)}`);
   const unknownKey = Object.keys(value).find((key) => !keys.includes(key));
-  if (unknownKey !== undefined) notAProject(`${at(path, unknownKey)} is not a known field`);
+  if (unknownKey !== undefined) notAProject(`${keyPath(path, unknownKey)} is not a known field`);
   return value;
 }
 
@@ -233,8 +254,17 @@ function readNumber(value: unknown, path: string): number {
   return value;
 }
 
-function readPositiveWholeNumber(value: unknown, path: string, what = "a positive whole number"): number {
-  if (isTaskId(value)) return value;
+// The largest nextTaskId a file may hold, with every Task id below it. Far below
+// Number.MAX_SAFE_INTEGER: a file at that edge would be accepted with an inexact
+// nextTaskId, re-export a file it cannot import, and let createTask mint one id twice.
+const MAX_NEXT_TASK_ID = 2_147_483_647;
+const MAX_TASK_ID = MAX_NEXT_TASK_ID - 1;
+
+function readPositiveWholeNumber(value: unknown, path: string, max: number, what = "a positive whole number"): number {
+  if (isTaskId(value)) {
+    if (value <= max) return value;
+    notAProject(`${path} must be at most ${max}, not ${value}`);
+  }
   notAProject(`${path} must be ${what}, not ${typeof value === "number" ? String(value) : jsonType(value)}`);
 }
 
@@ -258,7 +288,7 @@ function readFinish(value: unknown): Finish {
 
 function readTask(value: unknown, path: string): Task {
   const object = readObject(value, path, TASK_KEYS);
-  const id = readPositiveWholeNumber(required(object, path, "id"), at(path, "id"));
+  const id = readPositiveWholeNumber(required(object, path, "id"), at(path, "id"), MAX_TASK_ID);
   const name = readText(required(object, path, "name"), at(path, "name"));
   const predecessorsPath = at(path, "predecessors");
   const predecessorsValue = required(object, path, "predecessors");
@@ -266,7 +296,7 @@ function readTask(value: unknown, path: string): Task {
     notAProject(`${predecessorsPath} must be a list, not ${jsonType(predecessorsValue)}`);
   }
   const predecessors = predecessorsValue.map((entry: unknown, index) =>
-    readPositiveWholeNumber(entry, `${predecessorsPath}[${index}]`, "a Task id (a positive whole number)"),
+    readPositiveWholeNumber(entry, `${predecessorsPath}[${index}]`, MAX_TASK_ID, "a Task id (a positive whole number)"),
   );
 
   const task: Task = { id, name, predecessors, status: "to-do" };
@@ -284,7 +314,7 @@ function readProject(root: JsonObject): Project {
   const start = readStart(required(root, "", "start"));
   const finish = readFinish(required(root, "", "finish"));
   const dayCountingMode = readOneOf(required(root, "", "dayCountingMode"), "dayCountingMode", DAY_COUNTING_MODES);
-  const nextTaskId = readPositiveWholeNumber(required(root, "", "nextTaskId"), "nextTaskId");
+  const nextTaskId = readPositiveWholeNumber(required(root, "", "nextTaskId"), "nextTaskId", MAX_NEXT_TASK_ID);
   const tasksValue = required(root, "", "tasks");
   if (!Array.isArray(tasksValue)) notAProject(`tasks must be a list, not ${jsonType(tasksValue)}`);
   const tasks = tasksValue.map((task: unknown, index) => readTask(task, `tasks[${index}]`));
@@ -331,17 +361,18 @@ function checkSupportedYet(project: Project): void {
       "The project counts weekdays, and this version of the app can import only projects that count calendar days.",
     );
   }
+  // By id only: the name rules run later, in validateProject, so the name may not be fit to show yet.
   for (const task of project.tasks) {
     if (task.status !== "to-do") {
       fail(
         "task-status-not-supported-yet",
-        `Task ${taskLabel(task)} is ${STATUS_NAMES[task.status]}, and this version of the app can import only To Do Tasks.`,
+        `Task ${task.id} is ${STATUS_NAMES[task.status]}, and this version of the app can import only To Do Tasks.`,
       );
     }
     if (task.completionDate !== undefined) {
       fail(
         "task-status-not-supported-yet",
-        `Task ${taskLabel(task)} has a completion date, and this version of the app cannot import completion dates yet.`,
+        `Task ${task.id} has a completion date, and this version of the app cannot import completion dates yet.`,
       );
     }
   }
