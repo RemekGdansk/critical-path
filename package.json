@@ -12,6 +12,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:mutation": "stryker run",
     "prepare": "husky"
   },
   "dependencies": {
@@ -34,6 +35,8 @@
     "@astrojs/check": "^0.9.10",
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^10.0.1",
+    "@stryker-mutator/core": "^10.0.0",
+    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@tailwindcss/vite": "^4.2.4",
     "@types/node": "^24.19.2",
     "@types/react": "^19.2.14",

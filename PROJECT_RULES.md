@@ -24,6 +24,7 @@ Full lists and forecast rules: @context/foundation/prd.md.
 - `npm run lint` — ESLint with type-checked rules
 - `npx astro check` — type-check `.astro` and TS files (CI gate)
 - `npm test` — Vitest, single run (`vitest run`), pure domain logic and build-tooling tests
+- `npm run test:mutation` — Stryker on the domain modules in `src/lib/services/`; narrow it with `npm run test:mutation -- --mutate "path/to/file.ts:start-end"`. Selective, never a CI gate (see Mutation testing below)
 - `npm run build` — static build into `dist/`
 - `npm run check:csp` — run after `npm run build`; reads the built HTML in `dist/`, never @astro.config.mjs, and fails unless every built page enforces the no-egress CSP (pattern: §6.4 of @context/foundation/test-plan.md)
 - `npm run preview` — the only way to see the CSP in effect; it is disabled under `npm run dev`
@@ -52,6 +53,10 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 ## Testing
 
 Vitest runs pure domain logic. Tests are colocated as `src/**/*.test.ts` — a pattern Vitest discovers (@vitest.config.ts) and Tailwind ignores (@src/styles/global.css), so class names in tests never reach the production CSS. Vitest also discovers `scripts/**/*.test.ts`, for build tooling tests (e.g. the CSP checker's fixture table); `scripts/` is outside the Tailwind scan. Domain logic lives in `src/lib/services/`, next to its tests. The CI gate is `astro sync` → lint → `astro check` → test → build → `check:csp`, run both in @.github/workflows/ci.yml and in the Cloudflare Workers Builds build command. Vitest also checks a component's static output from a real domain result, via `react-dom/server` and `createElement` in a `.test.ts` file, never `.test.tsx` (neither discovered nor excluded from the Tailwind scan). The suite runs in the Europe/Warsaw time zone, pinned in @vitest.config.ts, and "today" is always passed in, never read from the clock; the pattern for a new test with a PRD oracle is §6.1 of @context/foundation/test-plan.md. Run `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` before pushing.
+
+## Mutation testing
+
+Stryker runs selective mutation testing on risk-critical modules: `npm run test:mutation -- --mutate "path/to/file.ts:start-end"`. It is not a CI gate. Run it only on code touched by the current change or by a risk in @context/foundation/test-plan.md, and do not chase a 100% score. The report is written to `reports/mutation/mutation.html`. Review survived mutants one by one, and add an assertion only when a mutant would be a user-visible or business-relevant bug.
 
 ## Markdown
 
