@@ -27,3 +27,4 @@ jobs:
       - run: npx astro check
       - run: npm test
       - run: npm run build
+      - run: npm run check:csp # reads the built HTML in dist/, not astro.config.mjs

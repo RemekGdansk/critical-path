@@ -319,8 +319,8 @@ None. The change adds a gate; no data or app behaviour changes. Rollback is remo
 
 #### Automated
 
-- [ ] 2.1 `ci.yml` runs `npm run check:csp` as the step after `npm run build`: `grep -A1 "npm run build" .github/workflows/ci.yml`
-- [ ] 2.2 Linting passes: `npm run lint`
+- [x] 2.1 `ci.yml` runs `npm run check:csp` as the step after `npm run build`: `grep -A1 "npm run build" .github/workflows/ci.yml`
+- [x] 2.2 Linting passes: `npm run lint`
 - [ ] 2.3 On the PR, the loosened commit's `ci` run fails at the `check:csp` step: `gh pr checks`
 - [ ] 2.4 On the PR, the revert's `ci` run passes: `gh pr checks`
 
