@@ -123,8 +123,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Prerequisites:** S-02
 - **Parallel with:** S-04, S-05, S-06
 - **Blockers:** —
-- **Unknowns:**
-  - Which plain-text format (YAML or JSON) and what stable ordering rules keep exports diff-friendly and hand-editable? — Owner: user. Block: no (decide during planning).
+- **Unknowns:** — Resolved 2026-10-11 in the `project-file-round-trip` plan: the file is JSON, written by the app's own serializer in a fixed key order and read with `JSON.parse` (no format library), and it carries `"version": "0.1"`.
 - **Risk:** The file format should cover every project field listed in US-03 (Durations, Statuses, completion dates, START date, name, day-counting mode) from the start, so later slices fill fields without changing the format; each later rule-owning slice (S-04, S-07) adds its rules to import validation as well as to editing. Import must compose S-02's `findCycle` with the START/FINISH Validation Errors (START with a predecessor, a Task depending on FINISH) and with the rest of S-01 follow-up F1 (`context/archive/2026-09-27-capture-task-graph/follow-ups/review-fixes.md`): exported `checkTaskName`, unknown predecessor ids, unique Task ids, no duplicate or unsorted predecessors, and `nextTaskId` above every Task id. Import must also validate through the checks S-04 exports (`isIsoDate` for the START date, `isPositiveWholeDays` for Durations) and reject `dayCountingMode: "weekdays"` until S-06 lands: `forecast()` runs during render and throws on a malformed date or a cycle, which would blank the planner.
 - **Status:** in-progress
 
@@ -161,7 +160,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Parallel with:** S-02, S-03, S-05, S-07, S-08
 - **Blockers:** —
 - **Unknowns:** —
-- **Risk:** Isolated from S-04 so calendar arithmetic edge cases (weekend base dates) don't widen the forecast slice.
+- **Risk:** Isolated from S-04 so calendar arithmetic edge cases (weekend base dates) don't widen the forecast slice. Lifts the S-03 import rejection of `"dayCountingMode": "weekdays"` (rule `day-counting-mode-not-supported-yet`); the file version stays `"0.1"` until M-1 closes and then becomes `"1"`; adds a golden file holding a weekdays project next to the 0.1 one.
 - **Status:** proposed
 
 ### S-07: Progress-aware forecast
@@ -175,12 +174,12 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Unknowns:**
   - What are both Project Finish Dates when every Task is Done? The code returns the base date (i.e. today); the PRD is silent; raised by test-plan Phase 1. — Owner: user. Block: no (decide during planning).
   - Once every direct successor of START is Done, should the forecast still say the START date is in the past? The PRD says the START date no longer matters then, but the code keeps `baseDateReason: "start-date-in-past"` and `ForecastSummary` shows "START date … is in the past"; the Done rows of the test-plan Phase 1 oracle table assert that label as the code's current choice, not a PRD value. — Owner: user. Block: no (decide during planning).
-- **Risk:** The densest rule set in the PRD (seven US-04 acceptance criteria, several indirect-edit rejections); sequenced after the file round-trip so its rules land in editing and import at once. Done Tasks need no Duration, so S-04's withheld copy ("Forecast not possible until every Task has one." in `ForecastSummary`) must be reworded for not-Done Tasks.
+- **Risk:** The densest rule set in the PRD (seven US-04 acceptance criteria, several indirect-edit rejections); sequenced after the file round-trip so its rules land in editing and import at once. Done Tasks need no Duration, so S-04's withheld copy ("Forecast not possible until every Task has one." in `ForecastSummary`) must be reworded for not-Done Tasks. Lifts the S-03 import rejection of Statuses other than To Do and of completion dates (rule `task-status-not-supported-yet`); the file version stays `"0.1"` until M-1 closes and then becomes `"1"`; adds a golden file holding In Progress and Done Tasks with completion dates next to the 0.1 one.
 - **Status:** proposed
 
 ### S-08: Start a new project safely
 
-- **Outcome:** user can start a new, empty project, and is asked to confirm first when the current project has changes that were not exported.
+- **Outcome:** user can start a new, empty project, and is asked to confirm first when the current project has changes that were not exported; the same confirmation applies before Import replaces the current project.
 - **Change ID:** start-new-project
 - **PRD refs:** FR-016
 - **Prerequisites:** S-03
@@ -206,7 +205,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 
 ## Open Roadmap Questions
 
-None open. The PRD's `## Open Questions` has none; the one cross-cutting decision (file format) is a non-blocking Unknown on S-03.
+None open. The PRD's `## Open Questions` has none; the one cross-cutting decision (file format) was a non-blocking Unknown on S-03, resolved 2026-10-11 (JSON, `"version": "0.1"`).
 
 ## Parked
 

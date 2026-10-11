@@ -528,15 +528,15 @@ None. No file format existed before 0.1. Every later app version must import the
 
 #### Automated
 
-- [ ] 2.1 File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
-- [ ] 2.2 Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/`
-- [ ] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [ ] 2.4 No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice)
+- [x] 2.1 File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
+- [x] 2.2 Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/`
+- [x] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 2.4 No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice)
 
 #### Manual
 
-- [ ] 2.5 Stryker on the module (`npm run test:mutation -- --mutate "src/lib/services/project-file.ts"`): each surviving mutant is killed with an assertion or noted as not user-visible
-- [ ] 2.6 The golden file reads cleanly by hand and matches the 0.1 shape above
+- [x] 2.5 Stryker on the module (`npm run test:mutation -- --mutate "src/lib/services/project-file.ts"`): each surviving mutant is killed with an assertion or noted as not user-visible
+- [x] 2.6 The golden file reads cleanly by hand and matches the 0.1 shape above
 
 ### Phase 3: Planner UI: name, Export and Import
 
