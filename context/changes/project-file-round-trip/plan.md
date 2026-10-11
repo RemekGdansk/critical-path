@@ -118,7 +118,7 @@ Add the project-name edit and `validateProject`, the single whole-project check 
 - `ValidationErrorRule` gains `"project-name-empty"`, `"project-name-too-long"`, `"project-name-malformed"`, `"project-name-control-character"`, `"start-has-predecessor"` and `"task-depends-on-finish"`.
 - `export const PROJECT_NAME_MAX_LENGTH = TASK_NAME_MAX_LENGTH`.
 - `export function setProjectName(project: Project, input: string): EditResult`: an empty trimmed input deletes the `name` key, and anything else is checked by the name rules. A name made only of invisible characters is rejected as `project-name-empty` ("A project name cannot be empty.").
-- The Task-name messages stay byte-identical.
+- The Task-name messages stay byte-identical, except `task-name-malformed`, now "A Task name must be well-formed Unicode." to match the PRD wording (impl-review F1).
 
 #### 2. Whole-project validation
 
@@ -515,14 +515,14 @@ None. No file format existed before 0.1. Every later app version must import the
 
 #### Automated
 
-- [x] 1.1 Project edit and validation tests pass: `npx vitest run src/lib/services/project.test.ts`
-- [x] 1.2 Full unit suite passes: `npm test`
-- [x] 1.3 Lint passes: `npm run lint`
-- [x] 1.4 Type check passes: `npx astro check`
+- [x] 1.1 Project edit and validation tests pass: `npx vitest run src/lib/services/project.test.ts` — e084ef8
+- [x] 1.2 Full unit suite passes: `npm test` — e084ef8
+- [x] 1.3 Lint passes: `npm run lint` — e084ef8
+- [x] 1.4 Type check passes: `npx astro check` — e084ef8
 
 #### Manual
 
-- [x] 1.5 Every `validateProject` message reads as one domain-term sentence and uses "Validation Error" vocabulary consistently with the PRD
+- [x] 1.5 Every `validateProject` message reads as one domain-term sentence and uses "Validation Error" vocabulary consistently with the PRD — e084ef8
 
 ### Phase 2: Project file format 0.1
 

@@ -111,7 +111,7 @@ function checkName(name: string, rules: NameRules): ValidationError | undefined 
     return { rule: rules.tooLong, message: `${subject} can be at most ${maxLength} characters.` };
   }
   if (!name.isWellFormed()) {
-    return { rule: rules.malformed, message: `${subject} cannot contain a not well-formed Unicode character.` };
+    return { rule: rules.malformed, message: `${subject} must be well-formed Unicode.` };
   }
   if (CONTROL_CHARACTER.test(name)) {
     return {

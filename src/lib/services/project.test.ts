@@ -136,7 +136,9 @@ describe("createTask", () => {
   });
 
   it("rejects a name with a lone surrogate", () => {
-    expectRejected(edit(createTask, createEmptyProject(), "A\uD83D"), "task-name-malformed");
+    const result = edit(createTask, createEmptyProject(), "A\uD83D");
+    expectRejected(result, "task-name-malformed");
+    if (!result.ok) expect(result.error.message).toBe("A Task name must be well-formed Unicode.");
     expectRejected(edit(createTask, createEmptyProject(), "\uDE00B"), "task-name-malformed");
   });
 
@@ -386,8 +388,7 @@ describe("setProjectName", () => {
   it("rejects a name with a lone surrogate", () => {
     const result = edit(setProjectName, createEmptyProject(), "Q3\uD83D");
     expectRejected(result, "project-name-malformed");
-    if (!result.ok)
-      expect(result.error.message).toBe("A project name cannot contain a not well-formed Unicode character.");
+    if (!result.ok) expect(result.error.message).toBe("A project name must be well-formed Unicode.");
   });
 
   it("rejects a name with a line break or other control character", () => {
@@ -462,7 +463,7 @@ describe("validateProject", () => {
     expectValidationError(
       projectOf([task(3, "Build\uD800")]),
       "task-name-malformed",
-      "Task 3: A Task name cannot contain a not well-formed Unicode character.",
+      "Task 3: A Task name must be well-formed Unicode.",
     );
     expectValidationError(
       projectOf([task(3, "Build\nTest")]),
@@ -508,7 +509,7 @@ describe("validateProject", () => {
     expectValidationError(
       projectOf([], { name: "Q3\uDE00" }),
       "project-name-malformed",
-      "A project name cannot contain a not well-formed Unicode character.",
+      "A project name must be well-formed Unicode.",
     );
     expectValidationError(
       projectOf([], { name: "Q3\nLaunch" }),
