@@ -17,6 +17,8 @@ const ariaLabelConfig = { "node.a11yDescription.keyboardDisabled": "Press Enter 
 
 interface DiagramProps {
   project: Project;
+  /** A change refits the view, as a change in the Task ids does: the planner passes its import count. */
+  fitKey: number;
   selection: Selection;
   /** Mouse selection: a click on START or a Task node, or `null` for a click on the empty canvas. */
   onSelect: (target: Selection) => void;
@@ -29,7 +31,7 @@ interface DiagramProps {
  * only when the Tasks change, and the selection and the START date are applied
  * in a second, cheap pass.
  */
-export function Diagram({ project, selection, onSelect, onEdit }: DiagramProps) {
+export function Diagram({ project, fitKey, selection, onSelect, onEdit }: DiagramProps) {
   const { tasks } = project;
   const diagram = useMemo(() => layoutDiagram({ tasks }), [tasks]);
   const startDate = project.start.date;
@@ -49,13 +51,14 @@ export function Diagram({ project, selection, onSelect, onEdit }: DiagramProps) 
     [diagram, selection, startDate],
   );
 
-  // Refit when Tasks are created or deleted, not on rename or selection.
-  // React Flow queues fitView until the new nodes are measured.
+  // Refit when Tasks are created or deleted, or a project is imported (which
+  // may keep the same ids), not on rename or selection. React Flow queues
+  // fitView until the new nodes are measured.
   const { fitView } = useReactFlow<DiagramNode, DiagramEdge>();
   const taskIdsKey = project.tasks.map((task) => task.id).join(",");
   useEffect(() => {
     void fitView();
-  }, [taskIdsKey, fitView]);
+  }, [taskIdsKey, fitKey, fitView]);
 
   const handleNodeClick = useCallback<NodeMouseHandler<DiagramNode>>(
     (_event, node) => {
