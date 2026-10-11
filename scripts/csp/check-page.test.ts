@@ -53,7 +53,7 @@ const passing = [
       policy: fullPolicy,
       beforeMeta:
         '<meta charset="UTF-8"><meta name="viewport" content="width=device-width"><link rel="icon" type="image/png" href="/favicon.png"><title>Critical Path</title>',
-      afterMeta: "<script>window.island = 1;</script>",
+      afterMeta: "<style>main{margin:0}</style><script>window.island = 1;</script>",
       body: '<main><a href="https://reactflow.dev">React Flow</a></main>',
     }),
   },
@@ -175,6 +175,16 @@ const rejected = [
     mentions: ["rule 6", "<base"],
   },
   {
+    name: "(e) an inline <style> importing a third-party stylesheet before the meta",
+    html: page({ policy: minimal, beforeMeta: '<style>@import url("https://x.example/a.css");</style>' }),
+    mentions: ["rule 6", "<style>"],
+  },
+  {
+    name: "(e) a style attribute loading a third-party image before the meta",
+    html: `<!doctype html><html style="background:url(https://x.example/p.gif)"><head>${cspMeta(minimal)}</head><body></body></html>`,
+    mentions: ["rule 6", "style attribute", "<html>"],
+  },
+  {
     name: "an <img> with a third-party src in <body>",
     html: page({ policy: minimal, body: '<img src="https://x.example/p.gif" alt="">' }),
     mentions: ["rule 7", "<img", "https://x.example/p.gif"],
@@ -193,6 +203,14 @@ const rejected = [
     name: "an <img> with a third-party candidate in srcset",
     html: page({ policy: minimal, body: '<img src="/a.png" srcset="/a.png 1x, https://x.example/b.png 2x" alt="">' }),
     mentions: ["rule 7", "<img", "https://x.example/b.png"],
+  },
+  {
+    name: "a preload <link> with a third-party candidate in imagesrcset",
+    html: page({
+      policy: minimal,
+      afterMeta: '<link rel="preload" as="image" imagesrcset="/a.png 1x, https://x.example/b.png 2x">',
+    }),
+    mentions: ["rule 7", "<link imagesrcset", "https://x.example/b.png"],
   },
 ];
 

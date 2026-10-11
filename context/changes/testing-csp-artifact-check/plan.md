@@ -32,6 +32,8 @@ Add a post-build check that reads every `dist/**/*.html` and fails unless each p
 6. Before the CSP meta in document order there is no `<script>` (with or without `src`) and no `<base>`, because a meta CSP governs only what is parsed after it.
 7. No element other than `<a>` anywhere in the page has a URL attribute (`src`, `href`, `srcset`, `data`, `action`, `formaction`, `poster`) holding an absolute `http:`/`https:` URL or a protocol-relative `//` URL. `<a href>` is navigation, not a fetch.
 
+**Oracle addendum (2026-10-11, `reviews/impl-review-phase-1.md` F1):** rule 6 also forbids a `<style>` element and any element with a `style` attribute before the CSP meta, because CSS `@import` and `url()` fetch outside a policy not yet parsed; rule 7 also reads `imagesrcset`.
+
 ### Key Discoveries:
 
 - Meta position follows the author's `<head>` children — `node_modules/astro/dist/runtime/server/render/head.js:25-40`; the same-origin `<link rel="icon" href="/favicon.png">` precedes the meta today, so oracle rule 6 forbids scripts and `<base>` before the meta, not every element.
@@ -297,21 +299,21 @@ None. The change adds a gate; no data or app behaviour changes. Rollback is remo
 
 #### Automated
 
-- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci`
-- [x] 1.2 `npx vitest list` lists every existing `src/**/*.test.ts` test plus `scripts/csp/check-page.test.ts`, and nothing from `node_modules`, `.claude/` or `dist/`
-- [x] 1.3 `npm test` passes, including every fixture row
-- [x] 1.4 Breaking one rule in `check-page.ts` (e.g. letting host sources through) makes `npm test` exit non-zero (reverted afterwards)
-- [x] 1.5 Linting passes: `npm run lint`
-- [x] 1.6 Type check passes: `npx astro check`
-- [x] 1.7 `npm run build && npm run check:csp` exits 0 and reports 2 pages
-- [x] 1.8 With `connect-src 'self' https://example.com` in `astro.config.mjs`, `npm run build && npm run check:csp` exits non-zero naming both pages (reverted afterwards)
-- [x] 1.9 With `<script src="https://example.com/a.js"></script>` as the first child of `<head>` in `src/layouts/Layout.astro` and the config unchanged, `npm run build && npm run check:csp` exits non-zero (reverted afterwards)
-- [x] 1.10 After both reverts, `git diff --exit-code astro.config.mjs src/layouts/Layout.astro` is clean and `npm run build && npm run check:csp` exits 0 again
-- [x] 1.11 With `dist/` removed, `npm run check:csp` exits non-zero
+- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci` — f6593d3
+- [x] 1.2 `npx vitest list` lists every existing `src/**/*.test.ts` test plus `scripts/csp/check-page.test.ts`, and nothing from `node_modules`, `.claude/` or `dist/` — f6593d3
+- [x] 1.3 `npm test` passes, including every fixture row — f6593d3
+- [x] 1.4 Breaking one rule in `check-page.ts` (e.g. letting host sources through) makes `npm test` exit non-zero (reverted afterwards) — f6593d3
+- [x] 1.5 Linting passes: `npm run lint` — f6593d3
+- [x] 1.6 Type check passes: `npx astro check` — f6593d3
+- [x] 1.7 `npm run build && npm run check:csp` exits 0 and reports 2 pages — f6593d3
+- [x] 1.8 With `connect-src 'self' https://example.com` in `astro.config.mjs`, `npm run build && npm run check:csp` exits non-zero naming both pages (reverted afterwards) — f6593d3
+- [x] 1.9 With `<script src="https://example.com/a.js"></script>` as the first child of `<head>` in `src/layouts/Layout.astro` and the config unchanged, `npm run build && npm run check:csp` exits non-zero (reverted afterwards) — f6593d3
+- [x] 1.10 After both reverts, `git diff --exit-code astro.config.mjs src/layouts/Layout.astro` is clean and `npm run build && npm run check:csp` exits 0 again — f6593d3
+- [x] 1.11 With `dist/` removed, `npm run check:csp` exits non-zero — f6593d3
 
 #### Manual
 
-- [x] 1.12 The fixture table reads as the oracle: each row name says which loosening it is, and no expected value is derived from `dist/` or the config
+- [x] 1.12 The fixture table reads as the oracle: each row name says which loosening it is, and no expected value is derived from `dist/` or the config — f6593d3
 
 ### Phase 2: Wire both gates and prove the block
 

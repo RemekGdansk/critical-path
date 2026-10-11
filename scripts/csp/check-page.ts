@@ -26,7 +26,10 @@ const CSP_HTTP_EQUIV = "content-security-policy";
 // Keywords and schemes compared lower-cased; hash sources keep their case-sensitive base64.
 const ALLOWED_SOURCES = new Set(["'self'", "'none'", "data:"]);
 const HASH_SOURCE = /^'sha(256|384|512)-[A-Za-z0-9+/_=-]+'$/i;
-const URL_ATTRIBUTES = new Set(["src", "href", "srcset", "data", "action", "formaction", "poster"]);
+const URL_ATTRIBUTES = new Set(["src", "href", "srcset", "imagesrcset", "data", "action", "formaction", "poster"]);
+const SRCSET_ATTRIBUTES = new Set(["srcset", "imagesrcset"]);
+// Elements that run script, rebase URLs or load through CSS; before the meta they act outside the policy.
+const BEFORE_META_FORBIDDEN = new Set(["script", "base", "style"]);
 // An absolute http(s) URL, or a scheme-relative one; URL parsing treats "\" like "/" here.
 const THIRD_PARTY_URL = /^(https?:|[\\/]{2})/i;
 
@@ -73,10 +76,11 @@ function isAllowedSource(token: string): boolean {
   return ALLOWED_SOURCES.has(token.toLowerCase()) || HASH_SOURCE.test(token);
 }
 
-/** The URLs an attribute value asks the browser to fetch; `srcset` holds several. */
+/** The URLs an attribute value asks the browser to fetch; `srcset` and `imagesrcset` hold several. */
 function urlsOf(attributeName: string, value: string): string[] {
-  const urls =
-    attributeName === "srcset" ? value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0] ?? "") : [value];
+  const urls = SRCSET_ATTRIBUTES.has(attributeName)
+    ? value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0] ?? "")
+    : [value];
   // URL parsing strips tabs and newlines anywhere and surrounding whitespace.
   return urls.map((url) => url.replace(/[\t\n\r]/g, "").trim());
 }
@@ -128,12 +132,16 @@ export function checkPage(html: string): string[] {
     violations.push(...checkPolicy(attribute(meta, "content") ?? ""));
   }
 
-  // A meta CSP governs only what is parsed after it.
+  // A meta CSP governs only what is parsed after it, so nothing before it may run script or load through CSS.
   const firstMeta = metas.at(0);
   if (firstMeta !== undefined) {
     for (const element of elements.slice(0, elements.indexOf(firstMeta))) {
-      if (element.tagName === "script" || element.tagName === "base") {
+      if (BEFORE_META_FORBIDDEN.has(element.tagName)) {
         violations.push(`rule 6 (nothing loads before the CSP meta): ${describeElement(element)} comes before it`);
+      } else if (attribute(element, "style") !== undefined) {
+        violations.push(
+          `rule 6 (nothing loads before the CSP meta): a style attribute on <${element.tagName}> comes before it`,
+        );
       }
     }
   }
