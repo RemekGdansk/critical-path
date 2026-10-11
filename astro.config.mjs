@@ -43,7 +43,7 @@ export default defineConfig({
         // The load-bearing line: no fetch, XHR, WebSocket, sendBeacon or
         // EventSource is possible from the page. Loosening it must arrive as a
         // reviewed commit, never as a dashboard toggle.
-        "connect-src 'self' https://example.com",
+        "connect-src 'none'",
         "img-src 'self' data:",
         "font-src 'self' data:",
         "manifest-src 'self'",
