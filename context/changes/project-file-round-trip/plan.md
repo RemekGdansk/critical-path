@@ -515,14 +515,14 @@ None. No file format existed before 0.1. Every later app version must import the
 
 #### Automated
 
-- [ ] 1.1 Project edit and validation tests pass: `npx vitest run src/lib/services/project.test.ts`
-- [ ] 1.2 Full unit suite passes: `npm test`
-- [ ] 1.3 Lint passes: `npm run lint`
-- [ ] 1.4 Type check passes: `npx astro check`
+- [x] 1.1 Project edit and validation tests pass: `npx vitest run src/lib/services/project.test.ts`
+- [x] 1.2 Full unit suite passes: `npm test`
+- [x] 1.3 Lint passes: `npm run lint`
+- [x] 1.4 Type check passes: `npx astro check`
 
 #### Manual
 
-- [ ] 1.5 Every `validateProject` message reads as one domain-term sentence and uses "Validation Error" vocabulary consistently with the PRD
+- [x] 1.5 Every `validateProject` message reads as one domain-term sentence and uses "Validation Error" vocabulary consistently with the PRD
 
 ### Phase 2: Project file format 0.1
 

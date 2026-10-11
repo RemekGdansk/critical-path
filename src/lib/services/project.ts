@@ -2,18 +2,27 @@
 // either the new project or the Validation Error the edit would create; the
 // input project is never mutated, so a rejected edit leaves it as it was.
 import { isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
-import { cyclePathFor } from "@/lib/services/task-graph";
+import { cyclePathFor, findCycle } from "@/lib/services/task-graph";
 import type { Project, Task, TaskId } from "@/types";
 
 export const TASK_NAME_MAX_LENGTH = 200;
+export const PROJECT_NAME_MAX_LENGTH = TASK_NAME_MAX_LENGTH;
 
 export type ValidationErrorRule =
   | "task-name-empty"
   | "task-name-too-long"
   | "task-name-malformed"
   | "task-name-control-character"
+  | "project-name-empty"
+  | "project-name-too-long"
+  | "project-name-malformed"
+  | "project-name-control-character"
   | "unknown-task"
   | "cycle"
+  // The model cannot hold these two (START and FINISH are never Tasks), so only
+  // a file that spells them out can: the project file import reports them.
+  | "start-has-predecessor"
+  | "task-depends-on-finish"
   | "duration-not-positive-whole-number"
   | "start-date-not-a-date";
 
@@ -30,6 +39,10 @@ function accept(project: Project): EditResult {
 
 function reject(rule: ValidationErrorRule, message: string): EditResult {
   return { ok: false, error: { rule, message } };
+}
+
+function rejectWith(error: ValidationError): EditResult {
+  return { ok: false, error };
 }
 
 function unknownTask(taskId: TaskId): EditResult {
@@ -62,15 +75,49 @@ const INVISIBLE_ONLY = /^[\p{White_Space}\p{Cf}]*$/u;
 // Control characters (tab, line feed…) plus the Unicode line and paragraph separators.
 const CONTROL_CHARACTER = /[\p{Cc}\p{Zl}\p{Zp}]/u;
 
-/** Returns the Validation Error a trimmed Task name would create, if any. */
-function checkTaskName(name: string): EditResult | undefined {
-  if (INVISIBLE_ONLY.test(name)) return reject("task-name-empty", "A Task name cannot be empty.");
-  if (name.length > TASK_NAME_MAX_LENGTH) {
-    return reject("task-name-too-long", `A Task name can be at most ${TASK_NAME_MAX_LENGTH} characters.`);
+/** The four name rules for one kind of name, and the subject their messages open with. */
+interface NameRules {
+  subject: string;
+  maxLength: number;
+  empty: ValidationErrorRule;
+  tooLong: ValidationErrorRule;
+  malformed: ValidationErrorRule;
+  controlCharacter: ValidationErrorRule;
+}
+
+const TASK_NAME_RULES: NameRules = {
+  subject: "A Task name",
+  maxLength: TASK_NAME_MAX_LENGTH,
+  empty: "task-name-empty",
+  tooLong: "task-name-too-long",
+  malformed: "task-name-malformed",
+  controlCharacter: "task-name-control-character",
+};
+
+const PROJECT_NAME_RULES: NameRules = {
+  subject: "A project name",
+  maxLength: PROJECT_NAME_MAX_LENGTH,
+  empty: "project-name-empty",
+  tooLong: "project-name-too-long",
+  malformed: "project-name-malformed",
+  controlCharacter: "project-name-control-character",
+};
+
+/** Returns the Validation Error a trimmed name would create, if any. */
+function checkName(name: string, rules: NameRules): ValidationError | undefined {
+  const { subject, maxLength } = rules;
+  if (INVISIBLE_ONLY.test(name)) return { rule: rules.empty, message: `${subject} cannot be empty.` };
+  if (name.length > maxLength) {
+    return { rule: rules.tooLong, message: `${subject} can be at most ${maxLength} characters.` };
   }
-  if (!name.isWellFormed()) return reject("task-name-malformed", "A Task name cannot contain an incomplete character.");
+  if (!name.isWellFormed()) {
+    return { rule: rules.malformed, message: `${subject} cannot contain a not well-formed Unicode character.` };
+  }
   if (CONTROL_CHARACTER.test(name)) {
-    return reject("task-name-control-character", "A Task name cannot contain a line break or other control character.");
+    return {
+      rule: rules.controlCharacter,
+      message: `${subject} cannot contain a line break or other control character.`,
+    };
   }
   return undefined;
 }
@@ -85,8 +132,8 @@ export function createEmptyProject(): Project {
 
 export function createTask(project: Project, name: string): EditResult {
   const trimmed = name.trim();
-  const nameError = checkTaskName(trimmed);
-  if (nameError) return nameError;
+  const nameError = checkName(trimmed, TASK_NAME_RULES);
+  if (nameError) return rejectWith(nameError);
 
   const task: Task = { id: project.nextTaskId, name: trimmed, predecessors: [], status: "to-do" };
   return accept({ ...project, nextTaskId: project.nextTaskId + 1, tasks: [...project.tasks, task] });
@@ -97,8 +144,8 @@ export function renameTask(project: Project, taskId: TaskId, name: string): Edit
   if (task === undefined) return unknownTask(taskId);
 
   const trimmed = name.trim();
-  const nameError = checkTaskName(trimmed);
-  if (nameError) return nameError;
+  const nameError = checkName(trimmed, TASK_NAME_RULES);
+  if (nameError) return rejectWith(nameError);
 
   return accept(replaceTask(project, { ...task, name: trimmed }));
 }
@@ -149,6 +196,22 @@ export function removePredecessor(project: Project, taskId: TaskId, predecessorI
   );
 }
 
+/** Sets the project name, trimmed, under the Task name rules; empty input clears it by removing the field. */
+export function setProjectName(project: Project, input: string): EditResult {
+  const trimmed = input.trim();
+  if (trimmed === "") {
+    const cleared = { ...project };
+    delete cleared.name;
+    return accept(cleared);
+  }
+  const nameError = checkName(trimmed, PROJECT_NAME_RULES);
+  if (nameError) return rejectWith(nameError);
+  return accept({ ...project, name: trimmed });
+}
+
+const DURATION_MESSAGE = "A Duration must be a positive whole number of days.";
+const START_DATE_MESSAGE = `The START date must be a calendar date from ${MIN_ISO_DATE} to ${MAX_ISO_DATE}.`;
+
 /** True for a Duration the project may hold: a positive whole number of days, exact as a JavaScript number. */
 export function isPositiveWholeDays(value: number): boolean {
   return Number.isSafeInteger(value) && value > 0;
@@ -173,7 +236,7 @@ export function setDuration(project: Project, taskId: TaskId, input: string): Ed
   }
   const duration = Number(trimmed);
   if (!DIGITS_ONLY.test(trimmed) || !isPositiveWholeDays(duration)) {
-    return reject("duration-not-positive-whole-number", "A Duration must be a positive whole number of days.");
+    return reject("duration-not-positive-whole-number", DURATION_MESSAGE);
   }
   return accept(replaceTask(project, { ...task, duration }));
 }
@@ -186,11 +249,44 @@ export function setStartDate(project: Project, input: string): EditResult {
     delete start.date;
     return accept({ ...project, start });
   }
-  if (!isIsoDate(trimmed)) {
-    return reject(
-      "start-date-not-a-date",
-      `The START date must be a calendar date from ${MIN_ISO_DATE} to ${MAX_ISO_DATE}.`,
-    );
-  }
+  if (!isIsoDate(trimmed)) return reject("start-date-not-a-date", START_DATE_MESSAGE);
   return accept({ ...project, start: { ...project.start, date: trimmed } });
+}
+
+/**
+ * The first Validation Error the project already holds, or undefined when it
+ * holds none: each Task in array order (its name, its Duration, then each
+ * predecessor id), the START date, the project name, and last the cycle, since
+ * `findCycle` ignores unknown ids. Assumes the model invariants (unique
+ * ascending ids, sorted and unique predecessors); import establishes them first.
+ */
+export function validateProject(project: Project): ValidationError | undefined {
+  const taskIds = new Set(project.tasks.map((task) => task.id));
+  for (const task of project.tasks) {
+    // By id only: the label would repeat the rejected name inside the message.
+    const nameError = checkName(task.name, TASK_NAME_RULES);
+    if (nameError) return { rule: nameError.rule, message: `Task ${task.id}: ${nameError.message}` };
+    if (task.duration !== undefined && !isPositiveWholeDays(task.duration)) {
+      return { rule: "duration-not-positive-whole-number", message: `Task ${taskLabel(task)}: ${DURATION_MESSAGE}` };
+    }
+    const unknownId = task.predecessors.find((id) => !taskIds.has(id));
+    if (unknownId !== undefined) {
+      return {
+        rule: "unknown-task",
+        message: `Task ${taskLabel(task)} depends on Task ${unknownId}, which is not in the project.`,
+      };
+    }
+  }
+  if (project.start.date !== undefined && !isIsoDate(project.start.date)) {
+    return { rule: "start-date-not-a-date", message: START_DATE_MESSAGE };
+  }
+  if (project.name !== undefined) {
+    const nameError = checkName(project.name, PROJECT_NAME_RULES);
+    if (nameError) return nameError;
+  }
+  const cycle = findCycle(project);
+  if (cycle !== undefined) {
+    return { rule: "cycle", message: `The project contains the cycle ${pathLabel(project, cycle)}.` };
+  }
+  return undefined;
 }
