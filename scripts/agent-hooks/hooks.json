@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\"; do [ -f \"$d/scripts/agent-hooks/turn-start.ts\" ] && exec node \"$d/scripts/agent-hooks/turn-start.ts\"; done; echo \"scripts/agent-hooks/turn-start.ts is in neither this checkout nor $CLAUDE_PROJECT_DIR\" >&2; exit 1",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\"; do [ -f \"$d/scripts/agent-hooks/lint-edited-file.ts\" ] && exec node \"$d/scripts/agent-hooks/lint-edited-file.ts\"; done; echo \"scripts/agent-hooks/lint-edited-file.ts is in neither this checkout nor $CLAUDE_PROJECT_DIR\" >&2; exit 1",
+            "timeout": 30
+          },
+          {
+            "type": "command",
+            "command": "for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\"; do [ -f \"$d/scripts/agent-hooks/related-tests.ts\" ] && exec node \"$d/scripts/agent-hooks/related-tests.ts\"; done; echo \"scripts/agent-hooks/related-tests.ts is in neither this checkout nor $CLAUDE_PROJECT_DIR\" >&2; exit 1",
+            "timeout": 60
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "for d in \"$(git rev-parse --show-toplevel 2>/dev/null)\" \"$CLAUDE_PROJECT_DIR\"; do [ -f \"$d/scripts/agent-hooks/end-of-turn.ts\" ] && exec node \"$d/scripts/agent-hooks/end-of-turn.ts\"; done; echo \"scripts/agent-hooks/end-of-turn.ts is in neither this checkout nor $CLAUDE_PROJECT_DIR\" >&2; exit 1",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}

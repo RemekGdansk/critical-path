@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:mutation": "stryker run",
+    "test:hooks": "vitest run --config scripts/agent-hooks/vitest.config.ts",
     "prepare": "husky"
   },
   "dependencies": {
