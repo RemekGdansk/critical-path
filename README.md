@@ -46,7 +46,7 @@ See [`context/deployment/deploy-plan.md`](./context/deployment/deploy-plan.md) f
 
 ## CI
 
-GitHub Actions runs lint, `astro check`, `npm test`, build and `npm run check:csp` (which fails unless every built page enforces the no-egress CSP) on every push and PR (`.github/workflows/ci.yml`). It is a quality gate only and holds no Cloudflare credentials. Cloudflare Workers Builds runs the same gates in its own build command, because it does not wait for the Actions run.
+GitHub Actions runs lint, `astro check`, `npm test`, build, `npm run check:csp` (which fails unless every built page enforces the no-egress CSP) and `npm run test:e2e` (Playwright on Chromium against the built app) on every push and PR (`.github/workflows/ci.yml`). It is a quality gate only and holds no Cloudflare credentials. Cloudflare Workers Builds runs the same gates in its own build command, except the E2E suite, because it does not wait for the Actions run.
 
 ## License
 

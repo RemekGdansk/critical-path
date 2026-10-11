@@ -562,10 +562,10 @@ None. No file format existed before 0.1. Every later app version must import the
 
 #### Automated
 
-- [ ] 4.1 E2E suite passes: `npx playwright test`
-- [ ] 4.2 Unit gate still passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 4.1 E2E suite passes: `npx playwright test`
+- [x] 4.2 Unit gate still passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
 
 #### Manual
 
-- [ ] 4.3 Each E2E test was seen red on a deliberate break (e.g. the download anchor removed, a cycle file accepted) and green again after reverting
-- [ ] 4.4 Generated tests were reviewed against the five anti-patterns from `/10x-e2e`
+- [x] 4.3 Each E2E test was seen red on a deliberate break (e.g. the download anchor removed, a cycle file accepted) and green again after reverting
+- [x] 4.4 Generated tests were reviewed against the five anti-patterns from `/10x-e2e`
