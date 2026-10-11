@@ -93,7 +93,7 @@ Only a project that passes every stage is committed.
 
 - sets the selection to `null`, which unmounts `TaskPanel` and `StartPanel` and drops their drafts;
 - clears `focusRequest`;
-- increments the hook's replacement counter. The name field is keyed by this counter, so it shows the imported name, and `Diagram` refits on it.
+- increments the hook's replacement counter. `ProjectControls` is keyed by this counter, so its name draft shows the imported name, and `Diagram` refits on it.
 
 The file input's value is reset after every pick, so the same file can be picked again.
 
@@ -133,14 +133,14 @@ Add the project-name edit and `validateProject`, the single whole-project check 
   2. the START date when present (`isIsoDate`, the same message as `setStartDate`);
   3. the project name when present;
   4. the cycle: `findCycle`, then `cycle` "The project contains the cycle 1: A → 2: B → 1: A."
-- Task-specific messages are prefixed with `taskLabel(task)`, e.g. "Task 3: Build: A Duration must be a positive whole number of days."
+- Task-specific messages are prefixed with `taskLabel(task)`, e.g. "Task 3: Build: A Duration must be a positive whole number of days." The four Task-name rules are the exception: they are prefixed with the id only, e.g. "Task 3: A Task name cannot be empty.", because the label would repeat the rejected name (empty, multi-line, malformed or over-long) inside the alert.
 - It assumes the model invariants (unique ascending ids, sorted and unique predecessors). Establishing them is import's job in Phase 2.
 
 #### 3. Tests
 
 **File**: `src/lib/services/project.test.ts`
 
-**Intent**: Cover `setProjectName` (set, trim, clear, each rule, frozen input unchanged via the existing `edit` helper) and `validateProject`. The `validateProject` tests have one hand-built invalid project per rule, each asserting the rule and that the message names the Task. Also:
+**Intent**: Cover `setProjectName` (set, trim, clear, each rule, frozen input unchanged via the existing `edit` helper) and `validateProject`. The `validateProject` tests have one hand-built invalid project per rule, each asserting the rule and that the message names the Task (by id alone for the Task-name rules). Also:
 
 - `createPerfProject()` and every edit-built fixture pass;
 - a self-predecessor reports the cycle `[a, a]` labelled.
@@ -198,7 +198,7 @@ Pure functions for the file contract: serialize, parse and validate, and the fil
 - `export function parseProjectFile(text: string): ImportResult`, where `ImportResult = { ok: true; project: Project } | { ok: false; error: ImportError }`, `ImportError = { rule: ValidationErrorRule | ProjectFileRule; message: string }` and `ProjectFileRule = "file-not-json" | "file-not-a-project" | "file-version-newer" | "duplicate-task-id" | "day-counting-mode-not-supported-yet" | "task-status-not-supported-yet"`.
 - **Parse and version rules:**
   - Text `JSON.parse` cannot read is rejected as `file-not-json`: "The file is not valid JSON: <engine message>".
-  - `version` must be a string `major.minor`, compared as integers. Exactly `0.1` is accepted. Anything greater is rejected as `file-version-newer`, naming both versions. A missing or malformed version is rejected as `file-not-a-project`.
+  - Only the exact string `"0.1"` is accepted. A well-formed `major.minor` (digits only, compared as integers) greater than 0.1 is rejected as `file-version-newer`, naming both versions. Anything else is rejected as `file-not-a-project`: a missing or non-string version, a malformed one, a lower one (`"0.0"`), or a non-canonical spelling of 0.1 (`"00.1"`, `"0.01"`).
 - **Shape rules** (`file-not-a-project`, with a JSON path such as `tasks[2].duration`):
   - All keys are required except `name`, `start.date`, `duration` and `completionDate`.
   - Unknown keys are rejected.
@@ -207,7 +207,7 @@ Pure functions for the file contract: serialize, parse and validate, and the fil
 - **Normalisation (lossless):**
   - predecessors are sorted ascending and deduplicated;
   - names are trimmed;
-  - `"name": ""` becomes absent;
+  - a project name that is empty after trimming (`""`, `"   "`) becomes absent;
   - Tasks are ordered by id;
   - `nextTaskId` is raised to max id + 1 when it is lower.
 - **Later stages:**
@@ -282,8 +282,8 @@ The 0.1 shape (also the shape of the golden file):
 3. **Warnings survive** (US-03 AC2). An imported file with a missing Duration yields the same `validationWarnings` as before export.
 4. **Rejection table, one row per rule.** For each row the test asserts the rule and a message fragment (the Task label where relevant), and that `forecast(project, today)` does not throw for any accepted result. The rows:
    - the PRD Validation Errors: cycle, self-predecessor, START with a predecessor, Task depending on FINISH, unknown id, each of the four Task-name rules (lone surrogate via `\ud800`, line break via `\n`), Duration 0 / −1 / 1.5, START date `2027-02-30`, each project-name rule;
-   - the file rules: not JSON, a JSON array, a missing version, version `"0.2"` and `"1"`, an unknown key, `null` Duration, a string id, a string `nextTaskId`, duplicate ids, `weekdays`, `in-progress`, `done`, `completionDate`.
-5. **Normalisation rows.** These are accepted and normalised: unsorted predecessors, duplicate predecessors, an untrimmed name, Tasks out of order, a low `nextTaskId`, `"name": ""`.
+   - the file rules: not JSON, a JSON array, a missing version, version `"0.2"` and `"1"` (newer), version `"0.0"` and `"00.1"` (not a project), an unknown key, `null` Duration, a string id, a string `nextTaskId`, duplicate ids, `weekdays`, `in-progress`, `done`, `completionDate`.
+5. **Normalisation rows.** These are accepted and normalised: unsorted predecessors, duplicate predecessors, an untrimmed name, Tasks out of order, a low `nextTaskId`, `"name": ""` and `"name": "   "`.
 6. **`projectFileName`.** Every reserved character, plus a name with none.
 
 #### 4. Roadmap notes
@@ -306,7 +306,7 @@ The 0.1 shape (also the shape of the golden file):
 - File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
 - Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/`
 - Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- No new dependency: `git diff main -- package.json` shows no added dependency
+- No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice)
 
 #### Manual Verification:
 
@@ -374,7 +374,7 @@ Hook actions, a CSP-safe download helper, and a header control group, wired into
 
 - The header renders `NewTaskForm`, `ProjectControls` and `ForecastSummary`.
 - Import also clears `focusRequest`.
-- `ProjectControls`' name field is keyed by `replacements`.
+- `<ProjectControls key={replacements}>`: the whole group, so the name draft and Export stay in one component. A successful import clears its alert anyway.
 - `Diagram` takes a `fitKey` (`replacements`) and refits when either the Task-id key or `fitKey` changes.
 
 #### 5. Kitchen sink
@@ -424,6 +424,8 @@ Set up Playwright once, then cover the risk no unit test reaches: the download a
 
 - One desktop browser, Chromium (`test-plan.md` §7).
 - No auth: the app has none.
+- `@playwright/test` is the one devDependency this slice adds; no runtime dependency changes.
+- The e2e row of `test-plan.md` §3 (currently "none / Not planned") is updated to name this suite and the risk it covers, unless `/10x-e2e-setup` already did.
 - `test-stack.md` records whether the suite joins `ci.yml`. It never joins the Cloudflare Workers Builds command.
 - E2E files stay outside `src/`, so neither the Tailwind scan nor Vitest discovers them.
 
@@ -434,7 +436,7 @@ Set up Playwright once, then cover the risk no unit test reaches: the download a
 **Intent**: Three tests, each standalone with unique names (timestamp suffix):
 
 1. **Export.** Export downloads a file whose suggested name is `<project name>.json` and whose content holds the Tasks, with no console error and no CSP violation.
-2. **Import.** Importing that file in a new browser context shows the same name, Tasks and both Project Finish Dates.
+2. **Import.** Within the one test: build a project and export it in browser context A, then import the downloaded file in a new context B, which shows the same name, Tasks and both Project Finish Dates. It never reads a file left by test 1.
 3. **Rejected import.** Importing a hand-made cycle file shows an alert naming the cycle, and the existing Task stays on the diagram.
 
 **Contract**:
@@ -529,7 +531,7 @@ None. No file format existed before 0.1. Every later app version must import the
 - [ ] 2.1 File contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
 - [ ] 2.2 Prettier leaves the golden file untouched: `npx prettier --write src/lib/services/golden/ && git diff --exit-code src/lib/services/golden/`
 - [ ] 2.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [ ] 2.4 No new dependency: `git diff main -- package.json` shows no added dependency
+- [ ] 2.4 No new dependency from the file format: `git diff main -- package.json` shows no added dependency (Phase 4 later adds `@playwright/test`, the only one in this slice)
 
 #### Manual
 
