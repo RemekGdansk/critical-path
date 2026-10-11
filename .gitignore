@@ -25,3 +25,11 @@ node_modules/
 # stryker temp files and reports
 .stryker-tmp
 reports/
+
+# Playwright
+playwright/.auth/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+.playwright-cli/

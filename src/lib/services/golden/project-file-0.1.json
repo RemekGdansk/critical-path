@@ -1,0 +1,39 @@
+{
+  "version": "0.1",
+  "name": "Relaunch – QA ✓",
+  "start": {
+    "date": "2026-11-02"
+  },
+  "finish": {},
+  "dayCountingMode": "calendar-days",
+  "nextTaskId": 7,
+  "tasks": [
+    {
+      "id": 1,
+      "name": "Design",
+      "predecessors": [],
+      "duration": 3,
+      "status": "to-do"
+    },
+    {
+      "id": 2,
+      "name": "Build",
+      "predecessors": [1, 4],
+      "duration": 5,
+      "status": "to-do"
+    },
+    {
+      "id": 4,
+      "name": "Write copy",
+      "predecessors": [],
+      "duration": 2,
+      "status": "to-do"
+    },
+    {
+      "id": 5,
+      "name": "Launch",
+      "predecessors": [2],
+      "status": "to-do"
+    }
+  ]
+}

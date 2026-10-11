@@ -19,6 +19,12 @@ export interface ProjectActions {
   removePredecessor: (taskId: TaskId, predecessorId: TaskId) => EditResult;
   setDuration: (taskId: TaskId, input: string) => EditResult;
   setStartDate: (input: string) => EditResult;
+  setProjectName: (input: string) => EditResult;
+  /**
+   * Replaces the whole project and selects nothing. Takes only a project that
+   * `parseProjectFile` accepted: the hook does not validate it again.
+   */
+  replaceProject: (project: Project) => void;
 }
 
 export interface ProjectState extends ProjectActions {
@@ -27,6 +33,8 @@ export interface ProjectState extends ProjectActions {
   selection: Selection;
   /** The selected Task, or undefined when none is selected or the selected one was deleted. */
   selectedTask: Task | undefined;
+  /** How many times `replaceProject` has run; a key that resets views holding drafts of the old project. */
+  replacements: number;
 }
 
 /**
@@ -41,6 +49,7 @@ export function useProject(initial?: Project | (() => Project), initialSelection
   // The latest committed project, so two edits in one event (a rename committed
   // on blur, then a click) never apply to a stale render's project.
   const latest = useRef(project);
+  const [replacements, setReplacements] = useState(0);
 
   const apply = useCallback((edit: (current: Project) => EditResult): EditResult => {
     const result = edit(latest.current);
@@ -75,6 +84,19 @@ export function useProject(initial?: Project | (() => Project), initialSelection
     [apply],
   );
   const setStartDate = useCallback((input: string) => apply((current) => edits.setStartDate(current, input)), [apply]);
+  const setProjectName = useCallback(
+    (input: string) => apply((current) => edits.setProjectName(current, input)),
+    [apply],
+  );
+
+  // Commits through the latest ref like every edit. The selection is cleared,
+  // not kept: a stored Task id would resolve to an unrelated imported Task.
+  const replaceProject = useCallback((replacement: Project) => {
+    latest.current = replacement;
+    setProject(replacement);
+    setSelection(null);
+    setReplacements((count) => count + 1);
+  }, []);
 
   const selectedTask = typeof selection === "number" ? project.tasks.find((task) => task.id === selection) : undefined;
 
@@ -82,6 +104,7 @@ export function useProject(initial?: Project | (() => Project), initialSelection
     project,
     selection,
     selectedTask,
+    replacements,
     select,
     createTask,
     renameTask,
@@ -90,5 +113,7 @@ export function useProject(initial?: Project | (() => Project), initialSelection
     removePredecessor,
     setDuration,
     setStartDate,
+    setProjectName,
+    replaceProject,
   };
 }

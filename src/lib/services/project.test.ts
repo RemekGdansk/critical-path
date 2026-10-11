@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { createPerfProject } from "@/lib/services/fixtures";
 import {
   addPredecessor,
   createEmptyProject,
@@ -7,15 +8,18 @@ import {
   deleteTask,
   type EditResult,
   isPositiveWholeDays,
+  PROJECT_NAME_MAX_LENGTH,
   removePredecessor,
   renameTask,
   setDuration,
+  setProjectName,
   setStartDate,
   TASK_NAME_MAX_LENGTH,
   taskLabel,
+  validateProject,
   type ValidationErrorRule,
 } from "@/lib/services/project";
-import type { Project, TaskId } from "@/types";
+import type { Project, Task, TaskId } from "@/types";
 
 function deepFreeze<T>(value: T): T {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
@@ -132,7 +136,9 @@ describe("createTask", () => {
   });
 
   it("rejects a name with a lone surrogate", () => {
-    expectRejected(edit(createTask, createEmptyProject(), "A\uD83D"), "task-name-malformed");
+    const result = edit(createTask, createEmptyProject(), "A\uD83D");
+    expectRejected(result, "task-name-malformed");
+    if (!result.ok) expect(result.error.message).toBe("A Task name must be well-formed Unicode.");
     expectRejected(edit(createTask, createEmptyProject(), "\uDE00B"), "task-name-malformed");
   });
 
@@ -350,5 +356,202 @@ describe("setStartDate", () => {
     const result = edit(setStartDate, createEmptyProject(), "2026-02-30");
     if (result.ok) throw new Error("Expected a rejection");
     expect(result.error.message).toBe("The START date must be a calendar date from 0001-01-01 to 9999-12-31.");
+  });
+});
+
+describe("setProjectName", () => {
+  it("sets the name, trimmed", () => {
+    expect(accepted(edit(setProjectName, createEmptyProject(), "  Website relaunch ")).name).toBe("Website relaunch");
+  });
+
+  it("clears the name on empty input by removing the field", () => {
+    const project = accepted(setProjectName(createEmptyProject(), "Website relaunch"));
+    const cleared = accepted(edit(setProjectName, project, "   "));
+    expect(cleared).toEqual(createEmptyProject());
+    expect(cleared).not.toHaveProperty("name");
+  });
+
+  it("rejects a name made only of invisible characters as empty", () => {
+    const result = edit(setProjectName, createEmptyProject(), "\u200B\u200B");
+    expectRejected(result, "project-name-empty");
+    if (!result.ok) expect(result.error.message).toBe("A project name cannot be empty.");
+  });
+
+  it("accepts 200 code units and rejects 201", () => {
+    expect(PROJECT_NAME_MAX_LENGTH).toBe(200);
+    expect(accepted(edit(setProjectName, createEmptyProject(), "a".repeat(200))).name).toHaveLength(200);
+    const result = edit(setProjectName, createEmptyProject(), "a".repeat(201));
+    expectRejected(result, "project-name-too-long");
+    if (!result.ok) expect(result.error.message).toBe("A project name can be at most 200 characters.");
+  });
+
+  it("rejects a name with a lone surrogate", () => {
+    const result = edit(setProjectName, createEmptyProject(), "Q3\uD83D");
+    expectRejected(result, "project-name-malformed");
+    if (!result.ok) expect(result.error.message).toBe("A project name must be well-formed Unicode.");
+  });
+
+  it("rejects a name with a line break or other control character", () => {
+    for (const name of ["A\nB", "A\tB", "A\u2028B", "A\u0000B"]) {
+      const result = edit(setProjectName, createEmptyProject(), name);
+      expectRejected(result, "project-name-control-character");
+      if (!result.ok) {
+        expect(result.error.message).toBe("A project name cannot contain a line break or other control character.");
+      }
+    }
+  });
+
+  it("keeps the current name when the new one is rejected", () => {
+    const project = accepted(setProjectName(createEmptyProject(), "Website relaunch"));
+    expectRejected(edit(setProjectName, project, "A\nB"), "project-name-control-character");
+    expect(project.name).toBe("Website relaunch");
+  });
+});
+
+describe("validateProject", () => {
+  /** A to-do Task literal, built by hand so invalid values can be held. */
+  function task(id: TaskId, name: string, predecessors: TaskId[] = [], extra: Partial<Task> = {}): Task {
+    return { id, name, predecessors, status: "to-do", ...extra };
+  }
+
+  /** A hand-built project literal with `nextTaskId` above every id. */
+  function projectOf(tasks: Task[], extra: Partial<Project> = {}): Project {
+    const nextTaskId = Math.max(0, ...tasks.map((t) => t.id)) + 1;
+    return { start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId, tasks, ...extra };
+  }
+
+  function expectValidationError(project: Project, rule: ValidationErrorRule, message: string): void {
+    const error = validateProject(project);
+    expect(error).toEqual({ rule, message });
+    expect(message).not.toMatch(/invalid|conflict|blocked/i);
+  }
+
+  it("accepts the empty project and every edit-built fixture", () => {
+    expect(validateProject(createEmptyProject())).toBeUndefined();
+    expect(validateProject(createPerfProject())).toBeUndefined();
+
+    let project = withDependencies(projectWith("Design", "Build", "Test", "Docs"), [1, 2], [2, 3], [1, 4]);
+    project = accepted(setDuration(project, 1, "3"));
+    project = accepted(setDuration(project, 2, "5"));
+    project = accepted(setStartDate(project, "2026-09-01"));
+    project = accepted(setProjectName(project, "Website relaunch – QA ✓"));
+    expect(validateProject(project)).toBeUndefined();
+    expect(validateProject(accepted(setDuration(project, 2, "")))).toBeUndefined();
+    expect(validateProject(accepted(deleteTask(project, 2)))).toBeUndefined();
+    expect(validateProject(accepted(createTask(projectWith("Review"), "👩‍💻 Review")))).toBeUndefined();
+  });
+
+  it("does not mutate the project", () => {
+    const project = deepFreeze(projectOf([task(1, "A", [2]), task(2, "B", [1])]));
+    const before = structuredClone(project);
+    validateProject(project);
+    expect(project).toEqual(before);
+  });
+
+  it("names the Task by id alone for each Task name rule", () => {
+    expectValidationError(
+      projectOf([task(1, "A"), task(3, "")]),
+      "task-name-empty",
+      "Task 3: A Task name cannot be empty.",
+    );
+    expectValidationError(projectOf([task(3, "\u200B")]), "task-name-empty", "Task 3: A Task name cannot be empty.");
+    expectValidationError(
+      projectOf([task(3, "a".repeat(201))]),
+      "task-name-too-long",
+      "Task 3: A Task name can be at most 200 characters.",
+    );
+    expectValidationError(
+      projectOf([task(3, "Build\uD800")]),
+      "task-name-malformed",
+      "Task 3: A Task name must be well-formed Unicode.",
+    );
+    expectValidationError(
+      projectOf([task(3, "Build\nTest")]),
+      "task-name-control-character",
+      "Task 3: A Task name cannot contain a line break or other control character.",
+    );
+  });
+
+  it("names the Task for a Duration that is not a positive whole number", () => {
+    for (const duration of [0, -1, 1.5]) {
+      expectValidationError(
+        projectOf([task(1, "Design"), task(3, "Build", [], { duration })]),
+        "duration-not-positive-whole-number",
+        "Task 3: Build: A Duration must be a positive whole number of days.",
+      );
+    }
+  });
+
+  it("names the Task and the missing id for a dependency on an unknown id", () => {
+    expectValidationError(
+      projectOf([task(1, "Design"), task(3, "Build", [1, 9])]),
+      "unknown-task",
+      "Task 3: Build depends on Task 9, which is not in the project.",
+    );
+  });
+
+  it("rejects a START date that is not a calendar date", () => {
+    expectValidationError(
+      projectOf([task(1, "Design")], { start: { date: "2027-02-30" } }),
+      "start-date-not-a-date",
+      "The START date must be a calendar date from 0001-01-01 to 9999-12-31.",
+    );
+  });
+
+  it("applies the project name rules to a project name that is present", () => {
+    expectValidationError(projectOf([], { name: "" }), "project-name-empty", "A project name cannot be empty.");
+    expectValidationError(projectOf([], { name: "\u200B" }), "project-name-empty", "A project name cannot be empty.");
+    expectValidationError(
+      projectOf([], { name: "a".repeat(201) }),
+      "project-name-too-long",
+      "A project name can be at most 200 characters.",
+    );
+    expectValidationError(
+      projectOf([], { name: "Q3\uDE00" }),
+      "project-name-malformed",
+      "A project name must be well-formed Unicode.",
+    );
+    expectValidationError(
+      projectOf([], { name: "Q3\nLaunch" }),
+      "project-name-control-character",
+      "A project name cannot contain a line break or other control character.",
+    );
+  });
+
+  it("names the cycle the project holds", () => {
+    // A → B → A, and C hanging off A.
+    expectValidationError(
+      projectOf([task(1, "A", [2]), task(2, "B", [1]), task(3, "C", [1])]),
+      "cycle",
+      "The project contains the cycle 1: A → 2: B → 1: A.",
+    );
+  });
+
+  it("names a Task that is its own predecessor as the cycle [a, a]", () => {
+    expectValidationError(
+      projectOf([task(1, "A"), task(2, "Review", [1, 2])]),
+      "cycle",
+      "The project contains the cycle 2: Review → 2: Review.",
+    );
+  });
+
+  it("returns the first Validation Error: Tasks in array order, then START date, project name and cycle", () => {
+    const cycle = [task(1, "A", [2]), task(2, "B", [1])];
+    const badStart = { start: { date: "2026-13-01" } };
+    const badName = { name: "" };
+
+    expect(validateProject(projectOf([...cycle, task(3, "")], { ...badStart, ...badName }))?.rule).toBe(
+      "task-name-empty",
+    );
+    expect(validateProject(projectOf([task(1, "A", [], { duration: 0 }), task(2, "")]))?.rule).toBe(
+      "duration-not-positive-whole-number",
+    );
+    expect(validateProject(projectOf([task(1, "", [9])]))?.rule).toBe("task-name-empty");
+    expect(validateProject(projectOf([task(1, "A", [9], { duration: 0 })]))?.rule).toBe(
+      "duration-not-positive-whole-number",
+    );
+    expect(validateProject(projectOf([...cycle, task(3, "C", [9])], badStart))?.rule).toBe("unknown-task");
+    expect(validateProject(projectOf(cycle, { ...badStart, ...badName }))?.rule).toBe("start-date-not-a-date");
+    expect(validateProject(projectOf(cycle, badName))?.rule).toBe("project-name-empty");
   });
 });

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { Diagram } from "@/components/planner/Diagram";
 import { ForecastSummary } from "@/components/planner/ForecastSummary";
 import { NewTaskForm } from "@/components/planner/NewTaskForm";
+import { ProjectControls } from "@/components/planner/ProjectControls";
 import { StartPanel } from "@/components/planner/StartPanel";
 import { TaskPanel } from "@/components/planner/TaskPanel";
 import { useProject, type Selection } from "@/hooks/useProject";
@@ -46,6 +47,9 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
     removePredecessor,
     setDuration,
     setStartDate,
+    setProjectName,
+    replaceProject,
+    replacements,
   } = useProject(givenProject ?? initialProject, initialSelection);
 
   // Read on every render, so any edit after midnight picks up the new day.
@@ -86,17 +90,47 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
     [deleteTask],
   );
 
+  // An imported project replaces the old one whole: the hook selects nothing,
+  // which unmounts the panels and drops their drafts, and a pending focus
+  // request would otherwise point at an unrelated imported Task. Focus goes to
+  // the New Task input, as after Delete Task: the remount keyed by
+  // `replacements` removes the Import button, which would drop it to <body>.
+  const handleReplaceProject = useCallback(
+    (imported: Project) => {
+      replaceProject(imported);
+      setFocusRequest(null);
+      newTaskInputRef.current?.focus();
+    },
+    [replaceProject],
+  );
+
   return (
     // useReactFlow() in Diagram throws without a provider above it.
     <ReactFlowProvider>
       <div className="flex h-full flex-col">
-        <header className="flex items-start justify-between gap-6 border-b px-4 py-3">
+        {/* Wraps instead of overlapping when the three groups do not fit one line; the forecast stays right-aligned. */}
+        <header className="flex flex-wrap items-start gap-x-6 gap-y-3 border-b px-4 py-3">
           <NewTaskForm ref={newTaskInputRef} createTask={createTask} />
-          <ForecastSummary forecast={projectForecast} tasks={project.tasks} startDate={project.start.date} />
+          {/* Keyed by the replacement count, so the name draft starts over from an imported name. */}
+          <ProjectControls
+            key={replacements}
+            name={project.name}
+            setProjectName={setProjectName}
+            replaceProject={handleReplaceProject}
+          />
+          <div className="ml-auto">
+            <ForecastSummary forecast={projectForecast} tasks={project.tasks} startDate={project.start.date} />
+          </div>
         </header>
         <div className="flex min-h-0 flex-1">
           <div className="min-w-0 flex-1">
-            <Diagram project={project} selection={selection} onSelect={handleSelect} onEdit={handleEdit} />
+            <Diagram
+              project={project}
+              fitKey={replacements}
+              selection={selection}
+              onSelect={handleSelect}
+              onEdit={handleEdit}
+            />
           </div>
           <aside
             aria-label={selection === "start" ? "START" : "Selected Task"}

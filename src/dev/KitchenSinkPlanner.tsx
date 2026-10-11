@@ -12,6 +12,7 @@ import {
   createTask,
   type EditResult,
   setDuration,
+  setProjectName,
   setStartDate,
 } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
@@ -27,11 +28,12 @@ const TEST: TaskId = 3;
 const WRITE_DOCS: TaskId = 4;
 
 /**
- * Design (3) → Build (5) → Test (2), and Design → Write docs (2): every other
- * Task depends on Design. No START date, so it forecasts from today.
+ * "Website relaunch": Design (3) → Build (5) → Test (2), and Design → Write
+ * docs (2): every other Task depends on Design. No START date, so it forecasts
+ * from today.
  */
 function smallProject(): Project {
-  let project = createEmptyProject();
+  let project = accepted(setProjectName(createEmptyProject(), "Website relaunch"));
   for (const name of ["Design", "Build", "Test", "Write docs"]) project = accepted(createTask(project, name));
   project = accepted(addPredecessor(project, BUILD, DESIGN));
   project = accepted(addPredecessor(project, TEST, BUILD));
