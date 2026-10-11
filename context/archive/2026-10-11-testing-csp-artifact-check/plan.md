@@ -301,46 +301,46 @@ None. The change adds a gate; no data or app behaviour changes. Rollback is remo
 
 #### Automated
 
-- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci` — f6593d3
-- [x] 1.2 `npx vitest list` lists every existing `src/**/*.test.ts` test plus `scripts/csp/check-page.test.ts`, and nothing from `node_modules`, `.claude/` or `dist/` — f6593d3
-- [x] 1.3 `npm test` passes, including every fixture row — f6593d3
-- [x] 1.4 Breaking one rule in `check-page.ts` (e.g. letting host sources through) makes `npm test` exit non-zero (reverted afterwards) — f6593d3
-- [x] 1.5 Linting passes: `npm run lint` — f6593d3
-- [x] 1.6 Type check passes: `npx astro check` — f6593d3
-- [x] 1.7 `npm run build && npm run check:csp` exits 0 and reports 2 pages — f6593d3
-- [x] 1.8 With `connect-src 'self' https://example.com` in `astro.config.mjs`, `npm run build && npm run check:csp` exits non-zero naming both pages (reverted afterwards) — f6593d3
-- [x] 1.9 With `<script src="https://example.com/a.js"></script>` as the first child of `<head>` in `src/layouts/Layout.astro` and the config unchanged, `npm run build && npm run check:csp` exits non-zero (reverted afterwards) — f6593d3
-- [x] 1.10 After both reverts, `git diff --exit-code astro.config.mjs src/layouts/Layout.astro` is clean and `npm run build && npm run check:csp` exits 0 again — f6593d3
-- [x] 1.11 With `dist/` removed, `npm run check:csp` exits non-zero — f6593d3
+- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci` — 82cb32e
+- [x] 1.2 `npx vitest list` lists every existing `src/**/*.test.ts` test plus `scripts/csp/check-page.test.ts`, and nothing from `node_modules`, `.claude/` or `dist/` — 82cb32e
+- [x] 1.3 `npm test` passes, including every fixture row — 82cb32e
+- [x] 1.4 Breaking one rule in `check-page.ts` (e.g. letting host sources through) makes `npm test` exit non-zero (reverted afterwards) — 82cb32e
+- [x] 1.5 Linting passes: `npm run lint` — 82cb32e
+- [x] 1.6 Type check passes: `npx astro check` — 82cb32e
+- [x] 1.7 `npm run build && npm run check:csp` exits 0 and reports 2 pages — 82cb32e
+- [x] 1.8 With `connect-src 'self' https://example.com` in `astro.config.mjs`, `npm run build && npm run check:csp` exits non-zero naming both pages (reverted afterwards) — 82cb32e
+- [x] 1.9 With `<script src="https://example.com/a.js"></script>` as the first child of `<head>` in `src/layouts/Layout.astro` and the config unchanged, `npm run build && npm run check:csp` exits non-zero (reverted afterwards) — 82cb32e
+- [x] 1.10 After both reverts, `git diff --exit-code astro.config.mjs src/layouts/Layout.astro` is clean and `npm run build && npm run check:csp` exits 0 again — 82cb32e
+- [x] 1.11 With `dist/` removed, `npm run check:csp` exits non-zero — 82cb32e
 
 #### Manual
 
-- [x] 1.12 The fixture table reads as the oracle: each row name says which loosening it is, and no expected value is derived from `dist/` or the config — f6593d3
+- [x] 1.12 The fixture table reads as the oracle: each row name says which loosening it is, and no expected value is derived from `dist/` or the config — 82cb32e
 
 ### Phase 2: Wire both gates and prove the block
 
 #### Automated
 
-- [x] 2.1 `ci.yml` runs `npm run check:csp` as the step after `npm run build`: `grep -A1 "npm run build" .github/workflows/ci.yml` — d452a2c
-- [x] 2.2 Linting passes: `npm run lint` — d452a2c
-- [x] 2.3 On the PR, the loosened commit's `ci` run fails at the `check:csp` step: `gh pr checks` — d452a2c
-- [x] 2.4 On the PR, the revert's `ci` run passes: `gh pr checks` — d452a2c
+- [x] 2.1 `ci.yml` runs `npm run check:csp` as the step after `npm run build`: `grep -A1 "npm run build" .github/workflows/ci.yml` — 82cb32e
+- [x] 2.2 Linting passes: `npm run lint` — 82cb32e
+- [x] 2.3 On the PR, the loosened commit's `ci` run fails at the `check:csp` step: `gh pr checks` — 82cb32e
+- [x] 2.4 On the PR, the revert's `ci` run passes: `gh pr checks` — 82cb32e
 
 #### Manual
 
-- [x] 2.5 The Workers Builds dashboard build command ends with `&& npm run check:csp` and matches `deploy-plan.md` step 7 exactly — d452a2c
-- [x] 2.6 The loosened commit's Workers Builds log shows the check failing after the build, and no preview version was uploaded for it — d452a2c
-- [x] 2.7 The revert's Workers Builds log shows `CSP check passed: 2 page(s)` and a preview version was uploaded — d452a2c
+- [x] 2.5 The Workers Builds dashboard build command ends with `&& npm run check:csp` and matches `deploy-plan.md` step 7 exactly — 82cb32e
+- [x] 2.6 The loosened commit's Workers Builds log shows the check failing after the build, and no preview version was uploaded for it — 82cb32e
+- [x] 2.7 The revert's Workers Builds log shows `CSP check passed: 2 page(s)` and a preview version was uploaded — 82cb32e
 
 ### Phase 3: Docs and cookbook
 
 #### Automated
 
-- [x] 3.1 Formatting passes on the edited markdown and YAML: `npx prettier --check PROJECT_RULES.md README.md context/foundation/test-plan.md context/deployment/deploy-plan.md .github/dependabot.yml` — a74a6a7
-- [x] 3.2 No doc still claims Vitest discovers `src/**/*.test.ts` only: `grep -rn "discovers \`src/\*\*/\*.test.ts\` only" PROJECT_RULES.md README.md context/foundation/test-plan.md` finds nothing — a74a6a7
-- [x] 3.3 Linting passes: `npm run lint` — a74a6a7
+- [x] 3.1 Formatting passes on the edited markdown and YAML: `npx prettier --check PROJECT_RULES.md README.md context/foundation/test-plan.md context/deployment/deploy-plan.md .github/dependabot.yml` — 82cb32e
+- [x] 3.2 No doc still claims Vitest discovers `src/**/*.test.ts` only: `grep -rn "discovers \`src/\*\*/\*.test.ts\` only" PROJECT_RULES.md README.md context/foundation/test-plan.md` finds nothing — 82cb32e
+- [x] 3.3 Linting passes: `npm run lint` — 82cb32e
 
 #### Manual
 
-- [x] 3.4 `PROJECT_RULES.md`, `README.md`, `ci.yml`, `deploy-plan.md` and test-plan §5 name the same gate order and the same command — a74a6a7
-- [x] 3.5 Test-plan §6.4 lets a reader add a new built-artifact check without reading this plan — a74a6a7
+- [x] 3.4 `PROJECT_RULES.md`, `README.md`, `ci.yml`, `deploy-plan.md` and test-plan §5 name the same gate order and the same command — 82cb32e
+- [x] 3.5 Test-plan §6.4 lets a reader add a new built-artifact check without reading this plan — 82cb32e

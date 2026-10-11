@@ -1,10 +1,10 @@
 ---
 change_id: testing-csp-artifact-check
 title: Check every built page forbids network egress via its CSP
-status: impl_reviewed
+status: archived
 created: 2026-10-11
 updated: 2026-10-11
-archived_at: null
+archived_at: 2026-10-11T13:44:39Z
 ---
 
 ## Notes
