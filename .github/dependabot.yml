@@ -3,8 +3,9 @@ version: 2
 updates:
   # Grouped so a quiet week produces one PR, not six. Every PR still has to pass
   # `ci` and `Workers Builds: critical-path`, both required on main — lint,
-  # astro check, `npm test` and a real Cloudflare build are the review every
-  # dependency bump gets.
+  # astro check, `npm test`, a real Cloudflare build and `npm run check:csp`
+  # on the built pages are the review every dependency bump gets. The last
+  # one fails a bump (Astro above all) that moves or drops the CSP meta.
   - package-ecosystem: npm
     directory: /
     schedule:

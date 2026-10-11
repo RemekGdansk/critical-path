@@ -5,7 +5,7 @@ Critical Path is a single-user, browser-only project planner: Astro 7 (static ou
 ## Hard rules
 
 - **Never add server-only features.** No API routes, middleware, `Astro.locals`, `astro:env/server`, `prerender = false`. @astro.config.mjs sets `output: "static"` and there is no adapter, so these break the build.
-- **No project data leaves the device.** Once loaded the app makes no network calls — no analytics, telemetry, remote persistence or runtime CDN fetches. This is a PRD guardrail, not a preference. It is **enforced**, not just asserted: `security.csp` in @astro.config.mjs emits `connect-src 'none'`, so `fetch`, `XMLHttpRequest`, WebSocket and `sendBeacon` all fail. Loosening it must be a reviewed commit; never relax it to unblock a feature without saying so.
+- **No project data leaves the device.** Once loaded the app makes no network calls — no analytics, telemetry, remote persistence or runtime CDN fetches. This is a PRD guardrail, not a preference. It is **enforced**, not just asserted: `security.csp` in @astro.config.mjs emits `connect-src 'none'`, so `fetch`, `XMLHttpRequest`, WebSocket and `sendBeacon` all fail. The CSP is also checked in the built HTML, not the config: `npm run check:csp` runs after `npm run build` in both gates (@.github/workflows/ci.yml and the Cloudflare Workers Builds build command) and fails unless every built page enforces it. Loosening it must be a reviewed commit; never relax it to unblock a feature without saying so.
 - **Edit rules here, not in `AGENTS.md`.** `AGENTS.md` and `CLAUDE.md` are gitignored and tool-managed; `AGENTS.md` only imports this file.
 
 ## Domain terminology — use these exact terms
@@ -23,8 +23,9 @@ Full lists and forecast rules: @context/foundation/prd.md.
 - `npm run dev` — dev server
 - `npm run lint` — ESLint with type-checked rules
 - `npx astro check` — type-check `.astro` and TS files (CI gate)
-- `npm test` — Vitest, single run (`vitest run`), pure domain logic
+- `npm test` — Vitest, single run (`vitest run`), pure domain logic and build-tooling tests
 - `npm run build` — static build into `dist/`
+- `npm run check:csp` — run after `npm run build`; reads the built HTML in `dist/`, never @astro.config.mjs, and fails unless every built page enforces the no-egress CSP (pattern: §6.4 of @context/foundation/test-plan.md)
 - `npm run preview` — the only way to see the CSP in effect; it is disabled under `npm run dev`
 - `npx wrangler deploy` — manual deploy of a built `dist/`. **Never** `wrangler pages deploy`: Pages and Workers are different products. Auto-deploy on `main` belongs to Cloudflare Workers Builds (@context/deployment/deploy-plan.md)
 
@@ -50,7 +51,7 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 
 ## Testing
 
-Vitest runs pure domain logic. Tests are colocated as `src/**/*.test.ts` — the only pattern Vitest discovers (@vitest.config.ts) and the pattern Tailwind ignores (@src/styles/global.css), so class names in tests never reach the production CSS. Domain logic lives in `src/lib/services/`, next to its tests. The CI gate is `astro sync` → lint → `astro check` → test → build, run both in @.github/workflows/ci.yml and in the Cloudflare Workers Builds build command. Vitest also checks a component's static output from a real domain result, via `react-dom/server` and `createElement` in a `.test.ts` file, never `.test.tsx` (neither discovered nor excluded from the Tailwind scan). The suite runs in the Europe/Warsaw time zone, pinned in @vitest.config.ts, and "today" is always passed in, never read from the clock; the pattern for a new test with a PRD oracle is §6.1 of @context/foundation/test-plan.md. Run `npm run lint && npx astro check && npm test` before pushing.
+Vitest runs pure domain logic. Tests are colocated as `src/**/*.test.ts` — a pattern Vitest discovers (@vitest.config.ts) and Tailwind ignores (@src/styles/global.css), so class names in tests never reach the production CSS. Vitest also discovers `scripts/**/*.test.ts`, for build tooling tests (e.g. the CSP checker's fixture table); `scripts/` is outside the Tailwind scan. Domain logic lives in `src/lib/services/`, next to its tests. The CI gate is `astro sync` → lint → `astro check` → test → build → `check:csp`, run both in @.github/workflows/ci.yml and in the Cloudflare Workers Builds build command. Vitest also checks a component's static output from a real domain result, via `react-dom/server` and `createElement` in a `.test.ts` file, never `.test.tsx` (neither discovered nor excluded from the Tailwind scan). The suite runs in the Europe/Warsaw time zone, pinned in @vitest.config.ts, and "today" is always passed in, never read from the clock; the pattern for a new test with a PRD oracle is §6.1 of @context/foundation/test-plan.md. Run `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` before pushing.
 
 ## Markdown
 

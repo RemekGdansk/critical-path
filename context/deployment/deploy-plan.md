@@ -132,7 +132,7 @@ Deploy manually once before automating. A config error found here costs one comm
 
   | Setting                              | Value                                                                                                                     |
   | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-  | Build command                        | `npx astro sync && npm run lint && npx astro check && npm test && npm run build`                                          |
+  | Build command                        | `npx astro sync && npm run lint && npx astro check && npm test && npm run build && npm run check:csp`                     |
   | Deploy command                       | `npx wrangler deploy --tag "$WORKERS_CI_COMMIT_SHA" --message "$WORKERS_CI_BRANCH build $WORKERS_CI_BUILD_UUID"`          |
   | Non-production branch deploy command | `npx wrangler versions upload --tag "$WORKERS_CI_COMMIT_SHA" --message "$WORKERS_CI_BRANCH build $WORKERS_CI_BUILD_UUID"` |
   | Production branch                    | `main`                                                                                                                    |
@@ -147,7 +147,7 @@ Deploy manually once before automating. A config error found here costs one comm
 
   First automated build ran 2026-09-20 16:32 UTC from `main`, producing version `7c328031-77a9-4eaa-adb8-587cdaf4f526`. **Node 24.21.0 installed on demand** as hoped — the `NODE_VERSION=24.18.0` fallback in Known edge cases was not needed and remains untested.
 
-  The build command duplicates the `ci.yml` gates on purpose. Workers Builds does not wait for GitHub Actions, so lint and `astro check` must run _inside_ the Cloudflare build or a type error ships to production (R15). Since 2026-09-26 it also runs `npm test` (F-01, domain-rule checks), in the same position as in `ci.yml`: after `astro check`, before `build`. A failing test therefore blocks the deploy, not just the merge.
+  The build command duplicates the `ci.yml` gates on purpose. Workers Builds does not wait for GitHub Actions, so lint and `astro check` must run _inside_ the Cloudflare build or a type error ships to production (R15). Since 2026-09-26 it also runs `npm test` (F-01, domain-rule checks), in the same position as in `ci.yml`: after `astro check`, before `build`. A failing test therefore blocks the deploy, not just the merge. Since 2026-10-11 it also runs `npm run check:csp` (testing-csp-artifact-check), in the same position as in `ci.yml`: after `build`. The check reads the built HTML in `dist/`, not `astro.config.mjs`, so a built page that does not enforce the no-egress CSP blocks the deploy, not just the merge.
 
 - [x] **8** Push a branch, open a PR, confirm a preview version and URL appear in the Worker's version history. Merge, confirm `main` reaches production.
 
@@ -253,7 +253,7 @@ Verified 2026-09-23 by GET-only probes through the MCP. Everything in the table 
 
   `*.workers.dev` is not a zone under this account, so there is no orange-cloud proxy path to inject through — one fewer surface than a custom domain would have (another consequence of D2).
 
-  Backstop: an injected beacon would be blocked by `script-src 'self'` plus the per-build hashes and surface as a console CSP violation, not a silent leak.
+  Backstop, partial: an injected beacon would be blocked by `script-src 'self'` plus the per-build hashes and surface as a console CSP violation, not a silent leak — but only if it is parsed after the CSP `<meta>`, because a meta policy governs only the elements that follow it. A script injected before the meta runs unchecked. For what the build produces, `npm run check:csp` fails any built page with a `<script>`, `<base>`, `<style>`, `<noscript>` or `style` attribute before the meta, and any page with an absolute `http(s):` or scheme-relative URL in a URL attribute of a non-`<a>` element anywhere. Serve-time injection happens after the build, is invisible to a build-time check, and is still caught only by the response check above and the manual R4 gate (step 5).
 
 - [ ] **P5** Tag releases worth rolling back to — the durable recovery path (R5):
 
