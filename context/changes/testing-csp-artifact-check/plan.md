@@ -319,16 +319,16 @@ None. The change adds a gate; no data or app behaviour changes. Rollback is remo
 
 #### Automated
 
-- [x] 2.1 `ci.yml` runs `npm run check:csp` as the step after `npm run build`: `grep -A1 "npm run build" .github/workflows/ci.yml`
-- [x] 2.2 Linting passes: `npm run lint`
-- [ ] 2.3 On the PR, the loosened commit's `ci` run fails at the `check:csp` step: `gh pr checks`
-- [ ] 2.4 On the PR, the revert's `ci` run passes: `gh pr checks`
+- [x] 2.1 `ci.yml` runs `npm run check:csp` as the step after `npm run build`: `grep -A1 "npm run build" .github/workflows/ci.yml` — d452a2c
+- [x] 2.2 Linting passes: `npm run lint` — d452a2c
+- [x] 2.3 On the PR, the loosened commit's `ci` run fails at the `check:csp` step: `gh pr checks` — d452a2c
+- [x] 2.4 On the PR, the revert's `ci` run passes: `gh pr checks` — d452a2c
 
 #### Manual
 
-- [ ] 2.5 The Workers Builds dashboard build command ends with `&& npm run check:csp` and matches `deploy-plan.md` step 7 exactly
-- [ ] 2.6 The loosened commit's Workers Builds log shows the check failing after the build, and no preview version was uploaded for it
-- [ ] 2.7 The revert's Workers Builds log shows `CSP check passed: 2 page(s)` and a preview version was uploaded
+- [x] 2.5 The Workers Builds dashboard build command ends with `&& npm run check:csp` and matches `deploy-plan.md` step 7 exactly — d452a2c
+- [x] 2.6 The loosened commit's Workers Builds log shows the check failing after the build, and no preview version was uploaded for it — d452a2c
+- [x] 2.7 The revert's Workers Builds log shows `CSP check passed: 2 page(s)` and a preview version was uploaded — d452a2c
 
 ### Phase 3: Docs and cookbook
 
