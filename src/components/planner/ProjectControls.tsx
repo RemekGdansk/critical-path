@@ -9,6 +9,9 @@ import { parseProjectFile, projectFileName, serializeProject } from "@/lib/servi
 import { PROJECT_NAME_MAX_LENGTH } from "@/lib/services/project";
 import type { Project } from "@/types";
 
+/** 5 MB, far above any real project: a 100-Task file is about 15–100 KB. */
+const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+
 interface ProjectControlsProps {
   /** The committed project name; undefined while unset. */
   name: string | undefined;
@@ -86,6 +89,14 @@ export function ProjectControls({ name, setProjectName, replaceProject }: Projec
     const input = event.currentTarget;
     const file = input.files?.[0];
     if (file === undefined) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      // Checked before reading: a huge file would freeze or crash the tab and lose the unexported project.
+      input.value = "";
+      setFileError(`${file.name} was not imported. The file is larger than 5 MB.`);
+      return;
+    }
+    // Cleared before the read, so a repeated rejection re-mounts the alert and is announced again.
+    setFileError(undefined);
     let text: string;
     try {
       text = await file.text();

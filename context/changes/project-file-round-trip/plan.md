@@ -362,6 +362,7 @@ Hook actions, a CSP-safe download helper, and a header control group, wired into
   - On success: `replaceProject`, and the alert is cleared.
   - On rejection: `<p role="alert">` "<file name> was not imported. <message>".
   - A read failure shows "<file name> could not be read."
+  - A file larger than 5 MB is rejected before it is read, as "<file name> was not imported. The file is larger than 5 MB." (impl-review Phase 3, F1). A huge file would otherwise freeze or crash the tab and lose the unexported project.
   - All errors are cleared by the next successful Export or Import.
 - **Styling.** Only token classes, no literal colours (enforced by lint in `src/components/planner/`).
 
@@ -543,18 +544,19 @@ None. No file format existed before 0.1. Every later app version must import the
 
 #### Automated
 
-- [x] 3.1 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [x] 3.2 The CSP in the built HTML is unchanged: `npm run check:csp` passes and `git diff main -- astro.config.mjs` is empty
+- [x] 3.1 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — c96d5aa
+- [x] 3.2 The CSP in the built HTML is unchanged: `npm run check:csp` passes and `git diff main -- astro.config.mjs` is empty — c96d5aa
 
 #### Manual
 
-- [x] 3.3 Kitchen sink (`npm run dev`, `/kitchen-sink`): header fits without overlap in every cell; named and unnamed states read correctly
-- [x] 3.4 Under `npm run preview` in Chrome: export a named project with a START date, Durations and a missing Duration; import it in a different browser profile, which shows the same Tasks, predecessors, Durations, warning, START date, name and both Project Finish Dates
-- [x] 3.5 Under `npm run preview` in Firefox and Safari: Export downloads `<name>.json` with no CSP violation in the console
-- [x] 3.6 Unnamed Export focuses the name field and asks; typing a name and clicking Export downloads in one click
-- [x] 3.7 Importing a hand-edited file with a cycle shows the alert naming the cycle; the previous project and the open panel are unchanged
-- [x] 3.8 After a successful import the side panel shows nothing selected and the diagram fits the imported project
-- [x] 3.9 Keyboard only: name field, Export and Import are reachable and operable; the alert is announced
+- [x] 3.3 Kitchen sink (`npm run dev`, `/kitchen-sink`): header fits without overlap in every cell; named and unnamed states read correctly — c96d5aa
+- [x] 3.4 Under `npm run preview` in Chrome: export a named project with a START date, Durations and a missing Duration; import it in a different browser profile, which shows the same Tasks, predecessors, Durations, warning, START date, name and both Project Finish Dates — c96d5aa
+- [x] 3.5 Under `npm run preview` in Firefox and Safari: Export downloads `<name>.json` with no CSP violation in the console — c96d5aa
+  - Observed in both Firefox and Safari, confirmed by the user on 2026-10-11 (impl-review Phase 3, F3)
+- [x] 3.6 Unnamed Export focuses the name field and asks; typing a name and clicking Export downloads in one click — c96d5aa
+- [x] 3.7 Importing a hand-edited file with a cycle shows the alert naming the cycle; the previous project and the open panel are unchanged — c96d5aa
+- [x] 3.8 After a successful import the side panel shows nothing selected and the diagram fits the imported project — c96d5aa
+- [x] 3.9 Keyboard only: name field, Export and Import are reachable and operable; the alert is announced — c96d5aa
 
 ### Phase 4: Browser-level export and import (E2E, Chromium)
 
