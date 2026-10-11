@@ -34,6 +34,8 @@ Add a post-build check that reads every `dist/**/*.html` and fails unless each p
 
 **Oracle addendum (2026-10-11, `reviews/impl-review-phase-1.md` F1):** rule 6 also forbids a `<style>` element and any element with a `style` attribute before the CSP meta, because CSS `@import` and `url()` fetch outside a policy not yet parsed; rule 7 also reads `imagesrcset`.
 
+**Oracle addendum (2026-10-11, `reviews/impl-review.md` F1):** rule 4 also requires `worker-src` and `form-action`, each with exactly the source list `'none'`. A worker loaded from a URL takes its CSP from its own response (here only `frame-ancestors`), so `worker-src 'self'` would let a worker fetch any host; `form-action` does not fall back to `default-src`. Rule 6 also forbids a `<noscript>` before the CSP meta (F2): with scripting off a browser parses its content, and a fetching element in it breaks out of `<head>` and pushes the meta into `<body>`.
+
 ### Key Discoveries:
 
 - Meta position follows the author's `<head>` children — `node_modules/astro/dist/runtime/server/render/head.js:25-40`; the same-origin `<link rel="icon" href="/favicon.png">` precedes the meta today, so oracle rule 6 forbids scripts and `<base>` before the meta, not every element.

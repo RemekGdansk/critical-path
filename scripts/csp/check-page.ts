@@ -23,13 +23,18 @@ interface Directive {
 }
 
 const CSP_HTTP_EQUIV = "content-security-policy";
+// A worker takes its CSP from its own response, not the page's, and form-action does not fall back to
+// default-src, so both are pinned along with the fetch fallback and the load-bearing connect-src.
+const REQUIRED_NONE = ["default-src", "connect-src", "worker-src", "form-action"];
 // Keywords and schemes compared lower-cased; hash sources keep their case-sensitive base64.
 const ALLOWED_SOURCES = new Set(["'self'", "'none'", "data:"]);
 const HASH_SOURCE = /^'sha(256|384|512)-[A-Za-z0-9+/_=-]+'$/i;
 const URL_ATTRIBUTES = new Set(["src", "href", "srcset", "imagesrcset", "data", "action", "formaction", "poster"]);
 const SRCSET_ATTRIBUTES = new Set(["srcset", "imagesrcset"]);
 // Elements that run script, rebase URLs or load through CSS; before the meta they act outside the policy.
-const BEFORE_META_FORBIDDEN = new Set(["script", "base", "style"]);
+// parse5 parses with scripting on and keeps <noscript> content as text; a browser with JS off parses it,
+// and a fetching element in it breaks out of <head> and pushes the meta into <body>.
+const BEFORE_META_FORBIDDEN = new Set(["script", "base", "style", "noscript"]);
 // An absolute http(s) URL, or a scheme-relative one; URL parsing treats "\" like "/" here.
 const THIRD_PARTY_URL = /^(https?:|[\\/]{2})/i;
 
@@ -63,11 +68,11 @@ function isCspMeta(element: Element): boolean {
   return element.tagName === "meta" && attribute(element, "http-equiv")?.toLowerCase() === CSP_HTTP_EQUIV;
 }
 
-/** The policy's directives in order, names lower-cased, repeats kept. */
+/** The policy's directives in order, names lower-cased, repeats kept. CSP splits on ASCII whitespace only. */
 function parsePolicy(policy: string): Directive[] {
   return policy
     .split(";")
-    .map((part) => part.trim().split(/\s+/))
+    .map((part) => part.replace(/^[\t\n\f\r ]+|[\t\n\f\r ]+$/g, "").split(/[\t\n\f\r ]+/))
     .filter(([name]) => name !== "")
     .map(([name, ...tokens]) => ({ name: name.toLowerCase(), tokens }));
 }
@@ -76,13 +81,22 @@ function isAllowedSource(token: string): boolean {
   return ALLOWED_SOURCES.has(token.toLowerCase()) || HASH_SOURCE.test(token);
 }
 
+/** `url` without the leading and trailing C0 controls and spaces that URL parsing strips. */
+function stripControlsAndSpaces(url: string): string {
+  let start = 0;
+  let end = url.length;
+  while (start < end && url.charCodeAt(start) <= 0x20) start++;
+  while (end > start && url.charCodeAt(end - 1) <= 0x20) end--;
+  return url.slice(start, end);
+}
+
 /** The URLs an attribute value asks the browser to fetch; `srcset` and `imagesrcset` hold several. */
 function urlsOf(attributeName: string, value: string): string[] {
   const urls = SRCSET_ATTRIBUTES.has(attributeName)
     ? value.split(",").map((candidate) => candidate.trim().split(/\s+/)[0] ?? "")
     : [value];
-  // URL parsing strips tabs and newlines anywhere and surrounding whitespace.
-  return urls.map((url) => url.replace(/[\t\n\r]/g, "").trim());
+  // URL parsing strips tabs and newlines anywhere, and C0 controls and spaces around the URL.
+  return urls.map((url) => stripControlsAndSpaces(url.replace(/[\t\n\r]/g, "")));
 }
 
 function checkPolicy(policy: string): string[] {
@@ -95,14 +109,14 @@ function checkPolicy(policy: string): string[] {
     seen.add(name);
   }
 
-  for (const required of ["default-src", "connect-src"]) {
+  for (const required of REQUIRED_NONE) {
     // A browser applies the first occurrence of a directive and ignores the rest.
     const directive = directives.find(({ name }) => name === required);
     if (directive === undefined) {
-      violations.push(`rule 4 (default-src and connect-src are 'none'): ${required} is missing`);
+      violations.push(`rule 4 (no-egress directives are 'none'): ${required} is missing`);
     } else if (directive.tokens.join(" ").toLowerCase() !== "'none'") {
       violations.push(
-        `rule 4 (default-src and connect-src are 'none'): ${required} must be exactly 'none', found "${directive.tokens.join(" ")}"`,
+        `rule 4 (no-egress directives are 'none'): ${required} must be exactly 'none', found "${directive.tokens.join(" ")}"`,
       );
     }
   }

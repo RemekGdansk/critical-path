@@ -12,9 +12,10 @@ import { checkBuild } from "./csp/check-page.ts";
 
 const distDir = fileURLToPath(new URL("../dist/", import.meta.url));
 
+/** Every HTML file under dist/, in any case and with .htm too: the platform serves all of them as HTML. */
 function builtPages(): { path: string; html: string }[] {
   return readdirSync(distDir, { recursive: true, encoding: "utf8" })
-    .filter((file) => file.endsWith(".html") && statSync(join(distDir, file)).isFile())
+    .filter((file) => /\.html?$/i.test(file) && statSync(join(distDir, file)).isFile())
     .toSorted()
     .map((file) => ({ path: join("dist", file), html: readFileSync(join(distDir, file), "utf8") }));
 }

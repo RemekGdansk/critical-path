@@ -29,7 +29,7 @@ function page({
 }
 
 // The smallest policy the oracle accepts (rule 4).
-const minimal = "default-src 'none'; connect-src 'none'";
+const minimal = "default-src 'none'; connect-src 'none'; worker-src 'none'; form-action 'none'";
 
 // Shaped like the current build: the full deny-list, then script-src and style-src with 'self' and hash sources.
 const fullPolicy = [
@@ -100,6 +100,21 @@ const rejected = [
     mentions: ["rule 4", "connect-src is missing"],
   },
   {
+    name: "worker-src 'self' lets a same-origin worker fetch under its own policy",
+    html: page({ policy: "default-src 'none'; connect-src 'none'; worker-src 'self'; form-action 'none'" }),
+    mentions: ["rule 4", "worker-src", "'self'"],
+  },
+  {
+    name: "worker-src missing, so workers fall back to script-src",
+    html: page({ policy: "default-src 'none'; connect-src 'none'; form-action 'none'; script-src 'self'" }),
+    mentions: ["rule 4", "worker-src is missing"],
+  },
+  {
+    name: "form-action missing, which does not fall back to default-src",
+    html: page({ policy: "default-src 'none'; connect-src 'none'; worker-src 'none'" }),
+    mentions: ["rule 4", "form-action is missing"],
+  },
+  {
     name: "(d) img-src with a third-party origin",
     html: page({ policy: `${minimal}; img-src 'self' https://x.example` }),
     mentions: ["rule 5", "img-src", "https://x.example"],
@@ -138,6 +153,16 @@ const rejected = [
     name: "script-src with a nonce",
     html: page({ policy: `${minimal}; script-src 'self' 'nonce-cmFuZG9t'` }),
     mentions: ["rule 5", "script-src", "'nonce-cmFuZG9t'"],
+  },
+  {
+    name: "script-src 'unsafe-hashes'",
+    html: page({ policy: `${minimal}; script-src 'self' 'unsafe-hashes'` }),
+    mentions: ["rule 5", "script-src", "'unsafe-hashes'"],
+  },
+  {
+    name: "default-src joined to 'none' by a non-breaking space, which CSP does not split on",
+    html: page({ policy: "default-src\u00a0'none'; connect-src 'none'; worker-src 'none'; form-action 'none'" }),
+    mentions: ["rule 4", "default-src is missing"],
   },
   {
     name: "report-uri sends violation reports off the device",
@@ -185,6 +210,11 @@ const rejected = [
     mentions: ["rule 6", "style attribute", "<html>"],
   },
   {
+    name: "(e) a <noscript> pixel before the meta, which pushes the meta out of <head> with JS off",
+    html: page({ policy: minimal, beforeMeta: '<noscript><img src="https://x.example/p.gif" alt=""></noscript>' }),
+    mentions: ["rule 6", "<noscript>"],
+  },
+  {
     name: "an <img> with a third-party src in <body>",
     html: page({ policy: minimal, body: '<img src="https://x.example/p.gif" alt="">' }),
     mentions: ["rule 7", "<img", "https://x.example/p.gif"],
@@ -198,6 +228,26 @@ const rejected = [
     name: "an <img> with a protocol-relative src",
     html: page({ policy: minimal, body: '<img src="//x.example/p.gif" alt="">' }),
     mentions: ["rule 7", "<img", "//x.example/p.gif"],
+  },
+  {
+    name: "an <img> with a third-party src inside <template>",
+    html: page({ policy: minimal, body: '<template><img src="https://x.example/p.gif" alt=""></template>' }),
+    mentions: ["rule 7", "<img", "https://x.example/p.gif"],
+  },
+  {
+    name: "an <img> with a backslash scheme-relative src",
+    html: page({ policy: minimal, body: '<img src="\\\\x.example/p.gif" alt="">' }),
+    mentions: ["rule 7", "<img", "\\\\x.example/p.gif"],
+  },
+  {
+    name: "an <img> whose third-party src hides a tab in its scheme",
+    html: page({ policy: minimal, body: '<img src="ht\ttps://x.example/p.gif" alt="">' }),
+    mentions: ["rule 7", "<img", "https://x.example/p.gif"],
+  },
+  {
+    name: "a preload <link> whose third-party href starts with a control character",
+    html: page({ policy: minimal, afterMeta: '<link rel="preload" as="script" href="\u0001https://x.example/a.js">' }),
+    mentions: ["rule 7", "<link", "https://x.example/a.js"],
   },
   {
     name: "an <img> with a third-party candidate in srcset",

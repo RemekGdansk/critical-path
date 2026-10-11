@@ -23,7 +23,7 @@ Full lists and forecast rules: @context/foundation/prd.md.
 - `npm run dev` — dev server
 - `npm run lint` — ESLint with type-checked rules
 - `npx astro check` — type-check `.astro` and TS files (CI gate)
-- `npm test` — Vitest, single run (`vitest run`), pure domain logic
+- `npm test` — Vitest, single run (`vitest run`), pure domain logic and build-tooling tests
 - `npm run build` — static build into `dist/`
 - `npm run check:csp` — run after `npm run build`; reads the built HTML in `dist/`, never @astro.config.mjs, and fails unless every built page enforces the no-egress CSP (pattern: §6.4 of @context/foundation/test-plan.md)
 - `npm run preview` — the only way to see the CSP in effect; it is disabled under `npm run dev`
