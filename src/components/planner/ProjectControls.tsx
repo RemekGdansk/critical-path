@@ -171,7 +171,7 @@ export function ProjectControls({ name, setProjectName, replaceProject }: Projec
         />
       </div>
       {fileError !== undefined && (
-        <p role="alert" className="text-destructive max-w-md text-sm">
+        <p role="alert" className="text-destructive max-w-md text-sm wrap-break-word">
           {fileError}
         </p>
       )}

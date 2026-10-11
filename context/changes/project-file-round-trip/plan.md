@@ -427,7 +427,7 @@ Set up Playwright once, then cover the risk no unit test reaches: the download a
 - One desktop browser, Chromium (`test-plan.md` §7).
 - No auth: the app has none.
 - `@playwright/test` is the one devDependency this slice adds; no runtime dependency changes.
-- The e2e row of `test-plan.md` §3 (currently "none / Not planned") is updated to name this suite and the risk it covers, unless `/10x-e2e-setup` already did.
+- The e2e row of `test-plan.md` §4 Stack (currently "none / Not planned") is updated to name this suite and the risk it covers, unless `/10x-e2e-setup` already did.
 - `test-stack.md` records whether the suite joins `ci.yml`. It never joins the Cloudflare Workers Builds command.
 - E2E files stay outside `src/`, so neither the Tailwind scan nor Vitest discovers them.
 

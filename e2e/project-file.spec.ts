@@ -7,6 +7,9 @@ import { readFile } from "node:fs/promises";
 
 import { expect, test, type Page } from "@playwright/test";
 
+/** "Today" in the browser, a week before the round-trip's START date, so the forecast counts from START, not from the real clock. */
+const TODAY = new Date("2029-12-31T12:00:00");
+
 /** Collects console errors and uncaught exceptions; Chromium reports a CSP violation as a console error. */
 function collectConsoleErrors(page: Page): string[] {
   const errors: string[] = [];
@@ -19,7 +22,9 @@ function collectConsoleErrors(page: Page): string[] {
 
 /** Opens the planner and waits until the island has hydrated (the skeleton has no New Task textbox). */
 async function openPlanner(page: Page) {
-  await page.goto("/");
+  const response = await page.goto("/");
+  // The served page is the built app with the no-egress CSP, not a reused `npm run dev` without one.
+  expect(await response?.text()).toContain("connect-src 'none'");
   await expect(page.getByRole("textbox", { name: "New Task" })).toBeVisible();
 }
 
@@ -101,6 +106,7 @@ test.describe("project file round-trip in the built app", () => {
     browser,
   }) => {
     const projectName = `Round-trip ${Date.now()}`;
+    await page.clock.setFixedTime(TODAY);
     await openPlanner(page);
 
     // Build the project in browser context A: Beta depends on Alpha, Gamma runs in parallel.
@@ -128,6 +134,7 @@ test.describe("project file round-trip in the built app", () => {
     const contextB = await browser.newContext();
     try {
       const pageB = await contextB.newPage();
+      await pageB.clock.setFixedTime(TODAY);
       const consoleErrorsB = collectConsoleErrors(pageB);
       await openPlanner(pageB);
       const fileChooser = pageB.waitForEvent("filechooser");
@@ -141,6 +148,7 @@ test.describe("project file round-trip in the built app", () => {
       await expect(pageB.getByRole("button", { name: "START, 2030-01-07" })).toBeVisible();
       await expectProjectFinishDates(pageB, "2030-01-12", "2030-01-13");
       await expect(pageB.getByRole("alert")).toHaveCount(0);
+      await expect(pageB.getByRole("textbox", { name: "New Task" })).toBeFocused();
       await pageB.getByRole("button", { name: "Beta, 2 days" }).click();
       await expect(pageB.getByRole("button", { name: "Remove predecessor 1: Alpha" })).toBeVisible();
       expect(consoleErrorsB).toEqual([]);

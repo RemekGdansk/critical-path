@@ -92,11 +92,14 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
 
   // An imported project replaces the old one whole: the hook selects nothing,
   // which unmounts the panels and drops their drafts, and a pending focus
-  // request would otherwise point at an unrelated imported Task.
+  // request would otherwise point at an unrelated imported Task. Focus goes to
+  // the New Task input, as after Delete Task: the remount keyed by
+  // `replacements` removes the Import button, which would drop it to <body>.
   const handleReplaceProject = useCallback(
     (imported: Project) => {
       replaceProject(imported);
       setFocusRequest(null);
+      newTaskInputRef.current?.focus();
     },
     [replaceProject],
   );

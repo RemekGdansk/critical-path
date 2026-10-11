@@ -28,7 +28,10 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     // The built app under `astro preview`: the only mode where the CSP (connect-src 'none') is in effect.
-    command: `npm run build && npm run preview -- --port ${PORT}`,
+    // On CI, ci.yml has already built dist/ and run check:csp on it, so E2E serves that same artifact.
+    command: process.env.CI
+      ? `npm run preview -- --port ${PORT}`
+      : `npm run build && npm run preview -- --port ${PORT}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

@@ -198,7 +198,7 @@ export function removePredecessor(project: Project, taskId: TaskId, predecessorI
   );
 }
 
-/** Sets the project name, trimmed, under the Task name rules; empty input clears it by removing the field. */
+/** Sets the project name, trimmed, under the project name rules (the Task name rules, worded for the project); empty input clears it by removing the field. */
 export function setProjectName(project: Project, input: string): EditResult {
   const trimmed = input.trim();
   if (trimmed === "") {

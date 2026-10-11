@@ -10,7 +10,7 @@
 - full-suite command: npm run test:e2e
 - base URL: http://localhost:4321
 - port: 4321 (detected from Astro's default preview port; neither astro.config.mjs nor the preview script sets one; detected default 4321, override with E2E_PORT in the gitignored .env)
-- web server command: npm run build && npm run preview -- --port $E2E_PORT; reuseExistingServer outside CI (env ASTRO_PREVIEW_BACKGROUND=1 keeps Astro 7's preview in the foreground)
+- web server command: npm run build && npm run preview -- --port $E2E_PORT; on CI only npm run preview -- --port $E2E_PORT, serving the dist/ that ci.yml built and check:csp verified; reuseExistingServer outside CI (env ASTRO_PREVIEW_BACKGROUND=1 keeps Astro 7's preview in the foreground)
 - auth setup project: none (the app has no auth)
 - storageState: none
 - seed: e2e/seed.spec.ts — protects `csp-planner-boots` (test-plan.md risk #7, browser side): the built planner hydrates and captures a Task with the no-egress CSP in effect, with no console error or CSP violation

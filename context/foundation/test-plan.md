@@ -4,7 +4,7 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-10-10
+> Last updated: 2026-10-11
 
 ## 1. Strategy
 
@@ -151,7 +151,7 @@ How to add new tests in this project. Each sub-section is filled in once the rel
 ## 8. Freshness Ledger
 
 - Strategy (§1–§5) last reviewed: 2026-10-10
-- Stack versions last verified: 2026-10-10
+- Stack versions last verified: 2026-10-11
 - AI-native tool references last verified: 2026-10-10
 
 Refresh (`/10x-test-plan --refresh`) when:
