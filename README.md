@@ -27,10 +27,11 @@ npm run dev
 
 - `npm run dev` - Start development server
 - `npm run build` - Build static site into `dist/`
+- `npm run check:csp` - After `npm run build`, check that every built page in `dist/` enforces the no-egress Content Security Policy
 - `npm run preview` - Preview production build
 - `npm run lint` - Run ESLint with type-checked rules
 - `npm run lint:fix` - Auto-fix ESLint issues
-- `npm test` - Run domain-logic tests once with Vitest (`src/**/*.test.ts`)
+- `npm test` - Run domain-logic and build-tooling tests once with Vitest (`src/**/*.test.ts` and `scripts/**/*.test.ts`)
 - `npm run format` - Run Prettier
 
 ## Deployment
@@ -45,7 +46,7 @@ See [`context/deployment/deploy-plan.md`](./context/deployment/deploy-plan.md) f
 
 ## CI
 
-GitHub Actions runs lint, `astro check`, `npm test` and build on every push and PR (`.github/workflows/ci.yml`). It is a quality gate only and holds no Cloudflare credentials. Cloudflare Workers Builds runs the same gates in its own build command, because it does not wait for the Actions run.
+GitHub Actions runs lint, `astro check`, `npm test`, build and `npm run check:csp` (which fails unless every built page enforces the no-egress CSP) on every push and PR (`.github/workflows/ci.yml`). It is a quality gate only and holds no Cloudflare credentials. Cloudflare Workers Builds runs the same gates in its own build command, because it does not wait for the Actions run.
 
 ## License
 
