@@ -21,3 +21,7 @@ node_modules/
 # environment variables
 .env
 .env.production
+
+# stryker temp files and reports
+.stryker-tmp
+reports/
