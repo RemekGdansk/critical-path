@@ -297,21 +297,21 @@ None. The change adds a gate; no data or app behaviour changes. Rollback is remo
 
 #### Automated
 
-- [ ] 1.1 Clean install succeeds with the updated lockfile: `npm ci`
-- [ ] 1.2 `npx vitest list` lists every existing `src/**/*.test.ts` test plus `scripts/csp/check-page.test.ts`, and nothing from `node_modules`, `.claude/` or `dist/`
-- [ ] 1.3 `npm test` passes, including every fixture row
-- [ ] 1.4 Breaking one rule in `check-page.ts` (e.g. letting host sources through) makes `npm test` exit non-zero (reverted afterwards)
-- [ ] 1.5 Linting passes: `npm run lint`
-- [ ] 1.6 Type check passes: `npx astro check`
-- [ ] 1.7 `npm run build && npm run check:csp` exits 0 and reports 2 pages
-- [ ] 1.8 With `connect-src 'self' https://example.com` in `astro.config.mjs`, `npm run build && npm run check:csp` exits non-zero naming both pages (reverted afterwards)
-- [ ] 1.9 With `<script src="https://example.com/a.js"></script>` as the first child of `<head>` in `src/layouts/Layout.astro` and the config unchanged, `npm run build && npm run check:csp` exits non-zero (reverted afterwards)
-- [ ] 1.10 After both reverts, `git diff --exit-code astro.config.mjs src/layouts/Layout.astro` is clean and `npm run build && npm run check:csp` exits 0 again
-- [ ] 1.11 With `dist/` removed, `npm run check:csp` exits non-zero
+- [x] 1.1 Clean install succeeds with the updated lockfile: `npm ci`
+- [x] 1.2 `npx vitest list` lists every existing `src/**/*.test.ts` test plus `scripts/csp/check-page.test.ts`, and nothing from `node_modules`, `.claude/` or `dist/`
+- [x] 1.3 `npm test` passes, including every fixture row
+- [x] 1.4 Breaking one rule in `check-page.ts` (e.g. letting host sources through) makes `npm test` exit non-zero (reverted afterwards)
+- [x] 1.5 Linting passes: `npm run lint`
+- [x] 1.6 Type check passes: `npx astro check`
+- [x] 1.7 `npm run build && npm run check:csp` exits 0 and reports 2 pages
+- [x] 1.8 With `connect-src 'self' https://example.com` in `astro.config.mjs`, `npm run build && npm run check:csp` exits non-zero naming both pages (reverted afterwards)
+- [x] 1.9 With `<script src="https://example.com/a.js"></script>` as the first child of `<head>` in `src/layouts/Layout.astro` and the config unchanged, `npm run build && npm run check:csp` exits non-zero (reverted afterwards)
+- [x] 1.10 After both reverts, `git diff --exit-code astro.config.mjs src/layouts/Layout.astro` is clean and `npm run build && npm run check:csp` exits 0 again
+- [x] 1.11 With `dist/` removed, `npm run check:csp` exits non-zero
 
 #### Manual
 
-- [ ] 1.12 The fixture table reads as the oracle: each row name says which loosening it is, and no expected value is derived from `dist/` or the config
+- [x] 1.12 The fixture table reads as the oracle: each row name says which loosening it is, and no expected value is derived from `dist/` or the config
 
 ### Phase 2: Wire both gates and prove the block
 

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "check:csp": "node scripts/check-built-csp.ts",
     "preview": "astro preview",
     "astro": "astro",
     "lint": "eslint .",
@@ -34,6 +35,7 @@
     "@eslint/compat": "^2.1.1",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.4",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^10.11.0",
@@ -45,6 +47,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "husky": "9.1.7",
     "lint-staged": "^17.6.0",
+    "parse5": "^8.0.1",
     "prettier": "^3.9.9",
     "prettier-plugin-astro": "^1.1.0",
     "prettier-plugin-tailwindcss": "^0.8.1",
