@@ -334,11 +334,11 @@ None. The change adds a gate; no data or app behaviour changes. Rollback is remo
 
 #### Automated
 
-- [x] 3.1 Formatting passes on the edited markdown and YAML: `npx prettier --check PROJECT_RULES.md README.md context/foundation/test-plan.md context/deployment/deploy-plan.md .github/dependabot.yml`
-- [x] 3.2 No doc still claims Vitest discovers `src/**/*.test.ts` only: `grep -rn "discovers \`src/\*\*/\*.test.ts\` only" PROJECT_RULES.md README.md context/foundation/test-plan.md` finds nothing
-- [x] 3.3 Linting passes: `npm run lint`
+- [x] 3.1 Formatting passes on the edited markdown and YAML: `npx prettier --check PROJECT_RULES.md README.md context/foundation/test-plan.md context/deployment/deploy-plan.md .github/dependabot.yml` — a74a6a7
+- [x] 3.2 No doc still claims Vitest discovers `src/**/*.test.ts` only: `grep -rn "discovers \`src/\*\*/\*.test.ts\` only" PROJECT_RULES.md README.md context/foundation/test-plan.md` finds nothing — a74a6a7
+- [x] 3.3 Linting passes: `npm run lint` — a74a6a7
 
 #### Manual
 
-- [x] 3.4 `PROJECT_RULES.md`, `README.md`, `ci.yml`, `deploy-plan.md` and test-plan §5 name the same gate order and the same command
-- [x] 3.5 Test-plan §6.4 lets a reader add a new built-artifact check without reading this plan
+- [x] 3.4 `PROJECT_RULES.md`, `README.md`, `ci.yml`, `deploy-plan.md` and test-plan §5 name the same gate order and the same command — a74a6a7
+- [x] 3.5 Test-plan §6.4 lets a reader add a new built-artifact check without reading this plan — a74a6a7
