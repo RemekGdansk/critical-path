@@ -271,29 +271,29 @@ Fill §6.3 from the S-03 pattern, add the mutation bullet to §6.1, re-check §6
 
 #### Automated
 
-- [x] 1.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
-- [x] 1.2 §3 Status cells hold only parser literals and route to Phase 2
-- [x] 1.3 §2 diff touches only the two Source cells
-- [x] 1.4 No file anchor enters §2
+- [x] 1.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — f05f840
+- [x] 1.2 §3 Status cells hold only parser literals and route to Phase 2 — f05f840
+- [x] 1.3 §2 diff touches only the two Source cells — f05f840
+- [x] 1.4 No file anchor enters §2 — f05f840
 
 #### Manual
 
-- [x] 1.5 `/10x-test-plan --status` lists Phase 2 as current and Phases 3 and 5 as `complete`
-- [x] 1.6 The rewritten order-rationale paragraph reads correctly to the maintainer
+- [x] 1.5 `/10x-test-plan --status` lists Phase 2 as current and Phases 3 and 5 as `complete` — f05f840
+- [x] 1.6 The rewritten order-rationale paragraph reads correctly to the maintainer — f05f840
 
 ### Phase 2: Stack and quality gates
 
 #### Automated
 
-- [ ] 2.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
-- [ ] 2.2 The superseded clock claim is gone
-- [ ] 2.3 No live gate is still deferred to a done phase
-- [ ] 2.4 Every §4 tool row with a version carries `checked: 2026-10-12`
-- [ ] 2.5 Test counts in the unit row match `npx vitest list`
+- [x] 2.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
+- [x] 2.2 The superseded clock claim is gone
+- [x] 2.3 No live gate is still deferred to a done phase
+- [x] 2.4 Every §4 tool row with a version carries `checked: 2026-10-12`
+- [x] 2.5 Test counts in the unit row match `npx vitest list`
 
 #### Manual
 
-- [ ] 2.6 §4 and §5 read as an accurate description of the current test base
+- [x] 2.6 §4 and §5 read as an accurate description of the current test base
 
 ### Phase 3: Cookbook, ledger and close-out
 
