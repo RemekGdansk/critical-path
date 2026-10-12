@@ -272,17 +272,17 @@ None. Dev dependencies only.
 
 #### Automated
 
-- [ ] 2.1 The `Planner` test passes: `npx vitest run src/components/planner/Planner.test.ts`
-- [ ] 2.2 The whole suite stays green: `npm test`
-- [ ] 2.3 Lint passes: `npm run lint`
-- [ ] 2.4 Type check passes: `npx astro check`
-- [ ] 2.5 `vitest related` selects the new file for the memo's file: `npx vitest related src/components/planner/Planner.tsx --run` lists `src/components/planner/Planner.test.ts`
+- [x] 2.1 The `Planner` test passes: `npx vitest run src/components/planner/Planner.test.ts`
+- [x] 2.2 The whole suite stays green: `npm test`
+- [x] 2.3 Lint passes: `npm run lint`
+- [x] 2.4 Type check passes: `npx astro check`
+- [x] 2.5 `vitest related` selects the new file for the memo's file: `npx vitest related src/components/planner/Planner.tsx --run` lists `src/components/planner/Planner.test.ts`
 
 #### Manual
 
-- [ ] 2.6 Deliberate break 4, the forecast `useMemo` dependencies changed to `[today]`: the withheld/restored case goes red; reverted, green.
-- [ ] 2.7 Deliberate break 5, the `withheld` and dates branches swapped in `ForecastSummary`: the new `Planner` case and `ForecastSummary.test.ts` both go red; reverted, green.
-- [ ] 2.8 The per-edit agent hook's `vitest related` on `useProject.ts` and `Planner.tsx` finishes inside its 50 s budget with the new jsdom files.
+- [x] 2.6 Deliberate break 4, the forecast `useMemo` dependencies changed to `[today]`: the withheld/restored case goes red; reverted, green.
+- [x] 2.7 Deliberate break 5, the `withheld` and dates branches swapped in `ForecastSummary`: the new `Planner` case and `ForecastSummary.test.ts` both go red; reverted, green.
+- [x] 2.8 The per-edit agent hook's `vitest related` on `useProject.ts` and `Planner.tsx` finishes inside its 50 s budget with the new jsdom files.
 
 ### Phase 3: Test plan and project rules
 
