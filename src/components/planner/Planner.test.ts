@@ -1,17 +1,29 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { Planner } from "@/components/planner/Planner";
 import { createEmptyProject, createTask, type EditResult, setDuration, setStartDate } from "@/lib/services/project";
 import type { Project } from "@/types";
+
+/** Every property the shim below replaces, restored in `afterAll` so it never outlives this file. */
+const shimmed: [object, string][] = [
+  [globalThis, "ResizeObserver"],
+  [globalThis, "DOMMatrixReadOnly"],
+  [HTMLElement.prototype, "offsetHeight"],
+  [HTMLElement.prototype, "offsetWidth"],
+  [SVGElement.prototype, "getBBox"],
+];
+let originals: (PropertyDescriptor | undefined)[] = [];
 
 /**
  * React Flow's documented jsdom shim: jsdom has no layout, so React Flow
  * measures nothing and renders no node without it. Applied in this file only.
  */
 beforeAll(() => {
+  originals = shimmed.map(([target, key]) => Object.getOwnPropertyDescriptor(target, key));
+
   class ResizeObserverShim {
     constructor(private readonly callback: ResizeObserverCallback) {}
     // Fires once per observed element, so React Flow measures each node. React
@@ -41,11 +53,13 @@ beforeAll(() => {
   globalThis.DOMMatrixReadOnly = DOMMatrixReadOnlyShim as unknown as typeof DOMMatrixReadOnly;
   Object.defineProperties(HTMLElement.prototype, {
     offsetHeight: {
+      configurable: true,
       get(this: HTMLElement) {
         return Number.parseFloat(this.style.height) || 1;
       },
     },
     offsetWidth: {
+      configurable: true,
       get(this: HTMLElement) {
         return Number.parseFloat(this.style.width) || 1;
       },
@@ -55,6 +69,14 @@ beforeAll(() => {
   Object.defineProperty(SVGElement.prototype, "getBBox", {
     configurable: true,
     value: () => ({ x: 0, y: 0, width: 0, height: 0 }),
+  });
+});
+
+afterAll(() => {
+  shimmed.forEach(([target, key], index) => {
+    const original = originals[index];
+    if (original) Object.defineProperty(target, key, original);
+    else Reflect.deleteProperty(target, key);
   });
 });
 
