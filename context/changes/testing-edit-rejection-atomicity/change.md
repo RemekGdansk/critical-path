@@ -1,7 +1,7 @@
 ---
 change_id: testing-edit-rejection-atomicity
 title: Test that rejected edits leave planner state unchanged and warnings withhold the forecast
-status: impl_reviewed
+status: implemented
 created: 2026-10-12
 updated: 2026-10-12
 archived_at: null
