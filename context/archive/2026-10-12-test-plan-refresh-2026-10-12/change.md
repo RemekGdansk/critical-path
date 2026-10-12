@@ -1,10 +1,10 @@
 ---
 change_id: test-plan-refresh-2026-10-12
 title: Refresh the test plan after S-03, E2E, agent hooks and Stryker
-status: impl_reviewed
+status: archived
 created: 2026-10-12
 updated: 2026-10-12
-archived_at: null
+archived_at: 2026-10-12T20:47:19Z
 ---
 
 ## Notes
