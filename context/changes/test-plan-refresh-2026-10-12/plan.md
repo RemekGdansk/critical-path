@@ -299,14 +299,14 @@ Fill §6.3 from the S-03 pattern, add the mutation bullet to §6.1, re-check §6
 
 #### Automated
 
-- [x] 3.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
-- [x] 3.2 No placeholder is left for a delivered phase; §6.2 still TBD
-- [x] 3.3 The obsolete refresh notes are gone
-- [x] 3.4 §6.4's rule numbers and short names match `scripts/csp/check-page.ts`
-- [x] 3.5 Every path cited in §4–§6 exists on disk
-- [x] 3.6 §8 shows 2026-10-12 on all three lines
+- [x] 3.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — 2f370b6
+- [x] 3.2 No placeholder is left for a delivered phase; §6.2 still TBD — 2f370b6
+- [x] 3.3 The obsolete refresh notes are gone — 2f370b6
+- [x] 3.4 §6.4's rule numbers and short names match `scripts/csp/check-page.ts` — 2f370b6
+- [x] 3.5 Every path cited in §4–§6 exists on disk — 2f370b6
+- [x] 3.6 §8 shows 2026-10-12 on all three lines — 2f370b6
 
 #### Manual
 
-- [x] 3.7 §6.3 is enough to plan S-07's golden file, rejection rows and the version-bump move
-- [x] 3.8 A fresh agent session routes a new import rule to §6.3 and the unit layer
+- [x] 3.7 §6.3 is enough to plan S-07's golden file, rejection rows and the version-bump move — 2f370b6
+- [x] 3.8 A fresh agent session routes a new import rule to §6.3 and the unit layer — 2f370b6
