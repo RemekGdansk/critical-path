@@ -271,42 +271,42 @@ Fill §6.3 from the S-03 pattern, add the mutation bullet to §6.1, re-check §6
 
 #### Automated
 
-- [x] 1.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — f05f840
-- [x] 1.2 §3 Status cells hold only parser literals and route to Phase 2 — f05f840
-- [x] 1.3 §2 diff touches only the two Source cells — f05f840
-- [x] 1.4 No file anchor enters §2 — f05f840
+- [x] 1.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — 95cdffe
+- [x] 1.2 §3 Status cells hold only parser literals and route to Phase 2 — 95cdffe
+- [x] 1.3 §2 diff touches only the two Source cells — 95cdffe
+- [x] 1.4 No file anchor enters §2 — 95cdffe
 
 #### Manual
 
-- [x] 1.5 `/10x-test-plan --status` lists Phase 2 as current and Phases 3 and 5 as `complete` — f05f840
-- [x] 1.6 The rewritten order-rationale paragraph reads correctly to the maintainer — f05f840
+- [x] 1.5 `/10x-test-plan --status` lists Phase 2 as current and Phases 3 and 5 as `complete` — 95cdffe
+- [x] 1.6 The rewritten order-rationale paragraph reads correctly to the maintainer — 95cdffe
 
 ### Phase 2: Stack and quality gates
 
 #### Automated
 
-- [x] 2.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — 83001f5
-- [x] 2.2 The superseded clock claim is gone — 83001f5
-- [x] 2.3 No live gate is still deferred to a done phase — 83001f5
-- [x] 2.4 Every §4 tool row with a version carries `checked: 2026-10-12` — 83001f5
-- [x] 2.5 Test counts in the unit row match `npx vitest run` — 83001f5
+- [x] 2.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — 95cdffe
+- [x] 2.2 The superseded clock claim is gone — 95cdffe
+- [x] 2.3 No live gate is still deferred to a done phase — 95cdffe
+- [x] 2.4 Every §4 tool row with a version carries `checked: 2026-10-12` — 95cdffe
+- [x] 2.5 Test counts in the unit row match `npx vitest run` — 95cdffe
 
 #### Manual
 
-- [x] 2.6 §4 and §5 read as an accurate description of the current test base — 83001f5
+- [x] 2.6 §4 and §5 read as an accurate description of the current test base — 95cdffe
 
 ### Phase 3: Cookbook, ledger and close-out
 
 #### Automated
 
-- [x] 3.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — 2f370b6
-- [x] 3.2 No placeholder is left for a delivered phase; §6.2 still TBD — 2f370b6
-- [x] 3.3 The obsolete refresh notes are gone — 2f370b6
-- [x] 3.4 §6.4's rule numbers and short names match `scripts/csp/check-page.ts` — 2f370b6
-- [x] 3.5 Every path cited in §4–§6 exists on disk — 2f370b6
-- [x] 3.6 §8 shows 2026-10-12 on all three lines — 2f370b6
+- [x] 3.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — 95cdffe
+- [x] 3.2 No placeholder is left for a delivered phase; §6.2 still TBD — 95cdffe
+- [x] 3.3 The obsolete refresh notes are gone — 95cdffe
+- [x] 3.4 §6.4's rule numbers and short names match `scripts/csp/check-page.ts` — 95cdffe
+- [x] 3.5 Every path cited in §4–§6 exists on disk — 95cdffe
+- [x] 3.6 §8 shows 2026-10-12 on all three lines — 95cdffe
 
 #### Manual
 
-- [x] 3.7 §6.3 is enough to plan S-07's golden file, rejection rows and the version-bump move — 2f370b6
-- [x] 3.8 A fresh agent session routes a new import rule to §6.3 and the unit layer — 2f370b6
+- [x] 3.7 §6.3 is enough to plan S-07's golden file, rejection rows and the version-bump move — 95cdffe
+- [x] 3.8 A fresh agent session routes a new import rule to §6.3 and the unit layer — 95cdffe
