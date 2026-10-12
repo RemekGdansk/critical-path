@@ -108,7 +108,7 @@ Make §4 and §5 describe the test base, tools and gates that exist today, each 
 
 **Contract**:
 
-- **unit:** test base 10 files, 284 tests in `npm test` — 8 domain files in `src/lib/services/` (incl. `smoke.test.ts`), 1 component render (`ForecastSummary.test.ts`), 1 build tooling (`scripts/csp/check-page.test.ts`); discovery adds the `scripts/agent-hooks/**` exclusion; "today" is injected and the suite's time zone pinned to Europe/Warsaw (§6.1), replacing the `vi.setSystemTime` claim. Re-count at implementation time with `npx vitest list` and use the measured numbers.
+- **unit:** test base 10 files, 284 tests in `npm test` — 8 domain files in `src/lib/services/` (incl. `smoke.test.ts`), 1 component render (`ForecastSummary.test.ts`), 1 build tooling (`scripts/csp/check-page.test.ts`); discovery adds the `scripts/agent-hooks/**` exclusion; "today" is injected and the suite's time zone pinned to Europe/Warsaw (§6.1), replacing the `vi.setSystemTime` claim. Re-count at implementation time with `npx vitest run` and use the measured numbers.
 - **integration (hooks):** unchanged ("none yet — see §3 Phase 2").
 - **contract (file format):** Vitest + the committed golden file `src/lib/services/golden/project-file-0.1.json` and the rejection table in `src/lib/services/project-file.test.ts`, inside `npm test`; delivered by roadmap S-03; pattern §6.3. Version `n/a`.
 - **built artifact:** re-dated (`parse5` 8.0.1 = latest); `checked: 2026-10-12`.
@@ -149,7 +149,7 @@ Make §4 and §5 describe the test base, tools and gates that exist today, each 
 - The superseded clock claim is gone: `grep -n "setSystemTime controls" context/foundation/test-plan.md` finds nothing
 - No live gate is still deferred to a done phase: `grep -nE "after §3 Phase (3|5)" context/foundation/test-plan.md` finds nothing
 - Every §4 tool row with a version carries `checked: 2026-10-12`
-- Test counts in the unit row match `npx vitest list` on the implementation commit
+- Test counts in the unit row match `npx vitest run` on the implementation commit
 
 #### Manual Verification:
 
@@ -246,7 +246,7 @@ Fill §6.3 from the S-03 pattern, add the mutation bullet to §6.1, re-check §6
 
 ### Unit Tests:
 
-- None added or changed. `npm test` must stay green, which it will since no code changes; the Phase 2 count check runs `npx vitest list` only to measure.
+- None added or changed. `npm test` must stay green, which it will since no code changes; the Phase 2 count check runs `npx vitest run` only to measure.
 
 ### Manual Testing Steps:
 
@@ -289,7 +289,7 @@ Fill §6.3 from the S-03 pattern, add the mutation bullet to §6.1, re-check §6
 - [x] 2.2 The superseded clock claim is gone — 83001f5
 - [x] 2.3 No live gate is still deferred to a done phase — 83001f5
 - [x] 2.4 Every §4 tool row with a version carries `checked: 2026-10-12` — 83001f5
-- [x] 2.5 Test counts in the unit row match `npx vitest list` — 83001f5
+- [x] 2.5 Test counts in the unit row match `npx vitest run` — 83001f5
 
 #### Manual
 
