@@ -288,9 +288,9 @@ None. Dev dependencies only.
 
 #### Automated
 
-- [ ] 3.1 Prettier leaves both files unchanged after formatting: `npx prettier --check context/foundation/test-plan.md PROJECT_RULES.md`
-- [ ] 3.2 The full pre-push gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 3.1 Prettier leaves both files unchanged after formatting: `npx prettier --check context/foundation/test-plan.md PROJECT_RULES.md`
+- [x] 3.2 The full pre-push gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
 
 #### Manual
 
-- [ ] 3.3 §2, §3, §4, §6.2 and §6.5 read consistently with each other and with what the two test files actually do (sizing variant, versions, test count).
+- [x] 3.3 §2, §3, §4, §6.2 and §6.5 read consistently with each other and with what the two test files actually do (sizing variant, versions, test count).
