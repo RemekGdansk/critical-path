@@ -212,4 +212,17 @@ describe("useProject: a rejected edit commits nothing", () => {
     expect(result.current.selectedTask).toBe(project.tasks[0]);
     expect(result.current.replacements).toBe(0);
   });
+
+  it("two accepted edits in one event apply in sequence, the second to the first's result", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.setDuration(1, "6");
+      result.current.setDuration(2, "4");
+    });
+
+    const expected = accepted(setDuration(accepted(setDuration(project, 1, "6")), 2, "4"));
+    expect(result.current.project).toStrictEqual(expected);
+  });
 });

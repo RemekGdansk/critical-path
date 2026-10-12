@@ -256,17 +256,17 @@ None. Dev dependencies only.
 
 #### Automated
 
-- [x] 1.1 The hook test passes: `npx vitest run src/hooks/useProject.test.ts`
-- [x] 1.2 The whole suite stays green and Node-only tests still run in Node: `npm test`
-- [x] 1.3 Lint passes, including type-checked rules on the new file: `npm run lint`
-- [x] 1.4 Type check passes: `npx astro check`
-- [x] 1.5 `vitest related` selects the new file for the hook: `npx vitest related src/hooks/useProject.ts --run` lists `src/hooks/useProject.test.ts`
+- [x] 1.1 The hook test passes: `npx vitest run src/hooks/useProject.test.ts` — 2aa2087
+- [x] 1.2 The whole suite stays green and Node-only tests still run in Node: `npm test` — 2aa2087
+- [x] 1.3 Lint passes, including type-checked rules on the new file: `npm run lint` — 2aa2087
+- [x] 1.4 Type check passes: `npx astro check` — 2aa2087
+- [x] 1.5 `vitest related` selects the new file for the hook: `npx vitest related src/hooks/useProject.ts --run` lists `src/hooks/useProject.test.ts` — 2aa2087
 
 #### Manual
 
-- [x] 1.6 Deliberate break 1, `apply` commits unconditionally: the identity assertions go red; reverted, green.
-- [x] 1.7 Deliberate break 2, `latest.current` advanced before the `ok` check: the same-event case goes red; reverted, green.
-- [x] 1.8 Deliberate break 3, `setSelection(null)` (or a `replacements` bump) on a rejection: the selection/counter assertions go red; reverted, green.
+- [x] 1.6 Deliberate break 1, `apply` commits unconditionally: the identity assertions go red; reverted, green. — 2aa2087
+- [x] 1.7 Deliberate break 2, `latest.current` advanced before the `ok` check: the same-event case goes red; reverted, green. — 2aa2087
+- [x] 1.8 Deliberate break 3, `setSelection(null)` (or a `replacements` bump) on a rejection: the selection/counter assertions go red; reverted, green. — 2aa2087
 
 ### Phase 2: `Planner` render — withheld, restored, no stale memo
 
