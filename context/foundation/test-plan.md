@@ -4,7 +4,7 @@
 >
 > Refresh: re-run `/10x-test-plan --refresh` when stale (see §8).
 >
-> Last updated: 2026-10-11
+> Last updated: 2026-10-12
 
 ## 1. Strategy
 
@@ -16,7 +16,7 @@ Tests follow three non-negotiable principles for this project:
 
 Expected values in every test come from an independent oracle — the PRD's worked examples, Business Logic rules and acceptance criteria, or a committed fixture — never from the output of the code under test.
 
-Hot-spot scope used for likelihood weighting: `src/` (excluding `src/dev/`), `scripts/`. 30-day churn: `src/components/planner/` 32 file-changes, `src/lib/services/` 29, `src/styles/` 8, `src/hooks/` 3 (15 commits).
+Hot-spot scope used for likelihood weighting: `src/` (excluding `src/dev/`), `scripts/`, `e2e/`. 30-day churn: `src/lib/services/` 36 file-changes, `src/components/planner/` 36, `src/styles/` 8, `scripts/agent-hooks/` 8, `src/components/ui/` 5, `src/pages/` 4, `src/hooks/` 4 (20 commits).
 
 ## 2. Risk Map
 
@@ -27,8 +27,8 @@ The top failure scenarios this project must protect against, ordered by risk = i
 | 1   | A project file exported by an earlier version of the app can no longer be imported once the file format gains fields (Statuses, completion dates, day-counting mode)                     | High   | High       | interview Q1; roadmap S-03 Risk line; roadmap S-06 and S-07 add file fields; PRD Guardrails ("no silent data loss")                 |
 | 2   | Export then import yields a project that differs from the original — a lost Duration, a changed id or order, or an id counter that later mints a duplicate Task id and overwrites a Task | High   | High       | PRD Guardrails; US-03; FR-013, FR-014; archive `2026-09-27-capture-task-graph` follow-up F1                                         |
 | 3   | A hand-edited file holding a Validation Error (cycle, unknown id, malformed date or Task name) is accepted, or blanks the planner instead of being rejected with a clear error           | High   | High       | FR-014; US-03 acceptance criteria; roadmap S-03 Risk line; untrusted-input lens (the imported file is the app's only foreign input) |
-| 4   | The Resource-Unconstrained or Resource-Constrained Project Finish Date is wrong but plausible — off by a day, wrong "today" versus the START date, or wrong under parallelism            | High   | High       | PRD Business Logic worked examples; US-02; US-04; interview Q3; hot-spot dir `src/lib/services/` (29 file-changes/30d)              |
-| 5   | An edit rejected as a Validation Error still leaves the planner's state partly changed, or shown as changed                                                                              | High   | Medium     | interview Q4; FR-019; hot-spot dirs `src/components/planner/` (32/30d), `src/hooks/` (3/30d)                                        |
+| 4   | The Resource-Unconstrained or Resource-Constrained Project Finish Date is wrong but plausible — off by a day, wrong "today" versus the START date, or wrong under parallelism            | High   | High       | PRD Business Logic worked examples; US-02; US-04; interview Q3; hot-spot dir `src/lib/services/` (36 file-changes/30d)              |
+| 5   | An edit rejected as a Validation Error still leaves the planner's state partly changed, or shown as changed                                                                              | High   | Medium     | interview Q4; FR-019; hot-spot dirs `src/components/planner/` (36/30d), `src/hooks/` (4/30d)                                        |
 | 6   | A Project Finish Date, or a stale one, stays visible while a Validation Warning exists                                                                                                   | High   | Medium     | PRD Guardrails; FR-009; roadmap S-07 Risk line (withheld copy changes for Done Tasks)                                               |
 | 7   | Project data leaves the device because the CSP is loosened, or never reaches the served page, while every gate stays green                                                               | High   | Low        | PRD Guardrails and NFR; `lessons.md` "Verify the artifact, not the config"; PROJECT_RULES hard rule                                 |
 
@@ -48,15 +48,15 @@ The top failure scenarios this project must protect against, ordered by risk = i
 
 Each row is a discrete rollout phase that will open its own change folder via `/10x-new`. Status moves left-to-right through the values below; the orchestrator updates Status as artifacts appear on disk.
 
-| #   | Phase name                      | Goal (one line)                                                                                                                           | Risks covered          | Test types                    | Status      | Change folder              |
-| --- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- | ----------------------------- | ----------- | -------------------------- |
-| 1   | Forecast oracle                 | Prove both Project Finish Dates match the PRD worked examples under a fixed clock and are withheld while warned                           | #4, #6                 | unit (fixed clock)            | complete    | testing-forecast-dates     |
-| 2   | Edit-rejection atomicity        | Prove a rejected edit leaves the planner's state identical and names the rule                                                             | #5, #6                 | integration (hook, DOM env)   | not started | —                          |
-| 3   | Project file contract           | Prove older files import, the round-trip is exact, and files with Validation Errors are rejected without harm (after roadmap S-03 merges) | #1, #2, #3             | unit / contract, golden files | not started | —                          |
-| 4   | Built-artifact guarantee        | Prove the built pages forbid network egress, checked in both pre-merge and deploy gates                                                   | #7                     | post-build artifact check     | complete    | testing-csp-artifact-check |
-| 5   | Agent-loop feedback (AI-native) | Run the related domain and state tests when an agent edits forecast or planner-state code                                                 | #4, #5 (cross-cutting) | post-edit hook                | not started | —                          |
+| #   | Phase name                      | Goal (one line)                                                                                                 | Risks covered          | Test types                    | Status      | Change folder              |
+| --- | ------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------- | ----------------------------- | ----------- | -------------------------- |
+| 1   | Forecast oracle                 | Prove both Project Finish Dates match the PRD worked examples under a fixed clock and are withheld while warned | #4, #6                 | unit (fixed clock)            | complete    | testing-forecast-dates     |
+| 2   | Edit-rejection atomicity        | Prove a rejected edit leaves the planner's state identical and names the rule                                   | #5, #6                 | integration (hook, DOM env)   | not started | —                          |
+| 3   | Project file contract           | Prove older files import, the round-trip is exact, and files with Validation Errors are rejected without harm   | #1, #2, #3             | unit / contract, golden files | complete    | project-file-round-trip    |
+| 4   | Built-artifact guarantee        | Prove the built pages forbid network egress, checked in both pre-merge and deploy gates                         | #7                     | post-build artifact check     | complete    | testing-csp-artifact-check |
+| 5   | Agent-loop feedback (AI-native) | Run the related domain and state tests when an agent edits forecast or planner-state code                       | #4, #5 (cross-cutting) | post-edit hook                | complete    | — (commit 8606e65)         |
 
-Order rationale: Phase 1 targets the area changed least confidently (interview Q3) and a hot-spot, before roadmap S-06 and S-07 change the forecast. Phase 2 closes the gap named in interview Q4 on code that already exists. Phase 3 carries the highest-impact risks but its code lands with roadmap S-03; S-03's own plan should adopt the #1–#3 response guidance now, and Phase 3 locks the contract in afterwards. Phase 4 is cheap and independent. Phase 5 runs only once Phases 1–2 give it tests worth running.
+Order rationale: Phase 1 targets the area changed least confidently (interview Q3) and a hot-spot, before roadmap S-06 and S-07 change the forecast. Phase 3 was delivered by roadmap S-03, whose plan adopted the #1–#3 response guidance; its residuals, which need features not yet built (Statuses, completion dates, the weekdays mode, the file version bump when M-1 closes), are handed to roadmap S-06, S-07 and the M-1 version bump (§6.3, §6.5). Phase 4 is cheap and independent. Phase 5 was delivered by the agent hooks (commit 8606e65): they run the related tests on every edit, but no test imports the planner-state hook yet, so their planner-state half starts checking once Phase 2 adds a test that imports it. Phase 2 is therefore next: it closes the gap named in interview Q4 on code that already exists.
 
 ## 4. Stack
 

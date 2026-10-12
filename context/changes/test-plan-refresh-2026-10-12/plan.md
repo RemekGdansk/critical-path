@@ -271,15 +271,15 @@ Fill §6.3 from the S-03 pattern, add the mutation bullet to §6.1, re-check §6
 
 #### Automated
 
-- [ ] 1.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
-- [ ] 1.2 §3 Status cells hold only parser literals and route to Phase 2
-- [ ] 1.3 §2 diff touches only the two Source cells
-- [ ] 1.4 No file anchor enters §2
+- [x] 1.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
+- [x] 1.2 §3 Status cells hold only parser literals and route to Phase 2
+- [x] 1.3 §2 diff touches only the two Source cells
+- [x] 1.4 No file anchor enters §2
 
 #### Manual
 
-- [ ] 1.5 `/10x-test-plan --status` lists Phase 2 as current and Phases 3 and 5 as `complete`
-- [ ] 1.6 The rewritten order-rationale paragraph reads correctly to the maintainer
+- [x] 1.5 `/10x-test-plan --status` lists Phase 2 as current and Phases 3 and 5 as `complete`
+- [x] 1.6 The rewritten order-rationale paragraph reads correctly to the maintainer
 
 ### Phase 2: Stack and quality gates
 
