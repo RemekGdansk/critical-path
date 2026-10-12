@@ -3,7 +3,7 @@ project: "Critical Path"
 version: 1
 status: draft
 created: 2026-09-26
-updated: 2026-10-11
+updated: 2026-10-12
 prd_version: 1
 main_goal: quality
 top_blocker: time
@@ -24,7 +24,7 @@ milestone_status: open
 
 - **Intent:** Deliver the PRD's MVP: a planner can capture a task graph with no friction, is prevented from ever saving an invalid project, sees both finish-date forecasts (withheld while warnings exist), tracks progress, and round-trips the project through a plain-text file into another browser.
 - **Source materials:** `context/foundation/prd.md` (v1)
-- **Done when:** every F-NN and S-NN below is `done`, and the PRD's MVP flow (Success Criteria → Primary, steps 1–9) runs end to end on the deployed build.
+- **Done when:** every F-NN and S-NN below is `done`, the PRD's MVP flow (Success Criteria → Primary, steps 1–9) runs end to end on the deployed build, and the project file version has moved from `"0.1"` to `"1"` with the tests in `context/foundation/test-plan.md` §6.3 "Version bump": every shipped golden file still imports to its hand-written project, the byte-for-byte `serializeProject` assertion has moved to the `"1"` golden file, and each field absent from an older file has a documented default with its own row.
 - **Scope anchors:** FR-001 – FR-014, FR-016, FR-017, FR-019 (all must-have); US-01 – US-04. Nice-to-have FR-015 and FR-018 are parked as stretch goals.
 
 ## Vision recap
