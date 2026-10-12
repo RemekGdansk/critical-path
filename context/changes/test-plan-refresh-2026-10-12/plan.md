@@ -285,28 +285,28 @@ Fill §6.3 from the S-03 pattern, add the mutation bullet to §6.1, re-check §6
 
 #### Automated
 
-- [x] 2.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
-- [x] 2.2 The superseded clock claim is gone
-- [x] 2.3 No live gate is still deferred to a done phase
-- [x] 2.4 Every §4 tool row with a version carries `checked: 2026-10-12`
-- [x] 2.5 Test counts in the unit row match `npx vitest list`
+- [x] 2.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md` — 83001f5
+- [x] 2.2 The superseded clock claim is gone — 83001f5
+- [x] 2.3 No live gate is still deferred to a done phase — 83001f5
+- [x] 2.4 Every §4 tool row with a version carries `checked: 2026-10-12` — 83001f5
+- [x] 2.5 Test counts in the unit row match `npx vitest list` — 83001f5
 
 #### Manual
 
-- [x] 2.6 §4 and §5 read as an accurate description of the current test base
+- [x] 2.6 §4 and §5 read as an accurate description of the current test base — 83001f5
 
 ### Phase 3: Cookbook, ledger and close-out
 
 #### Automated
 
-- [ ] 3.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
-- [ ] 3.2 No placeholder is left for a delivered phase; §6.2 still TBD
-- [ ] 3.3 The obsolete refresh notes are gone
-- [ ] 3.4 §6.4's rule numbers and short names match `scripts/csp/check-page.ts`
-- [ ] 3.5 Every path cited in §4–§6 exists on disk
-- [ ] 3.6 §8 shows 2026-10-12 on all three lines
+- [x] 3.1 Formatting passes: `npx prettier --check context/foundation/test-plan.md`
+- [x] 3.2 No placeholder is left for a delivered phase; §6.2 still TBD
+- [x] 3.3 The obsolete refresh notes are gone
+- [x] 3.4 §6.4's rule numbers and short names match `scripts/csp/check-page.ts`
+- [x] 3.5 Every path cited in §4–§6 exists on disk
+- [x] 3.6 §8 shows 2026-10-12 on all three lines
 
 #### Manual
 
-- [ ] 3.7 §6.3 is enough to plan S-07's golden file, rejection rows and the version-bump move
-- [ ] 3.8 A fresh agent session routes a new import rule to §6.3 and the unit layer
+- [x] 3.7 §6.3 is enough to plan S-07's golden file, rejection rows and the version-bump move
+- [x] 3.8 A fresh agent session routes a new import rule to §6.3 and the unit layer
