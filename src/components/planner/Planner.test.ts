@@ -118,12 +118,12 @@ function forecastRegion(): HTMLElement {
   return regions[0];
 }
 
-/** The region's text, tags replaced by spaces, so a label and its value read as one phrase. */
+/** The region's text nodes joined by spaces, so a label and its value read as one phrase. */
 function textOf(region: HTMLElement): string {
-  return region.innerHTML
-    .replace(/<[^>]*>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const walker = document.createTreeWalker(region, NodeFilter.SHOW_TEXT);
+  const parts: string[] = [];
+  while (walker.nextNode()) parts.push(walker.currentNode.nodeValue ?? "");
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 /** Commits a Duration draft the way the panel does: typed, then blurred. */

@@ -167,7 +167,7 @@ How to add new tests in this project. Each sub-section is filled in once the rel
 **§3 Phase 5 — Agent-loop feedback** (delivered outside the rollout by commit `8606e65`, 2026-10-11)
 
 - Landed: Claude Code agent hooks in `scripts/agent-hooks/`. Per edit (`Write`/`Edit`), two separate hooks on every linted file type: ESLint on the edited file (25 s budget, 30 s timeout) and `vitest related <file> --run` (50 s budget, 60 s timeout); either sends the agent back on failure. At the end of the turn (`Stop`), ESLint on the changed files, the whole `vitest run` and `astro check` (plus `npm run test:hooks` when `scripts/agent-hooks/` changed), sharing a 105 s budget and measured against a turn-start baseline, so uncommitted work from before the turn never sends the agent back; one retry. `scripts/agent-hooks/hooks.json` is the template, registered per machine in the gitignored `.claude/settings.local.json`; the hooks themselves are proven by `npm run test:hooks`, never a gate (§4, §5).
-- Stated limit: `vitest related` follows static imports only, so the planner-state half checks nothing yet — an edit to `src/hooks/useProject.ts` finds no related test. It starts checking once §3 Phase 2 adds a test that statically imports the state hook, with no hook change.
+- Stated limit: `vitest related` follows static imports only, so the planner-state half checks nothing yet — an edit to `src/hooks/useProject.ts` finds no related test. It starts checking once §3 Phase 2 adds a test that statically imports the state hook, with no hook change. Closed by §3 Phase 2 (2026-10-12).
 
 **Refresh 2026-10-12** (change `test-plan-refresh-2026-10-12`)
 
