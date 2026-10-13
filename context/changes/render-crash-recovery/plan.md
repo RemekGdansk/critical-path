@@ -273,23 +273,23 @@ None. There is no file-format or stored-state change.
 
 #### Automated
 
-- [x] 1.1 New hook tests fail before the hook change and pass after it
-- [x] 1.2 Whole suite passes
-- [x] 1.3 Lint and type check pass
+- [x] 1.1 New hook tests fail before the hook change and pass after it — 23b4b45
+- [x] 1.2 Whole suite passes — 23b4b45
+- [x] 1.3 Lint and type check pass — 23b4b45
 
 ### Phase 2: Error boundary and crash fallback
 
 #### Automated
 
-- [ ] 2.1 The red test fails on the current Planner before the split
-- [ ] 2.2 The red test and the existing Planner tests pass after it
-- [ ] 2.3 Whole suite passes
-- [ ] 2.4 Lint passes with no new warnings, and the type check passes
-- [ ] 2.5 Build and CSP check pass
+- [x] 2.1 The red test fails on the current Planner before the split
+- [x] 2.2 The red test and the existing Planner tests pass after it
+- [x] 2.3 Whole suite passes
+- [x] 2.4 Lint passes with no new warnings, and the type check passes
+- [x] 2.5 Build and CSP check pass
 
 #### Manual
 
-- [ ] 2.6 In npm run preview, the planner looks and behaves as before for a normal project
+- [x] 2.6 In npm run preview, the planner looks and behaves as before for a normal project
 
 ### Phase 3: Browser proof and docs
 
