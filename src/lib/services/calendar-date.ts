@@ -42,6 +42,22 @@ function format(year: number, monthIndex: number, day: number): string {
   return `${pad(year, 4)}-${pad(monthIndex + 1, 2)}-${pad(day, 2)}`;
 }
 
+function formatDayNumber(dayNumber: number): string {
+  const date = new Date(dayNumber * MS_PER_DAY);
+  return format(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+}
+
+function parseOrThrow(date: string): number {
+  const dayNumber = parse(date);
+  if (dayNumber === undefined) throw new Error(`"${date}" is not an ISO date.`);
+  return dayNumber;
+}
+
+/** 0 = Monday … 6 = Sunday; day number 0, 1970-01-01, is a Thursday. */
+function weekdayIndex(dayNumber: number): number {
+  return (((dayNumber + 3) % 7) + 7) % 7;
+}
+
 /** True when `value` is yyyy-mm-dd naming a real calendar date from 0001-01-01 to 9999-12-31. */
 export function isIsoDate(value: string): boolean {
   return parse(value) !== undefined;
@@ -52,13 +68,43 @@ export function isIsoDate(value: string): boolean {
  * outside 0001-01-01 to 9999-12-31 (including any sum too large to be exact).
  */
 export function addDays(date: string, days: number): string | undefined {
-  const dayNumber = parse(date);
-  if (dayNumber === undefined) throw new Error(`"${date}" is not an ISO date.`);
-
-  const result = dayNumber + days;
+  const result = parseOrThrow(date) + days;
   if (!(result >= MIN_DAY_NUMBER && result <= MAX_DAY_NUMBER)) return undefined;
-  const resultDate = new Date(result * MS_PER_DAY);
-  return format(resultDate.getUTCFullYear(), resultDate.getUTCMonth(), resultDate.getUTCDate());
+  return formatDayNumber(result);
+}
+
+/** The day of the week of `date`: 0 = Monday … 6 = Sunday. */
+export function dayOfWeek(date: string): number {
+  return weekdayIndex(parseOrThrow(date));
+}
+
+/** `date` itself on Monday to Friday, the following Monday on Saturday or Sunday (9999-12-31 is a Friday, so always in range). */
+export function nextWeekday(date: string): string {
+  const dayNumber = parseOrThrow(date);
+  const weekday = weekdayIndex(dayNumber);
+  return weekday < 5 ? date : formatDayNumber(dayNumber + 7 - weekday);
+}
+
+/**
+ * `date`, a Monday to Friday, plus a whole number of `weekdays` counted over
+ * Monday to Friday only, with an exclusive end like addDays (Friday + 1 is the
+ * next Monday), or undefined when the result falls after 9999-12-31.
+ */
+export function addWeekdays(date: string, weekdays: number): string | undefined {
+  const dayNumber = parseOrThrow(date);
+  const weekday = weekdayIndex(dayNumber);
+  if (weekday >= 5) throw new Error(`"${date}" is not a weekday.`);
+
+  // N weekdays span at least N days, so this bound is checked before any
+  // arithmetic on N: a Duration near MAX_SAFE_INTEGER is not exact once multiplied.
+  if (!(weekdays <= MAX_DAY_NUMBER - dayNumber)) return undefined;
+  if (!Number.isInteger(weekdays) || weekdays < 0) {
+    throw new Error(`${weekdays} is not a non-negative whole number of weekdays.`);
+  }
+  const remainder = weekdays % 5;
+  const result = dayNumber + 7 * ((weekdays - remainder) / 5) + remainder + (weekday + remainder >= 5 ? 2 : 0);
+  if (result > MAX_DAY_NUMBER) return undefined;
+  return formatDayNumber(result);
 }
 
 /** Negative, zero or positive as `a` is before, equal to or after `b`; fixed-width ISO dates also compare lexically. */

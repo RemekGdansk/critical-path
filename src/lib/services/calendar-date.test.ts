@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   addDays,
+  addWeekdays,
   compareIsoDates,
+  dayOfWeek,
   isIsoDate,
   MAX_ISO_DATE,
   MIN_ISO_DATE,
+  nextWeekday,
   todayIsoDate,
 } from "@/lib/services/calendar-date";
 
@@ -57,6 +60,68 @@ describe("addDays", () => {
     expect(addDays("9999-12-01", 30)).toBe(MAX_ISO_DATE);
     expect(addDays(MAX_ISO_DATE, 1)).toBeUndefined();
     expect(addDays(MIN_ISO_DATE, Number.MAX_SAFE_INTEGER)).toBeUndefined();
+  });
+});
+
+describe("dayOfWeek", () => {
+  it("numbers the days from Monday (0) to Sunday (6)", () => {
+    expect(dayOfWeek("1970-01-01")).toBe(3); // Thursday
+    expect(dayOfWeek(MIN_ISO_DATE)).toBe(0); // Monday
+    expect(dayOfWeek(MAX_ISO_DATE)).toBe(4); // Friday
+    expect(dayOfWeek("2026-10-17")).toBe(5); // Saturday
+    expect(dayOfWeek("2026-10-18")).toBe(6); // Sunday
+  });
+
+  it("throws on a date that is not an ISO date", () => {
+    expect(() => dayOfWeek("2026-02-29")).toThrow();
+  });
+});
+
+describe("nextWeekday", () => {
+  it("keeps a weekday and moves Saturday and Sunday to the following Monday", () => {
+    expect(nextWeekday("2026-10-16")).toBe("2026-10-16");
+    expect(nextWeekday("2026-10-17")).toBe("2026-10-19");
+    expect(nextWeekday("2026-10-18")).toBe("2026-10-19");
+    expect(nextWeekday("2026-10-31")).toBe("2026-11-02");
+  });
+});
+
+describe("addWeekdays", () => {
+  it("skips Saturday and Sunday, counting to an exclusive end", () => {
+    expect(addWeekdays("2026-10-16", 1)).toBe("2026-10-19");
+    expect(addWeekdays("2026-10-19", 5)).toBe("2026-10-26");
+    expect(addWeekdays("2026-10-19", 8)).toBe("2026-10-29");
+    expect(addWeekdays("2026-10-19", 10)).toBe("2026-11-02");
+    expect(addWeekdays("2026-10-19", 0)).toBe("2026-10-19");
+  });
+
+  it("rolls over months and years", () => {
+    expect(addWeekdays("2026-10-30", 1)).toBe("2026-11-02");
+    expect(addWeekdays("2026-12-31", 2)).toBe("2027-01-04");
+  });
+
+  it("is not shifted by a DST change", () => {
+    // The EU clocks go back on Sunday 2026-10-25 and forward on Sunday 2026-03-29.
+    expect(addWeekdays("2026-10-23", 1)).toBe("2026-10-26");
+    expect(addWeekdays("2026-03-27", 1)).toBe("2026-03-30");
+  });
+
+  it("throws when it does not start on a weekday", () => {
+    expect(() => addWeekdays("2026-10-17", 1)).toThrow();
+  });
+
+  it("throws on a negative or fractional count", () => {
+    expect(() => addWeekdays("2026-10-19", -1)).toThrow();
+    expect(() => addWeekdays("2026-10-19", 1.5)).toThrow();
+  });
+
+  it("returns undefined past 9999-12-31", () => {
+    expect(addWeekdays("9999-12-24", 5)).toBe(MAX_ISO_DATE);
+    expect(addWeekdays("9999-12-24", 6)).toBeUndefined();
+    expect(addWeekdays(MAX_ISO_DATE, 1)).toBeUndefined();
+    expect(addWeekdays(MIN_ISO_DATE, Number.MAX_SAFE_INTEGER)).toBeUndefined();
+    expect(addWeekdays(MIN_ISO_DATE, Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(addWeekdays(MIN_ISO_DATE, Number.NaN)).toBeUndefined();
   });
 });
 

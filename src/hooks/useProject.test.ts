@@ -226,3 +226,21 @@ describe("useProject: a rejected edit commits nothing", () => {
     expect(result.current.project).toStrictEqual(expected);
   });
 });
+
+describe("useProject: setDayCountingMode", () => {
+  it("commits the mode and keeps the selection", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    let edit: EditResult | undefined;
+    act(() => {
+      edit = result.current.setDayCountingMode("weekdays");
+    });
+
+    const expected = { ...project, dayCountingMode: "weekdays" };
+    expect(edit).toStrictEqual({ ok: true, project: expected });
+    expect(result.current.project).toStrictEqual(expected);
+    expect(result.current.selection).toBe(1);
+    expect(result.current.replacements).toBe(0);
+  });
+});

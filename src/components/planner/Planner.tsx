@@ -47,6 +47,7 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
     removePredecessor,
     setDuration,
     setStartDate,
+    setDayCountingMode,
     setProjectName,
     replaceProject,
     replacements,
@@ -117,6 +118,8 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
             name={project.name}
             setProjectName={setProjectName}
             replaceProject={handleReplaceProject}
+            dayCountingMode={project.dayCountingMode}
+            setDayCountingMode={setDayCountingMode}
           />
           <div className="ml-auto">
             <ForecastSummary forecast={projectForecast} tasks={project.tasks} startDate={project.start.date} />

@@ -121,6 +121,20 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
 
       <figure>
         <figcaption>
+          <h2>weekdays-weekend-start</h2>
+          <p>
+            Day counting set to Weekdays with START on Saturday 2999-01-05, START selected: the select shows Weekdays,
+            the nodes read in weekdays, and the START panel and the header both say the forecast starts on Monday,
+            2999-01-07.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="weekdays-weekend-start" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
           <h2>empty</h2>
           <p>
             No Tasks: START feeds FINISH, the panel says how to create the first Task and the header says to add Tasks

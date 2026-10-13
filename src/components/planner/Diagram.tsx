@@ -28,12 +28,13 @@ interface DiagramProps {
 
 /**
  * The laid-out project. Nodes and edges are derived, never stored: layout runs
- * only when the Tasks change, and the selection and the START date are applied
+ * only when the Tasks or the day-counting mode change, and the selection and the START date are applied
  * in a second, cheap pass.
  */
 export function Diagram({ project, fitKey, selection, onSelect, onEdit }: DiagramProps) {
-  const { tasks } = project;
-  const diagram = useMemo(() => layoutDiagram({ tasks }), [tasks]);
+  const { tasks, dayCountingMode } = project;
+  // The mode is a dependency too: it sets the unit in each node's text and accessible name.
+  const diagram = useMemo(() => layoutDiagram({ tasks, dayCountingMode }), [tasks, dayCountingMode]);
   const startDate = project.start.date;
   const nodes = useMemo(
     () =>

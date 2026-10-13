@@ -184,4 +184,20 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(forecast).toContain("Resource-Unconstrained Project Finish Date 2999-01-06");
     expect(forecast).toContain("Resource-Constrained Project Finish Date 2999-01-09");
   });
+
+  it("recomputes both Project Finish Dates and shows weekday units once Day counting is switched to Weekdays", async () => {
+    renderPlanner();
+    await screen.findByRole("button", { name: "A, 5 days" });
+
+    fireEvent.change(screen.getByLabelText("Day counting"), { target: { value: "weekdays" } });
+
+    // START Tue 2999-01-01: A (5 weekdays) skips Sat 5 and Sun 6; with no parallelism, B (3) runs after A, to Fri 2999-01-11.
+    const weekdays = textOf(forecastRegion());
+    expect(weekdays).toContain("Resource-Unconstrained Project Finish Date 2999-01-08");
+    expect(weekdays).toContain("Resource-Constrained Project Finish Date 2999-01-11");
+    expect(weekdays).not.toContain("2999-01-06");
+    expect(weekdays).not.toContain("2999-01-09");
+    expect(await screen.findByRole("button", { name: "A, 5 weekdays" })).toBeDefined();
+    expect(screen.getByLabelText("Duration (weekdays)")).toBeDefined();
+  });
 });

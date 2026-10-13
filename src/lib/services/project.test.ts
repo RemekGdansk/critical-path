@@ -11,6 +11,7 @@ import {
   PROJECT_NAME_MAX_LENGTH,
   removePredecessor,
   renameTask,
+  setDayCountingMode,
   setDuration,
   setProjectName,
   setStartDate,
@@ -356,6 +357,22 @@ describe("setStartDate", () => {
     const result = edit(setStartDate, createEmptyProject(), "2026-02-30");
     if (result.ok) throw new Error("Expected a rejection");
     expect(result.error.message).toBe("The START date must be a calendar date from 0001-01-01 to 9999-12-31.");
+  });
+});
+
+describe("setDayCountingMode", () => {
+  it("switches between calendar days and weekdays, changing nothing else", () => {
+    const project = withDependencies(projectWith("A", "B"), [1, 2]);
+    const weekdays = accepted(edit(setDayCountingMode, project, "weekdays"));
+    expect(weekdays).toEqual({ ...project, dayCountingMode: "weekdays" });
+    expect(accepted(edit(setDayCountingMode, weekdays, "calendar-days"))).toEqual(project);
+  });
+
+  it("returns the same project when the mode is already set", () => {
+    const project = createEmptyProject();
+    expect(accepted(edit(setDayCountingMode, project, "calendar-days"))).toBe(project);
+    const weekdays = accepted(setDayCountingMode(project, "weekdays"));
+    expect(accepted(edit(setDayCountingMode, weekdays, "weekdays"))).toBe(weekdays);
   });
 });
 

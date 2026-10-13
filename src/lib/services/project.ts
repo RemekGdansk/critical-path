@@ -3,7 +3,7 @@
 // input project is never mutated, so a rejected edit leaves it as it was.
 import { isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { cyclePathFor, findCycle } from "@/lib/services/task-graph";
-import type { Project, Task, TaskId } from "@/types";
+import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
 export const TASK_NAME_MAX_LENGTH = 200;
 export const PROJECT_NAME_MAX_LENGTH = TASK_NAME_MAX_LENGTH;
@@ -253,6 +253,19 @@ export function setStartDate(project: Project, input: string): EditResult {
   }
   if (!isIsoDate(trimmed)) return reject("start-date-not-a-date", START_DATE_MESSAGE);
   return accept({ ...project, start: { ...project.start, date: trimmed } });
+}
+
+/** Every day-counting mode, in the order the planner's Day counting control lists them. */
+export const DAY_COUNTING_MODES: readonly DayCountingMode[] = ["calendar-days", "weekdays"];
+
+export function isDayCountingMode(value: string): value is DayCountingMode {
+  return DAY_COUNTING_MODES.some((mode) => mode === value);
+}
+
+/** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project, so it never rejects. */
+export function setDayCountingMode(project: Project, mode: DayCountingMode): EditResult {
+  if (project.dayCountingMode === mode) return accept(project);
+  return accept({ ...project, dayCountingMode: mode });
 }
 
 /**

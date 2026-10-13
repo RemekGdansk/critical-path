@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type Forecast, forecast } from "@/lib/services/forecast";
+import { type Forecast, forecast, forecastBaseDate } from "@/lib/services/forecast";
 import {
   addPredecessor,
   createEmptyProject,
@@ -66,6 +66,11 @@ function aThenB(startDate: string): Project {
   return withDependencies(projectWith(startDate, ["A", "5"], ["B", "3"]), [1, 2]);
 }
 
+/** `project` counting weekdays (Mon–Fri) instead of calendar days. */
+function inWeekdays(project: Project): Project {
+  return { ...project, dayCountingMode: "weekdays" };
+}
+
 interface PrdExample {
   /** The PRD source of the row; also the test name. */
   rule: string;
@@ -75,6 +80,8 @@ interface PrdExample {
   baseDateReason: "start-date" | "start-date-unset" | "start-date-in-past";
   resourceUnconstrainedProjectFinishDate: string;
   resourceConstrainedProjectFinishDate: string;
+  /** The weekend date the base date moved from in weekdays mode; absent when it did not move. */
+  movedFromWeekend?: string;
 }
 
 // The PRD worked examples as one list: later slices (S-05, S-06, S-07) add their rows here.
@@ -162,6 +169,92 @@ const prdExamples: PrdExample[] = [
     resourceUnconstrainedProjectFinishDate: "2026-09-11",
     resourceConstrainedProjectFinishDate: "2026-09-11",
   },
+  // FR-017 / Business Logic, weekdays mode. October 2026: Fri 16, Sat 17, Sun 18, Mon 19.
+  {
+    rule: "FR-017: in weekdays mode, START Mon 19 Oct, A (5) → B (3) skips the weekend → 29 Oct",
+    project: inWeekdays(aThenB("2026-10-19")),
+    today: "2026-10-01",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-date",
+    resourceUnconstrainedProjectFinishDate: "2026-10-29",
+    resourceConstrainedProjectFinishDate: "2026-10-29",
+  },
+  {
+    rule: "FR-017: the same project in calendar days → 27 Oct",
+    project: aThenB("2026-10-19"),
+    today: "2026-10-01",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-date",
+    resourceUnconstrainedProjectFinishDate: "2026-10-27",
+    resourceConstrainedProjectFinishDate: "2026-10-27",
+  },
+  {
+    rule: "FR-017: in weekdays mode, independent A (5) and B (3) from Mon 19 Oct → 26 Oct and 29 Oct",
+    project: inWeekdays(projectWith("2026-10-19", ["A", "5"], ["B", "3"])),
+    today: "2026-10-01",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-date",
+    resourceUnconstrainedProjectFinishDate: "2026-10-26",
+    resourceConstrainedProjectFinishDate: "2026-10-29",
+  },
+  {
+    rule: "FR-017: in weekdays mode, one weekday from Fri 16 Oct is Mon 19 Oct",
+    project: inWeekdays(projectWith("2026-10-16", ["A", "1"])),
+    today: "2026-10-01",
+    baseDate: "2026-10-16",
+    baseDateReason: "start-date",
+    resourceUnconstrainedProjectFinishDate: "2026-10-19",
+    resourceConstrainedProjectFinishDate: "2026-10-19",
+  },
+  {
+    rule: "Business Logic: in weekdays mode, a START date on Saturday moves to Monday",
+    project: inWeekdays(aThenB("2026-10-17")),
+    today: "2026-10-01",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-date",
+    movedFromWeekend: "2026-10-17",
+    resourceUnconstrainedProjectFinishDate: "2026-10-29",
+    resourceConstrainedProjectFinishDate: "2026-10-29",
+  },
+  {
+    rule: "Business Logic: in calendar days, a START date on Saturday is kept",
+    project: aThenB("2026-10-17"),
+    today: "2026-10-01",
+    baseDate: "2026-10-17",
+    baseDateReason: "start-date",
+    resourceUnconstrainedProjectFinishDate: "2026-10-25",
+    resourceConstrainedProjectFinishDate: "2026-10-25",
+  },
+  {
+    rule: "Business Logic: in weekdays mode, a START date on Sunday moves to Monday",
+    project: inWeekdays(aThenB("2026-10-18")),
+    today: "2026-10-01",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-date",
+    movedFromWeekend: "2026-10-18",
+    resourceUnconstrainedProjectFinishDate: "2026-10-29",
+    resourceConstrainedProjectFinishDate: "2026-10-29",
+  },
+  {
+    rule: "Business Logic: in weekdays mode, an unset START date with today on Saturday moves to Monday",
+    project: inWeekdays(aThenB("")),
+    today: "2026-10-17",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-date-unset",
+    movedFromWeekend: "2026-10-17",
+    resourceUnconstrainedProjectFinishDate: "2026-10-29",
+    resourceConstrainedProjectFinishDate: "2026-10-29",
+  },
+  {
+    rule: "Business Logic: in weekdays mode, a past START date with today on Sunday moves to Monday",
+    project: inWeekdays(aThenB("2026-09-01")),
+    today: "2026-10-18",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-date-in-past",
+    movedFromWeekend: "2026-10-18",
+    resourceUnconstrainedProjectFinishDate: "2026-10-29",
+    resourceConstrainedProjectFinishDate: "2026-10-29",
+  },
 ];
 
 describe("forecast", () => {
@@ -173,13 +266,17 @@ describe("forecast", () => {
         today,
         baseDate,
         baseDateReason,
+        movedFromWeekend,
         resourceUnconstrainedProjectFinishDate,
         resourceConstrainedProjectFinishDate,
       }) => {
-        expect(forecast(project, today)).toEqual({
+        // Strict, so a row without movedFromWeekend proves the forecast carries none.
+        expect(forecast(project, today)).toStrictEqual({
           kind: "forecast",
+          dayCountingMode: project.dayCountingMode,
           baseDate,
           baseDateReason,
+          ...(movedFromWeekend === undefined ? {} : { movedFromWeekend }),
           resourceUnconstrainedProjectFinishDate: { kind: "date", date: resourceUnconstrainedProjectFinishDate },
           resourceConstrainedProjectFinishDate: { kind: "date", date: resourceConstrainedProjectFinishDate },
         });
@@ -233,5 +330,38 @@ describe("forecast", () => {
     ]);
     const huge = projectWith("2026-09-01", ["A", String(Number.MAX_SAFE_INTEGER)], ["B", "1"]);
     expect(finishDates(forecast(huge, "2026-08-20"))).toEqual(["beyond-year-9999", "beyond-year-9999"]);
+  });
+
+  it("reports dates after 9999-12-31 as beyond year 9999 in weekdays mode", () => {
+    // 9999-12-24 is a Friday; 9999-12-31, five weekdays later, is the last one.
+    expect(finishDates(forecast(inWeekdays(projectWith("9999-12-24", ["A", "5"])), "2026-08-20"))).toEqual([
+      "9999-12-31",
+      "9999-12-31",
+    ]);
+    expect(finishDates(forecast(inWeekdays(projectWith("9999-12-24", ["A", "6"])), "2026-08-20"))).toEqual([
+      "beyond-year-9999",
+      "beyond-year-9999",
+    ]);
+    const huge = inWeekdays(projectWith("2026-09-01", ["A", String(Number.MAX_SAFE_INTEGER)]));
+    expect(finishDates(forecast(huge, "2026-08-20"))).toEqual(["beyond-year-9999", "beyond-year-9999"]);
+  });
+});
+
+describe("forecastBaseDate", () => {
+  it("moves a weekend base date even while the forecast is withheld", () => {
+    const withheld = inWeekdays(projectWith("2026-10-17", ["A", ""]));
+    expect(forecast(withheld, "2026-10-01").kind).toBe("withheld");
+    expect(forecastBaseDate(withheld, "2026-10-01")).toStrictEqual({
+      baseDate: "2026-10-19",
+      baseDateReason: "start-date",
+      movedFromWeekend: "2026-10-17",
+    });
+  });
+
+  it("keeps a weekend base date in calendar days", () => {
+    expect(forecastBaseDate(projectWith("", ["A", ""]), "2026-10-17")).toStrictEqual({
+      baseDate: "2026-10-17",
+      baseDateReason: "start-date-unset",
+    });
   });
 });

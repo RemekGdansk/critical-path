@@ -8,7 +8,7 @@ import { Graph, layout, type EdgeLabel, type GraphLabel, type NodeLabel } from "
 import type { Edge as FlowEdge, Node } from "@xyflow/react";
 
 import { validationWarnings } from "@/lib/services/validation-warnings";
-import type { Project, Task, TaskId } from "@/types";
+import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
 export const TASK_NODE_WIDTH = 180;
 /** Two lines: the name, then the Duration or "No Duration". */
@@ -24,8 +24,12 @@ export const FINISH_NODE_ID = "finish";
 /**
  * Click handling reads `data.taskId`; the node id is `String(taskId)` and is never parsed.
  * `durationMissing` is the Task's duration-missing Validation Warning, from validationWarnings.
+ * `dayCountingMode` is the unit the Duration is shown in.
  */
-export type TaskNodeType = Node<{ name: string; taskId: TaskId; duration?: number; durationMissing: boolean }, "task">;
+export type TaskNodeType = Node<
+  { name: string; taskId: TaskId; duration?: number; durationMissing: boolean; dayCountingMode: DayCountingMode },
+  "task"
+>;
 /** `date` is the START date; layout leaves it out and Diagram adds it, so a date edit never re-runs layout. */
 export type StartNodeType = Node<{ date?: string }, "start">;
 export type FinishNodeType = Node<Record<string, never>, "finish">;
@@ -43,14 +47,20 @@ function taskNodeId(taskId: TaskId): string {
   return String(taskId);
 }
 
-/** "1 day", "5 days". */
-export function formatDuration(days: number): string {
-  return days === 1 ? "1 day" : `${days} days`;
+/** The unit a Duration counts in, singular: "day" in calendar-days mode, "weekday" in weekdays mode. */
+export function durationUnit(mode: DayCountingMode): string {
+  return mode === "weekdays" ? "weekday" : "day";
 }
 
-function taskAriaLabel(task: Task, durationMissing: boolean): string {
+/** "1 day", "5 days" in calendar-days mode; "1 weekday", "5 weekdays" in weekdays mode. */
+export function formatDuration(days: number, mode: DayCountingMode): string {
+  const unit = durationUnit(mode);
+  return days === 1 ? `1 ${unit}` : `${days} ${unit}s`;
+}
+
+function taskAriaLabel(task: Task, durationMissing: boolean, mode: DayCountingMode): string {
   if (durationMissing) return `${task.name}, no Duration (Validation Warning)`;
-  return task.duration === undefined ? task.name : `${task.name}, ${formatDuration(task.duration)}`;
+  return task.duration === undefined ? task.name : `${task.name}, ${formatDuration(task.duration, mode)}`;
 }
 
 function edge(source: string, target: string): DiagramEdge {
@@ -58,7 +68,7 @@ function edge(source: string, target: string): DiagramEdge {
 }
 
 /** Nodes in a stable order (START, Tasks in creation order, FINISH), not yet positioned. */
-function projectNodes(project: Pick<Project, "tasks">): DiagramNode[] {
+function projectNodes(project: Pick<Project, "tasks" | "dayCountingMode">): DiagramNode[] {
   const origin = { x: 0, y: 0 };
   const warned = new Set(validationWarnings(project).map((warning) => warning.taskId));
   const terminal = { width: START_FINISH_NODE_WIDTH, height: START_FINISH_NODE_HEIGHT };
@@ -82,8 +92,9 @@ function projectNodes(project: Pick<Project, "tasks">): DiagramNode[] {
         taskId: task.id,
         ...(task.duration === undefined ? {} : { duration: task.duration }),
         durationMissing: warned.has(task.id),
+        dayCountingMode: project.dayCountingMode,
       },
-      ariaLabel: taskAriaLabel(task, warned.has(task.id)),
+      ariaLabel: taskAriaLabel(task, warned.has(task.id), project.dayCountingMode),
       ariaRole: "button",
       position: origin,
       width: TASK_NODE_WIDTH,
@@ -126,7 +137,7 @@ function projectEdges(project: Pick<Project, "tasks">): DiagramEdge[] {
   return edges;
 }
 
-export function layoutDiagram(project: Pick<Project, "tasks">): Diagram {
+export function layoutDiagram(project: Pick<Project, "tasks" | "dayCountingMode">): Diagram {
   const nodes = projectNodes(project);
   const edges = projectEdges(project);
 

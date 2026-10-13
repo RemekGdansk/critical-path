@@ -1,7 +1,7 @@
 import { TriangleAlertIcon } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Forecast, ForecastDate } from "@/lib/services/forecast";
+import { type Forecast, type ForecastDate, weekendMoveNote } from "@/lib/services/forecast";
 import { taskLabel } from "@/lib/services/project";
 import type { Task } from "@/types";
 
@@ -76,33 +76,55 @@ export function ForecastSummary({ forecast, tasks, startDate }: ForecastSummaryP
           <p className="text-warning">Forecast not possible until every Task has one.</p>
         </>
       ) : (
-        <>
-          <dl className="flex flex-col gap-0.5">
-            <div className="flex justify-end gap-3">
-              <dt className="text-muted-foreground">Resource-Unconstrained Project Finish Date</dt>
-              <dd className="font-medium tabular-nums">
-                <ForecastDateValue value={forecast.resourceUnconstrainedProjectFinishDate} />
-              </dd>
-            </div>
-            <div className="flex justify-end gap-3">
-              <dt className="text-muted-foreground">Resource-Constrained Project Finish Date</dt>
-              <dd className="font-medium tabular-nums">
-                <ForecastDateValue value={forecast.resourceConstrainedProjectFinishDate} />
-              </dd>
-            </div>
-          </dl>
-          {forecast.baseDateReason === "start-date-in-past" && startDate !== undefined && (
-            <p className="text-muted-foreground text-xs">
-              START date {startDate} is in the past: forecasting from today, {forecast.baseDate}.
-            </p>
-          )}
-          {forecast.baseDateReason === "start-date-unset" && (
-            <p className="text-muted-foreground text-xs">
-              START date not set: forecasting from today, {forecast.baseDate}.
-            </p>
-          )}
-        </>
+        <ForecastDates forecast={forecast} startDate={startDate} />
       )}
     </div>
+  );
+}
+
+/**
+ * Both Project Finish Dates, then why the forecast starts where it does. The
+ * notes name the real today: in weekdays mode that is the weekend day the base
+ * date moved from, and the weekend sentence names the Monday it moved to.
+ */
+function ForecastDates({
+  forecast,
+  startDate,
+}: {
+  forecast: Extract<Forecast, { kind: "forecast" }>;
+  startDate: string | undefined;
+}) {
+  const { movedFromWeekend } = forecast;
+  const today = movedFromWeekend ?? forecast.baseDate;
+  return (
+    <>
+      <dl className="flex flex-col gap-0.5">
+        <div className="flex justify-end gap-3">
+          <dt className="text-muted-foreground">Resource-Unconstrained Project Finish Date</dt>
+          <dd className="font-medium tabular-nums">
+            <ForecastDateValue value={forecast.resourceUnconstrainedProjectFinishDate} />
+          </dd>
+        </div>
+        <div className="flex justify-end gap-3">
+          <dt className="text-muted-foreground">Resource-Constrained Project Finish Date</dt>
+          <dd className="font-medium tabular-nums">
+            <ForecastDateValue value={forecast.resourceConstrainedProjectFinishDate} />
+          </dd>
+        </div>
+      </dl>
+      {forecast.baseDateReason === "start-date-in-past" && startDate !== undefined && (
+        <p className="text-muted-foreground text-xs">
+          START date {startDate} is in the past: forecasting from today, {today}.
+        </p>
+      )}
+      {forecast.baseDateReason === "start-date-unset" && (
+        <p className="text-muted-foreground text-xs">START date not set: forecasting from today, {today}.</p>
+      )}
+      {movedFromWeekend !== undefined && (
+        <p className="text-muted-foreground text-xs">
+          {weekendMoveNote({ baseDate: forecast.baseDate, movedFromWeekend })}
+        </p>
+      )}
+    </>
   );
 }

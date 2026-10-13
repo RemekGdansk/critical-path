@@ -3,20 +3,15 @@
 // so a re-export is byte-identical, and Prettier leaves it as it is while each
 // predecessors list fits in 120 columns (see taskLines). Import runs a pipeline
 // of stages, each assuming the previous one passed: parse, version,
-// shape, normalise, unique ids, the pre-S-06/S-07 limits, then validateProject.
+// shape, normalise, unique ids, the pre-S-07 limits, then validateProject.
 // Only a project that passes every stage is returned.
-import { validateProject, type ValidationErrorRule } from "@/lib/services/project";
-import type { DayCountingMode, Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
+import { DAY_COUNTING_MODES, validateProject, type ValidationErrorRule } from "@/lib/services/project";
+import type { Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
 
 export const PROJECT_FILE_VERSION = "0.1";
 
 export type ProjectFileRule =
-  | "file-not-json"
-  | "file-not-a-project"
-  | "file-version-newer"
-  | "duplicate-task-id"
-  | "day-counting-mode-not-supported-yet"
-  | "task-status-not-supported-yet";
+  "file-not-json" | "file-not-a-project" | "file-version-newer" | "duplicate-task-id" | "task-status-not-supported-yet";
 
 export interface ImportError {
   rule: ValidationErrorRule | ProjectFileRule;
@@ -229,7 +224,6 @@ function checkStartAndFinish(root: JsonObject): void {
 const ROOT_KEYS = ["version", "name", "start", "finish", "dayCountingMode", "nextTaskId", "tasks"];
 const START_KEYS = ["date"];
 const TASK_KEYS = ["id", "name", "predecessors", "duration", "status", "completionDate"];
-const DAY_COUNTING_MODES: readonly DayCountingMode[] = ["calendar-days", "weekdays"];
 const TASK_STATUSES: readonly TaskStatus[] = ["to-do", "in-progress", "done"];
 
 function readObject(value: unknown, path: string, keys: readonly string[]): JsonObject {
@@ -344,7 +338,7 @@ function normalise(project: Project): Project {
   return normalised;
 }
 
-// --- Stages 5 and 6: unique ids, and what S-06 and S-07 have not built yet
+// --- Stages 5 and 6: unique ids, and what S-07 has not built yet
 
 function checkUniqueIds(project: Project): void {
   // Tasks are ordered by id, so a duplicate sits next to its twin.
@@ -355,12 +349,6 @@ function checkUniqueIds(project: Project): void {
 const STATUS_NAMES: Record<TaskStatus, string> = { "to-do": "To Do", "in-progress": "In Progress", done: "Done" };
 
 function checkSupportedYet(project: Project): void {
-  if (project.dayCountingMode !== "calendar-days") {
-    fail(
-      "day-counting-mode-not-supported-yet",
-      "The project counts weekdays, and this version of the app can import only projects that count calendar days.",
-    );
-  }
   // By id only: the name rules run later, in validateProject, so the name may not be fit to show yet.
   for (const task of project.tasks) {
     if (task.status !== "to-do") {

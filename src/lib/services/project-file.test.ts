@@ -9,6 +9,7 @@ import {
   createTask,
   deleteTask,
   type EditResult,
+  setDayCountingMode,
   setDuration,
   setProjectName,
   setStartDate,
@@ -43,6 +44,22 @@ const GOLDEN_PROJECT: Project = {
     { id: 2, name: "Build", predecessors: [1, 4], duration: 5, status: "to-do" },
     { id: 4, name: "Write copy", predecessors: [], duration: 2, status: "to-do" },
     { id: 5, name: "Launch", predecessors: [2], status: "to-do" },
+  ],
+};
+
+const GOLDEN_WEEKDAYS = readFileSync(new URL("./golden/project-file-0.1-weekdays.json", import.meta.url), "utf8");
+
+/** The project the weekdays golden file holds, written by hand from the file: a Saturday START date, Task 2 deleted. */
+const GOLDEN_WEEKDAYS_PROJECT: Project = {
+  name: "Office move – weekdays",
+  start: { date: "2026-10-17" },
+  finish: {},
+  dayCountingMode: "weekdays",
+  nextTaskId: 5,
+  tasks: [
+    { id: 1, name: "Pack", predecessors: [], duration: 2, status: "to-do" },
+    { id: 3, name: "Book movers", predecessors: [], duration: 1, status: "to-do" },
+    { id: 4, name: "Move", predecessors: [1, 3], duration: 1, status: "to-do" },
   ],
 };
 
@@ -169,6 +186,16 @@ describe("the golden file (format 0.1)", () => {
   });
 });
 
+describe("the weekdays golden file (format 0.1)", () => {
+  it("imports to the project it holds", () => {
+    expect(imported(parseProjectFile(GOLDEN_WEEKDAYS))).toStrictEqual(GOLDEN_WEEKDAYS_PROJECT);
+  });
+
+  it("is what serializeProject writes for that project, byte for byte", () => {
+    expect(serializeProject(deepFreeze(structuredClone(GOLDEN_WEEKDAYS_PROJECT)))).toBe(GOLDEN_WEEKDAYS);
+  });
+});
+
 describe("serializeProject", () => {
   it("writes the empty project with empty START, FINISH and Task list", () => {
     expect(PROJECT_FILE_VERSION).toBe("0.1");
@@ -189,7 +216,7 @@ describe("serializeProject", () => {
 });
 
 describe("export then import", () => {
-  /** Every US-03 field the model can hold before S-06 and S-07: name, START date, Durations, a cleared one, a deleted id. */
+  /** Every US-03 field the model can hold before S-07 but the day-counting mode (its own case below): name, START date, Durations, a cleared one, a deleted id. */
   function fullProject(): Project {
     let project = withDependencies(
       projectWith("Design", "Build", "Write copy", "Review", "Launch"),
@@ -223,6 +250,10 @@ describe("export then import", () => {
     expectRoundTrip(accepted(setProjectName(projectWith(name), name)));
   });
 
+  it("keeps the weekdays day-counting mode", () => {
+    expectRoundTrip(accepted(setDayCountingMode(fullProject(), "weekdays")));
+  });
+
   it("keeps a project without a START date or a name", () => {
     expectRoundTrip(withDependencies(projectWith("A", "B"), [1, 2]));
   });
@@ -251,6 +282,13 @@ describe("export then import", () => {
 describe("parseProjectFile", () => {
   it("accepts the base file of the rejection table", () => {
     expect(imported(parseProjectFile(fileWith(() => undefined)))).toStrictEqual(baseProject());
+  });
+
+  it("accepts a file that counts weekdays", () => {
+    expect(imported(parseProjectFile(fileWith((file) => (file.dayCountingMode = "weekdays"))))).toStrictEqual({
+      ...baseProject(),
+      dayCountingMode: "weekdays",
+    });
   });
 
   interface RejectionRow {
@@ -646,12 +684,6 @@ describe("parseProjectFile", () => {
       fragment: "Two Tasks have the id 2.",
     },
     {
-      case: "the weekdays day-counting mode",
-      text: fileWith((file) => (file.dayCountingMode = "weekdays")),
-      rule: "day-counting-mode-not-supported-yet",
-      fragment: "The project counts weekdays",
-    },
-    {
       case: "an In Progress Task",
       text: fileWith((file) => (file.tasks[1].status = "in-progress")),
       rule: "task-status-not-supported-yet",
@@ -722,17 +754,17 @@ describe("parseProjectFile", () => {
     expectRejected(parseProjectFile(text), "file-version-newer", "0.2");
   });
 
-  it("checks unique ids before the pre-S-06/S-07 limits, and those before the Validation Errors", () => {
+  it("checks unique ids before the pre-S-07 limits, and those before the Validation Errors", () => {
     const duplicate = fileWith((file) => {
       file.tasks[2].id = 2;
-      file.dayCountingMode = "weekdays";
+      file.tasks[1].status = "in-progress";
     });
     expectRejected(parseProjectFile(duplicate), "duplicate-task-id", "Two Tasks have the id 2.");
-    const weekdays = fileWith((file) => {
-      file.dayCountingMode = "weekdays";
-      file.tasks[0].predecessors = [3];
+    const inProgress = fileWith((file) => {
+      file.tasks[1].status = "in-progress";
+      file.tasks[0].predecessors = [7];
     });
-    expectRejected(parseProjectFile(weekdays), "day-counting-mode-not-supported-yet", "weekdays");
+    expectRejected(parseProjectFile(inProgress), "task-status-not-supported-yet", "Task 2 is In Progress");
   });
 
   describe("normalises without loss", () => {
