@@ -401,25 +401,25 @@ No format change: `dayCountingMode` has been written since S-03, and existing fi
 
 #### Automated
 
-- [x] 1.1 Calendar-date and forecast tests pass
-- [x] 1.2 Whole suite passes
-- [x] 1.3 Lint and type check pass
+- [x] 1.1 Calendar-date and forecast tests pass — 7c58e8b
+- [x] 1.2 Whole suite passes — 7c58e8b
+- [x] 1.3 Lint and type check pass — 7c58e8b
 
 #### Manual
 
-- [x] 1.4 Optional Stryker run on the new lines, survivors reviewed
+- [x] 1.4 Optional Stryker run on the new lines, survivors reviewed — 7c58e8b
 
 ### Phase 2: Editing and the project file
 
 #### Automated
 
-- [ ] 2.1 Edit, hook and file tests pass
-- [ ] 2.2 No reference to day-counting-mode-not-supported-yet remains in src/
-- [ ] 2.3 Whole suite, lint and type check pass
+- [x] 2.1 Edit, hook and file tests pass
+- [x] 2.2 No reference to day-counting-mode-not-supported-yet remains in src/
+- [x] 2.3 Whole suite, lint and type check pass
 
 #### Manual
 
-- [ ] 2.4 Weekdays golden file and its expected project are hand-written
+- [x] 2.4 Weekdays golden file and its expected project are hand-written
 
 ### Phase 3: UI
 

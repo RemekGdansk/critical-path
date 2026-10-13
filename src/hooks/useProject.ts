@@ -5,7 +5,7 @@ import { useCallback, useRef, useState } from "react";
 
 import * as edits from "@/lib/services/project";
 import type { EditResult } from "@/lib/services/project";
-import type { Project, Task, TaskId } from "@/types";
+import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
 /** What the side panel edits: a Task, START, or nothing. */
 export type Selection = TaskId | "start" | null;
@@ -19,6 +19,7 @@ export interface ProjectActions {
   removePredecessor: (taskId: TaskId, predecessorId: TaskId) => EditResult;
   setDuration: (taskId: TaskId, input: string) => EditResult;
   setStartDate: (input: string) => EditResult;
+  setDayCountingMode: (mode: DayCountingMode) => EditResult;
   setProjectName: (input: string) => EditResult;
   /**
    * Replaces the whole project and selects nothing. Takes only a project that
@@ -88,6 +89,10 @@ export function useProject(initial?: Project | (() => Project), initialSelection
     (input: string) => apply((current) => edits.setProjectName(current, input)),
     [apply],
   );
+  const setDayCountingMode = useCallback(
+    (mode: DayCountingMode) => apply((current) => edits.setDayCountingMode(current, mode)),
+    [apply],
+  );
 
   // Commits through the latest ref like every edit. The selection is cleared,
   // not kept: a stored Task id would resolve to an unrelated imported Task.
@@ -113,6 +118,7 @@ export function useProject(initial?: Project | (() => Project), initialSelection
     removePredecessor,
     setDuration,
     setStartDate,
+    setDayCountingMode,
     setProjectName,
     replaceProject,
   };
