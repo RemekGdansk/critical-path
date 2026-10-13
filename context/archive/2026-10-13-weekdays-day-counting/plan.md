@@ -401,36 +401,36 @@ No format change: `dayCountingMode` has been written since S-03, and existing fi
 
 #### Automated
 
-- [x] 1.1 Calendar-date and forecast tests pass — 7c58e8b
-- [x] 1.2 Whole suite passes — 7c58e8b
-- [x] 1.3 Lint and type check pass — 7c58e8b
+- [x] 1.1 Calendar-date and forecast tests pass — 040538c
+- [x] 1.2 Whole suite passes — 040538c
+- [x] 1.3 Lint and type check pass — 040538c
 
 #### Manual
 
-- [x] 1.4 Optional Stryker run on the new lines, survivors reviewed — 7c58e8b
+- [x] 1.4 Optional Stryker run on the new lines, survivors reviewed — 040538c
 
 ### Phase 2: Editing and the project file
 
 #### Automated
 
-- [x] 2.1 Edit, hook and file tests pass — ba74560
-- [x] 2.2 No reference to day-counting-mode-not-supported-yet remains in src/ — ba74560
-- [x] 2.3 Whole suite, lint and type check pass — ba74560
+- [x] 2.1 Edit, hook and file tests pass — 040538c
+- [x] 2.2 No reference to day-counting-mode-not-supported-yet remains in src/ — 040538c
+- [x] 2.3 Whole suite, lint and type check pass — 040538c
 
 #### Manual
 
-- [x] 2.4 Weekdays golden file and its expected project are hand-written — ba74560
+- [x] 2.4 Weekdays golden file and its expected project are hand-written — 040538c
 
 ### Phase 3: UI
 
 #### Automated
 
-- [x] 3.1 View, render and layout tests pass — fa8d592
-- [x] 3.2 Full gate passes — fa8d592
-- [x] 3.3 E2E stays green with no spec edits — fa8d592
+- [x] 3.1 View, render and layout tests pass — 040538c
+- [x] 3.2 Full gate passes — 040538c
+- [x] 3.3 E2E stays green with no spec edits — 040538c
 
 #### Manual
 
-- [x] 3.4 Kitchen sink weekdays cell shows select, units and both weekend notes — fa8d592
-- [x] 3.5 Preview build: mode switch recomputes dates; weekdays export/import round-trips — fa8d592
-- [x] 3.6 Keyboard: select reachable, operable, visible focus — fa8d592
+- [x] 3.4 Kitchen sink weekdays cell shows select, units and both weekend notes — 040538c
+- [x] 3.5 Preview build: mode switch recomputes dates; weekdays export/import round-trips — 040538c
+- [x] 3.6 Keyboard: select reachable, operable, visible focus — 040538c
