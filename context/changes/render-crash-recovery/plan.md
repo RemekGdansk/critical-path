@@ -273,9 +273,9 @@ None. There is no file-format or stored-state change.
 
 #### Automated
 
-- [ ] 1.1 New hook tests fail before the hook change and pass after it
-- [ ] 1.2 Whole suite passes
-- [ ] 1.3 Lint and type check pass
+- [x] 1.1 New hook tests fail before the hook change and pass after it
+- [x] 1.2 Whole suite passes
+- [x] 1.3 Lint and type check pass
 
 ### Phase 2: Error boundary and crash fallback
 

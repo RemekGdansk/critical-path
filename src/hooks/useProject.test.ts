@@ -190,6 +190,7 @@ describe("useProject: a rejected edit commits nothing", () => {
     expect(result.current.selection).toBe(1);
     expect(result.current.selectedTask).toBe(selectedBefore);
     expect(result.current.replacements).toBe(0);
+    expect(result.current.previousProject).toBeUndefined();
   });
 
   it.each(rows)("$name followed by an accepted edit in one event applies only the accepted one", (row) => {
@@ -242,5 +243,76 @@ describe("useProject: setDayCountingMode", () => {
     expect(result.current.project).toStrictEqual(expected);
     expect(result.current.selection).toBe(1);
     expect(result.current.replacements).toBe(0);
+  });
+});
+
+describe("useProject: the previous project", () => {
+  it("an accepted edit records the project it replaced", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.setDuration(2, "4");
+    });
+
+    expect(result.current.previousProject).toBe(project);
+  });
+
+  it("two accepted edits in one event leave the first edit's result as previous", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.setDuration(1, "6");
+      result.current.setDuration(2, "4");
+    });
+
+    expect(result.current.previousProject).toStrictEqual(accepted(setDuration(project, 1, "6")));
+  });
+
+  it("replaceProject records the replaced project", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.replaceProject(createEmptyProject());
+    });
+
+    expect(result.current.previousProject).toBe(project);
+  });
+
+  it("restorePreviousProject brings back the replaced project, selects nothing and clears the previous one", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.replaceProject(createEmptyProject());
+    });
+    act(() => {
+      result.current.select(1);
+    });
+    act(() => {
+      result.current.restorePreviousProject();
+    });
+
+    expect(result.current.project).toBe(project);
+    expect(result.current.selection).toBeNull();
+    expect(result.current.selectedTask).toBeUndefined();
+    expect(result.current.replacements).toBe(2);
+    expect(result.current.previousProject).toBeUndefined();
+  });
+
+  it("restorePreviousProject with no previous project changes nothing", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.restorePreviousProject();
+    });
+
+    expect(result.current.project).toBe(project);
+    expect(result.current.selection).toBe(1);
+    expect(result.current.replacements).toBe(0);
+    expect(result.current.previousProject).toBeUndefined();
   });
 });
