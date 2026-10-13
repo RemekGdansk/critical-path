@@ -401,13 +401,13 @@ No format change: `dayCountingMode` has been written since S-03, and existing fi
 
 #### Automated
 
-- [ ] 1.1 Calendar-date and forecast tests pass
-- [ ] 1.2 Whole suite passes
-- [ ] 1.3 Lint and type check pass
+- [x] 1.1 Calendar-date and forecast tests pass
+- [x] 1.2 Whole suite passes
+- [x] 1.3 Lint and type check pass
 
 #### Manual
 
-- [ ] 1.4 Optional Stryker run on the new lines, survivors reviewed
+- [x] 1.4 Optional Stryker run on the new lines, survivors reviewed
 
 ### Phase 2: Editing and the project file
 
