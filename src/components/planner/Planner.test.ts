@@ -191,7 +191,7 @@ describe("Planner: the forecast follows the committed project", () => {
 
     fireEvent.change(screen.getByLabelText("Day counting"), { target: { value: "weekdays" } });
 
-    // START Tue 2999-01-01: A (5 weekdays) skips Sat 5 and Sun 6, B (3) runs on after A.
+    // START Tue 2999-01-01: A (5 weekdays) skips Sat 5 and Sun 6; with no parallelism, B (3) runs after A, to Fri 2999-01-11.
     const weekdays = textOf(forecastRegion());
     expect(weekdays).toContain("Resource-Unconstrained Project Finish Date 2999-01-08");
     expect(weekdays).toContain("Resource-Constrained Project Finish Date 2999-01-11");

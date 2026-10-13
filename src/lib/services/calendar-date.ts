@@ -98,6 +98,9 @@ export function addWeekdays(date: string, weekdays: number): string | undefined 
   // N weekdays span at least N days, so this bound is checked before any
   // arithmetic on N: a Duration near MAX_SAFE_INTEGER is not exact once multiplied.
   if (!(weekdays <= MAX_DAY_NUMBER - dayNumber)) return undefined;
+  if (!Number.isInteger(weekdays) || weekdays < 0) {
+    throw new Error(`${weekdays} is not a non-negative whole number of weekdays.`);
+  }
   const remainder = weekdays % 5;
   const result = dayNumber + 7 * ((weekdays - remainder) / 5) + remainder + (weekday + remainder >= 5 ? 2 : 0);
   if (result > MAX_DAY_NUMBER) return undefined;

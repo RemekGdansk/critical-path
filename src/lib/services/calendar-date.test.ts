@@ -110,11 +110,18 @@ describe("addWeekdays", () => {
     expect(() => addWeekdays("2026-10-17", 1)).toThrow();
   });
 
+  it("throws on a negative or fractional count", () => {
+    expect(() => addWeekdays("2026-10-19", -1)).toThrow();
+    expect(() => addWeekdays("2026-10-19", 1.5)).toThrow();
+  });
+
   it("returns undefined past 9999-12-31", () => {
     expect(addWeekdays("9999-12-24", 5)).toBe(MAX_ISO_DATE);
     expect(addWeekdays("9999-12-24", 6)).toBeUndefined();
     expect(addWeekdays(MAX_ISO_DATE, 1)).toBeUndefined();
     expect(addWeekdays(MIN_ISO_DATE, Number.MAX_SAFE_INTEGER)).toBeUndefined();
+    expect(addWeekdays(MIN_ISO_DATE, Number.POSITIVE_INFINITY)).toBeUndefined();
+    expect(addWeekdays(MIN_ISO_DATE, Number.NaN)).toBeUndefined();
   });
 });
 

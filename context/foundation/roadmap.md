@@ -47,7 +47,7 @@ Early-stage project planning needs near-zero-friction task capture, with details
 | S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | done     |
 | S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | done     |
 | S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | proposed |
-| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | proposed |
+| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | planning |
 | S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | proposed |
 | S-08 | start-new-project           | user can start a new empty project, confirming first if changes were not exported           | S-03          | FR-016                                | proposed |
 
@@ -161,7 +161,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Isolated from S-04 so calendar arithmetic edge cases (weekend base dates) don't widen the forecast slice. Lifts the S-03 import rejection of `"dayCountingMode": "weekdays"` (rule `day-counting-mode-not-supported-yet`); the file version stays `"0.1"` until M-1 closes and then becomes `"1"`; adds a golden file holding a weekdays project next to the 0.1 one.
-- **Status:** proposed
+- **Status:** planning
 
 ### S-07: Progress-aware forecast
 

@@ -255,6 +255,13 @@ export function setStartDate(project: Project, input: string): EditResult {
   return accept({ ...project, start: { ...project.start, date: trimmed } });
 }
 
+/** Every day-counting mode, in the order the planner's Day counting control lists them. */
+export const DAY_COUNTING_MODES: readonly DayCountingMode[] = ["calendar-days", "weekdays"];
+
+export function isDayCountingMode(value: string): value is DayCountingMode {
+  return DAY_COUNTING_MODES.some((mode) => mode === value);
+}
+
 /** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project, so it never rejects. */
 export function setDayCountingMode(project: Project, mode: DayCountingMode): EditResult {
   if (project.dayCountingMode === mode) return accept(project);

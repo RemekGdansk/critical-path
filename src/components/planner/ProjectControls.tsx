@@ -6,14 +6,8 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
 import { downloadTextFile } from "@/lib/download";
-import {
-  DAY_COUNTING_MODES,
-  isDayCountingMode,
-  parseProjectFile,
-  projectFileName,
-  serializeProject,
-} from "@/lib/services/project-file";
-import { PROJECT_NAME_MAX_LENGTH } from "@/lib/services/project";
+import { parseProjectFile, projectFileName, serializeProject } from "@/lib/services/project-file";
+import { DAY_COUNTING_MODES, isDayCountingMode, PROJECT_NAME_MAX_LENGTH } from "@/lib/services/project";
 import type { DayCountingMode, Project } from "@/types";
 
 /** 5 MB, far above any real project: a 100-Task file is about 15–100 KB. */

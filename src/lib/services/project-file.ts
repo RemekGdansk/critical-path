@@ -5,8 +5,8 @@
 // of stages, each assuming the previous one passed: parse, version,
 // shape, normalise, unique ids, the pre-S-07 limits, then validateProject.
 // Only a project that passes every stage is returned.
-import { validateProject, type ValidationErrorRule } from "@/lib/services/project";
-import type { DayCountingMode, Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
+import { DAY_COUNTING_MODES, validateProject, type ValidationErrorRule } from "@/lib/services/project";
+import type { Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
 
 export const PROJECT_FILE_VERSION = "0.1";
 
@@ -224,8 +224,6 @@ function checkStartAndFinish(root: JsonObject): void {
 const ROOT_KEYS = ["version", "name", "start", "finish", "dayCountingMode", "nextTaskId", "tasks"];
 const START_KEYS = ["date"];
 const TASK_KEYS = ["id", "name", "predecessors", "duration", "status", "completionDate"];
-/** Every day-counting mode, in the order the planner's Day counting control lists them. */
-export const DAY_COUNTING_MODES: readonly DayCountingMode[] = ["calendar-days", "weekdays"];
 const TASK_STATUSES: readonly TaskStatus[] = ["to-do", "in-progress", "done"];
 
 function readObject(value: unknown, path: string, keys: readonly string[]): JsonObject {
@@ -262,10 +260,6 @@ function readPositiveWholeNumber(value: unknown, path: string, max: number, what
     notAProject(`${path} must be at most ${max}, not ${value}`);
   }
   notAProject(`${path} must be ${what}, not ${typeof value === "number" ? String(value) : jsonType(value)}`);
-}
-
-export function isDayCountingMode(value: string): value is DayCountingMode {
-  return DAY_COUNTING_MODES.some((mode) => mode === value);
 }
 
 function readOneOf<T extends string>(value: unknown, path: string, options: readonly T[]): T {

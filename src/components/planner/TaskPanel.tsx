@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
+import { durationUnit } from "@/lib/services/diagram-layout";
 import { TASK_NAME_MAX_LENGTH, taskLabel } from "@/lib/services/project";
 import { predecessorCandidates } from "@/lib/services/task-graph";
 import type { Project, Task } from "@/types";
@@ -180,9 +181,7 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
       </form>
 
       <form onSubmit={handleDurationSubmit} className="flex flex-col gap-2">
-        <Label htmlFor={durationId}>
-          {project.dayCountingMode === "weekdays" ? "Duration (weekdays)" : "Duration (days)"}
-        </Label>
+        <Label htmlFor={durationId}>Duration ({durationUnit(project.dayCountingMode)}s)</Label>
         <Input
           id={durationId}
           type="text"
