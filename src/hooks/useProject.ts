@@ -1,6 +1,7 @@
 // Project and selection state for the planner island. Every action applies one
 // pure edit function and commits the result only when it is accepted, so a
-// rejected edit leaves the project exactly as it was.
+// rejected edit leaves the project exactly as it was. Each commit also keeps the
+// project it superseded, so a view that crashed on the new one can go back.
 import { useCallback, useRef, useState } from "react";
 
 import * as edits from "@/lib/services/project";
@@ -26,6 +27,11 @@ export interface ProjectActions {
    * `parseProjectFile` accepted: the hook does not validate it again.
    */
   replaceProject: (project: Project) => void;
+  /**
+   * Commits `previousProject` again, clears it, selects nothing and counts as a
+   * replacement. A no-op when there is no previous project.
+   */
+  restorePreviousProject: () => void;
 }
 
 export interface ProjectState extends ProjectActions {
@@ -34,8 +40,13 @@ export interface ProjectState extends ProjectActions {
   selection: Selection;
   /** The selected Task, or undefined when none is selected or the selected one was deleted. */
   selectedTask: Task | undefined;
-  /** How many times `replaceProject` has run; a key that resets views holding drafts of the old project. */
+  /** How many times `replaceProject` or `restorePreviousProject` has run; a key that resets views holding drafts of the old project. */
   replacements: number;
+  /**
+   * The project the latest accepted edit or replacement superseded. Undefined until
+   * the first commit and after a restore; a rejected edit leaves it unchanged.
+   */
+  previousProject: Project | undefined;
 }
 
 /**
@@ -51,15 +62,28 @@ export function useProject(initial?: Project | (() => Project), initialSelection
   // on blur, then a click) never apply to a stale render's project.
   const latest = useRef(project);
   const [replacements, setReplacements] = useState(0);
+  // The project the latest commit superseded, mirrored in a ref for the same
+  // reason as `latest`: a restore reads it in the event that calls it.
+  const [previousProject, setPreviousProject] = useState<Project | undefined>(undefined);
+  const previous = useRef<Project | undefined>(undefined);
 
-  const apply = useCallback((edit: (current: Project) => EditResult): EditResult => {
-    const result = edit(latest.current);
-    if (result.ok) {
-      latest.current = result.project;
-      setProject(result.project);
-    }
-    return result;
+  // Every commit goes through here, recording what it supersedes before
+  // overwriting `latest`.
+  const commit = useCallback((next: Project, superseded: Project | undefined) => {
+    previous.current = superseded;
+    setPreviousProject(superseded);
+    latest.current = next;
+    setProject(next);
   }, []);
+
+  const apply = useCallback(
+    (edit: (current: Project) => EditResult): EditResult => {
+      const result = edit(latest.current);
+      if (result.ok) commit(result.project, latest.current);
+      return result;
+    },
+    [commit],
+  );
 
   const select = useCallback((target: Selection) => {
     setSelection(target);
@@ -96,12 +120,24 @@ export function useProject(initial?: Project | (() => Project), initialSelection
 
   // Commits through the latest ref like every edit. The selection is cleared,
   // not kept: a stored Task id would resolve to an unrelated imported Task.
-  const replaceProject = useCallback((replacement: Project) => {
-    latest.current = replacement;
-    setProject(replacement);
+  const replaceProject = useCallback(
+    (replacement: Project) => {
+      commit(replacement, latest.current);
+      setSelection(null);
+      setReplacements((count) => count + 1);
+    },
+    [commit],
+  );
+
+  // Clears the previous project rather than swapping it in, so a second crash
+  // offers no "go back". Counts as a replacement, so views keyed by it remount.
+  const restorePreviousProject = useCallback(() => {
+    const restored = previous.current;
+    if (restored === undefined) return;
+    commit(restored, undefined);
     setSelection(null);
     setReplacements((count) => count + 1);
-  }, []);
+  }, [commit]);
 
   const selectedTask = typeof selection === "number" ? project.tasks.find((task) => task.id === selection) : undefined;
 
@@ -110,6 +146,7 @@ export function useProject(initial?: Project | (() => Project), initialSelection
     selection,
     selectedTask,
     replacements,
+    previousProject,
     select,
     createTask,
     renameTask,
@@ -121,5 +158,6 @@ export function useProject(initial?: Project | (() => Project), initialSelection
     setDayCountingMode,
     setProjectName,
     replaceProject,
+    restorePreviousProject,
   };
 }

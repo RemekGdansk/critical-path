@@ -1,17 +1,20 @@
 import { ReactFlowProvider } from "@xyflow/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Diagram } from "@/components/planner/Diagram";
 import { ForecastSummary } from "@/components/planner/ForecastSummary";
 import { NewTaskForm } from "@/components/planner/NewTaskForm";
 import { ProjectControls } from "@/components/planner/ProjectControls";
+import { RenderCrashFallback } from "@/components/planner/RenderCrashFallback";
+import { RenderErrorBoundary } from "@/components/planner/RenderErrorBoundary";
 import { StartPanel } from "@/components/planner/StartPanel";
 import { TaskPanel } from "@/components/planner/TaskPanel";
-import { useProject, type Selection } from "@/hooks/useProject";
+import { useProject, type ProjectState, type Selection } from "@/hooks/useProject";
 import { todayIsoDate } from "@/lib/services/calendar-date";
 import { createPerfProject } from "@/lib/services/fixtures";
 import { forecast } from "@/lib/services/forecast";
 import { createEmptyProject } from "@/lib/services/project";
+import { serializeProject } from "@/lib/services/project-file";
 import type { Project, TaskId } from "@/types";
 
 /**
@@ -33,8 +36,69 @@ interface PlannerProps {
   initialSelection?: Selection;
 }
 
-/** The single React island: toolbar across the top, diagram filling the rest, side panel on the right. */
+/**
+ * The only signal of a render crash, since nothing may leave the device: the
+ * error, React's component stack and the project as its file text, so the
+ * project can be rebuilt from the console. Never throws: if serializing fails
+ * too, it logs that second error in place of the project.
+ */
+function logRenderCrash(project: Project, error: unknown, componentStack: string): void {
+  let details: { componentStack: string; project: string } | { componentStack: string; serializationError: unknown };
+  try {
+    details = { componentStack, project: serializeProject(project) };
+  } catch (serializationError) {
+    details = { componentStack, serializationError };
+  }
+  // eslint-disable-next-line no-console -- the only signal of a render crash; nothing may leave the device
+  console.error("Critical Path: the planner crashed while rendering.", error, details);
+}
+
+/**
+ * The single React island. It holds the project state above an error boundary,
+ * so a throw while rendering the project shows a fallback that can still export
+ * it, instead of a blank page that loses it. The boundary is keyed by a count
+ * of go-backs, so it starts over with the restored project. It is not keyed by
+ * `replacements`: an import would then remount the whole view, and the focus
+ * that `handleReplaceProject` moves to New Task would land on an unmounted input.
+ */
 export function Planner({ initialProject: givenProject, initialSelection }: PlannerProps = {}) {
+  const state = useProject(givenProject ?? initialProject, initialSelection);
+  const { project, previousProject, restorePreviousProject } = state;
+  const [goBacks, setGoBacks] = useState(0);
+  const handleGoBack = useCallback(() => {
+    restorePreviousProject();
+    setGoBacks((count) => count + 1);
+  }, [restorePreviousProject]);
+  const handleError = useCallback(
+    (error: unknown, componentStack: string) => {
+      logRenderCrash(project, error, componentStack);
+    },
+    [project],
+  );
+
+  return (
+    <RenderErrorBoundary
+      key={goBacks}
+      onError={handleError}
+      fallback={(error) => (
+        <RenderCrashFallback
+          error={error}
+          project={project}
+          previousProject={previousProject}
+          onGoBack={handleGoBack}
+        />
+      )}
+    >
+      <PlannerView state={state} focusNewTaskOnMount={goBacks > 0} />
+    </RenderErrorBoundary>
+  );
+}
+
+/**
+ * Everything that derives from the project, and so may throw while rendering:
+ * toolbar across the top, diagram filling the rest, side panel on the right.
+ */
+function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focusNewTaskOnMount: boolean }) {
   const {
     project,
     selection,
@@ -51,7 +115,7 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
     setProjectName,
     replaceProject,
     replacements,
-  } = useProject(givenProject ?? initialProject, initialSelection);
+  } = state;
 
   // Read on every render, so any edit after midnight picks up the new day.
   const today = todayIsoDate(new Date());
@@ -90,6 +154,12 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
     },
     [deleteTask],
   );
+
+  // After Go back the view mounts afresh and the focused fallback button is
+  // gone, so focus goes to the New Task input, as after Delete Task or Import.
+  useEffect(() => {
+    if (focusNewTaskOnMount) newTaskInputRef.current?.focus();
+  }, [focusNewTaskOnMount]);
 
   // An imported project replaces the old one whole: the hook selects nothing,
   // which unmounts the panels and drops their drafts, and a pending focus

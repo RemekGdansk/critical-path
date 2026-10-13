@@ -186,7 +186,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Parallel with:** S-04, S-05, S-06, S-07
 - **Blockers:** —
 - **Unknowns:** —
-- **Risk:** Depends on S-03 because "unexported changes" is only meaningful once export exists.
+- **Risk:** Depends on S-03 because "unexported changes" is only meaningful once export exists. "Go back to the project before the last change" on the render crash fallback (change `render-crash-recovery`) also replaces the current project, the one the render threw on, and today does so in one click; it gets the same unexported-changes confirmation as New and Import.
 - **Status:** proposed
 
 ## Backlog Handoff

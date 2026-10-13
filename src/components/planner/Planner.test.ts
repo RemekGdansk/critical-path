@@ -1,10 +1,18 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { createElement } from "react";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
 import { Planner } from "@/components/planner/Planner";
-import { createEmptyProject, createTask, type EditResult, setDuration, setStartDate } from "@/lib/services/project";
+import { serializeProject } from "@/lib/services/project-file";
+import {
+  createEmptyProject,
+  createTask,
+  type EditResult,
+  setDuration,
+  setStartDate,
+  validateProject,
+} from "@/lib/services/project";
 import type { Project } from "@/types";
 
 /** Every property the shim below replaces, restored in `afterAll` so it never outlives this file. */
@@ -199,5 +207,127 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(weekdays).not.toContain("2999-01-09");
     expect(await screen.findByRole("button", { name: "A, 5 weekdays" })).toBeDefined();
     expect(screen.getByLabelText("Duration (weekdays)")).toBeDefined();
+  });
+});
+
+/**
+ * A (id 1) depends on B (id 2) and B on A, START 2999-01-01. Built by hand, not
+ * through the edit functions, which would reject the cycle: it stands for a
+ * project that makes a render throw (`forecast()` throws "The project contains
+ * a cycle." for it), the way a too-long imported chain does in the browser.
+ */
+function cyclicProject(name: string | undefined): Project {
+  return {
+    ...(name === undefined ? {} : { name }),
+    start: { date: "2999-01-01" },
+    finish: {},
+    dayCountingMode: "calendar-days",
+    nextTaskId: 3,
+    tasks: [
+      { id: 1, name: "A", predecessors: [2], duration: 5, status: "to-do" },
+      { id: 2, name: "B", predecessors: [1], duration: 3, status: "to-do" },
+    ],
+  };
+}
+
+describe("Planner: a render crash keeps the project exportable", () => {
+  // Browser APIs only, never the domain: jsdom has no object URLs and would
+  // navigate on an anchor click, so the download is captured instead.
+  const downloads: { fileName: string; blob: Blob }[] = [];
+  const urlKeys = ["createObjectURL", "revokeObjectURL"] as const;
+  let urlOriginals: (PropertyDescriptor | undefined)[] = [];
+  let consoleError: MockInstance<typeof console.error>;
+
+  beforeEach(() => {
+    downloads.length = 0;
+    const blobs = new Map<string, Blob>();
+    urlOriginals = urlKeys.map((key) => Object.getOwnPropertyDescriptor(URL, key));
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: (blob: Blob) => {
+        const url = `blob:test/${blobs.size + 1}`;
+        blobs.set(url, blob);
+        return url;
+      },
+    });
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: () => {
+        // Nothing to release: the test URLs hold no resource.
+      },
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      const blob = blobs.get(this.href);
+      if (blob !== undefined) downloads.push({ fileName: this.download, blob });
+    });
+    // Silenced: React and the planner both report the crash on the console.
+    consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    urlKeys.forEach((key, index) => {
+      const original = urlOriginals[index];
+      if (original) Object.defineProperty(URL, key, original);
+      else Reflect.deleteProperty(URL, key);
+    });
+  });
+
+  function renderCrashing(project: Project): void {
+    render(createElement<NonNullable<Parameters<typeof Planner>[0]>>(Planner, { initialProject: project }));
+  }
+
+  it("shows the error in place of the planner, exports the project as it was and logs it", async () => {
+    const project = cyclicProject("Cyclic plan");
+    renderCrashing(project);
+
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Error: The project contains a cycle.");
+    expect(screen.queryByRole("textbox", { name: "New Task" })).toBeNull();
+
+    fireEvent.click(within(alert).getByRole("button", { name: "Export the project as it was" }));
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].fileName).toBe("Cyclic plan.json");
+    expect(await downloads[0].blob.text()).toBe(serializeProject(project));
+
+    const validationError = validateProject(project);
+    expect(validationError).toBeDefined();
+    expect(alert.textContent).toContain("Validation Error");
+    expect(alert.textContent).toContain(validationError?.message);
+    expect(alert.textContent).not.toMatch(/invalid|conflict|blocked/i);
+
+    expect(screen.queryByRole("button", { name: "Go back to the project before the last change" })).toBeNull();
+
+    expect(consoleError).toHaveBeenCalledWith(
+      "Critical Path: the planner crashed while rendering.",
+      expect.objectContaining({ message: "The project contains a cycle." }),
+      expect.objectContaining({ project: expect.stringContaining(serializeProject(project)) as unknown }),
+    );
+  });
+
+  it("names the recovery file critical-path-recovered.json when the project has no name", () => {
+    renderCrashing(cyclicProject(undefined));
+
+    fireEvent.click(screen.getByRole("button", { name: "Export the project as it was" }));
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].fileName).toBe("critical-path-recovered.json");
+  });
+
+  it("still shows the fallback, with the reason, when the project cannot even be checked for Validation Errors", async () => {
+    // A shape no Project type allows (a Task name that is not a string), as only
+    // an import-parser bug could produce: `validateProject` itself throws on it.
+    const malformed = cyclicProject("Malformed plan");
+    const project: Project = {
+      ...malformed,
+      tasks: malformed.tasks.map((task) => (task.id === 1 ? { ...task, name: null as unknown as string } : task)),
+    };
+    expect(() => validateProject(project)).toThrow(TypeError);
+    renderCrashing(project);
+
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("The project could not be checked for Validation Errors: TypeError:");
+    fireEvent.click(within(alert).getByRole("button", { name: "Export the project as it was" }));
+    expect(downloads).toHaveLength(1);
+    expect(await downloads[0].blob.text()).toBe(serializeProject(project));
   });
 });
