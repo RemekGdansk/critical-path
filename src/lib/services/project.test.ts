@@ -104,12 +104,12 @@ describe("createTask", () => {
   });
 
   it("rejects a name made only of invisible characters as empty", () => {
-    expectRejected(edit(createTask, createEmptyProject(), "​​"), "task-name-empty");
-    expectRejected(edit(createTask, createEmptyProject(), " ​﻿ "), "task-name-empty");
+    expectRejected(edit(createTask, createEmptyProject(), "\u200B\u200B"), "task-name-empty");
+    expectRejected(edit(createTask, createEmptyProject(), " \u200B\uFEFF "), "task-name-empty");
   });
 
   it("rejects a name with a line break or other control character", () => {
-    for (const name of ["A\nB", "A\tB", "A B", "A\u0000B"]) {
+    for (const name of ["A\nB", "A\tB", "A\u2028B", "A\u0000B"]) {
       expectRejected(edit(createTask, createEmptyProject(), name), "task-name-control-character");
     }
   });
