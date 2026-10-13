@@ -224,7 +224,8 @@ function checkStartAndFinish(root: JsonObject): void {
 const ROOT_KEYS = ["version", "name", "start", "finish", "dayCountingMode", "nextTaskId", "tasks"];
 const START_KEYS = ["date"];
 const TASK_KEYS = ["id", "name", "predecessors", "duration", "status", "completionDate"];
-const DAY_COUNTING_MODES: readonly DayCountingMode[] = ["calendar-days", "weekdays"];
+/** Every day-counting mode, in the order the planner's Day counting control lists them. */
+export const DAY_COUNTING_MODES: readonly DayCountingMode[] = ["calendar-days", "weekdays"];
 const TASK_STATUSES: readonly TaskStatus[] = ["to-do", "in-progress", "done"];
 
 function readObject(value: unknown, path: string, keys: readonly string[]): JsonObject {
@@ -261,6 +262,10 @@ function readPositiveWholeNumber(value: unknown, path: string, max: number, what
     notAProject(`${path} must be at most ${max}, not ${value}`);
   }
   notAProject(`${path} must be ${what}, not ${typeof value === "number" ? String(value) : jsonType(value)}`);
+}
+
+export function isDayCountingMode(value: string): value is DayCountingMode {
+  return DAY_COUNTING_MODES.some((mode) => mode === value);
 }
 
 function readOneOf<T extends string>(value: unknown, path: string, options: readonly T[]): T {

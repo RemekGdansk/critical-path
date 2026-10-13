@@ -180,7 +180,9 @@ export function TaskPanel({ task, project, actions, focusRequest }: TaskPanelPro
       </form>
 
       <form onSubmit={handleDurationSubmit} className="flex flex-col gap-2">
-        <Label htmlFor={durationId}>Duration (days)</Label>
+        <Label htmlFor={durationId}>
+          {project.dayCountingMode === "weekdays" ? "Duration (weekdays)" : "Duration (days)"}
+        </Label>
         <Input
           id={durationId}
           type="text"

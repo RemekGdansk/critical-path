@@ -11,6 +11,7 @@ import {
   createEmptyProject,
   createTask,
   type EditResult,
+  setDayCountingMode,
   setDuration,
   setProjectName,
   setStartDate,
@@ -64,6 +65,14 @@ function pastStartProject(): Project {
   return accepted(setStartDate(smallProject(), "2020-01-01"));
 }
 
+/**
+ * The small project counting weekdays, with START on Saturday 2999-01-05 (far
+ * ahead of any real today): the forecast moves it to Monday 2999-01-07.
+ */
+function weekdaysWeekendStartProject(): Project {
+  return accepted(setStartDate(accepted(setDayCountingMode(smallProject(), "weekdays")), "2999-01-05"));
+}
+
 const FIXTURES = {
   /** Build selected: one predecessor to remove, one Task to add and one that would create a cycle. */
   "selected-task": { project: smallProject, initialSelection: BUILD },
@@ -73,6 +82,8 @@ const FIXTURES = {
   "validation-warning": { project: warnedProject, initialSelection: TEST },
   /** START selected with a past START date: the forecasting-from-today notes. */
   "start-selected": { project: pastStartProject, initialSelection: "start" },
+  /** START selected on a weekdays project whose START date is a Saturday: the weekend notes and weekday units. */
+  "weekdays-weekend-start": { project: weekdaysWeekendStartProject, initialSelection: "start" },
   empty: { project: createEmptyProject, initialSelection: null },
 } satisfies Record<string, { project: () => Project; initialSelection: Selection }>;
 

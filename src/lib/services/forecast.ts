@@ -48,6 +48,21 @@ export function forecastBaseDate(project: Project, today: string): ForecastBaseD
   return { baseDate: nextWeekday(chosen), baseDateReason, movedFromWeekend: chosen };
 }
 
+/**
+ * The sentence naming a base date's move off a weekend, e.g. "2026-10-17 is a
+ * Saturday: counting weekdays, the forecast starts on Monday, 2026-10-19."
+ */
+export function weekendMoveNote({
+  baseDate,
+  movedFromWeekend,
+}: {
+  baseDate: string;
+  movedFromWeekend: string;
+}): string {
+  const dayName = dayOfWeek(movedFromWeekend) === 5 ? "Saturday" : "Sunday";
+  return `${movedFromWeekend} is a ${dayName}: counting weekdays, the forecast starts on Monday, ${baseDate}.`;
+}
+
 function forecastDate(mode: DayCountingMode, baseDate: string, days: number): ForecastDate {
   const date = mode === "weekdays" ? addWeekdays(baseDate, days) : addDays(baseDate, days);
   return date === undefined ? { kind: "beyond-year-9999" } : { kind: "date", date };

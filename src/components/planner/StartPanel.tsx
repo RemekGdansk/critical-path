@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { ProjectActions } from "@/hooks/useProject";
-import { compareIsoDates, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
+import { MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
+import { forecastBaseDate, weekendMoveNote } from "@/lib/services/forecast";
 import type { Project } from "@/types";
 
 interface StartPanelProps {
@@ -18,7 +19,7 @@ interface StartPanelProps {
 
 /**
  * Edits START: its date, which the forecast starts from unless it is unset or
- * in the past. A native date input fires `change` for every complete date, also
+ * in the past, and moved to Monday from a weekend when counting weekdays. A native date input fires `change` for every complete date, also
  * while the year is typed digit by digit (0002, 0020, 0202, 2026), so typing
  * edits a draft that commits on Enter or blur, and Escape restores it. Picking
  * from the calendar popup does not blur the input, so a change that follows no
@@ -41,12 +42,18 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
   const errorId = useId();
   const noteId = useId();
 
-  const note =
-    date === undefined
-      ? `Not set: the forecast starts from today, ${today}.`
-      : compareIsoDates(date, today) < 0
-        ? `This date is in the past: the forecast starts from today, ${today}.`
-        : undefined;
+  // From the forecast's own base date, so the note agrees with the summary even while the forecast is withheld.
+  const base = forecastBaseDate(project, today);
+  const notes = [
+    base.baseDateReason === "start-date-unset" ? `Not set: the forecast starts from today, ${today}.` : undefined,
+    base.baseDateReason === "start-date-in-past"
+      ? `This date is in the past: the forecast starts from today, ${today}.`
+      : undefined,
+    base.movedFromWeekend === undefined
+      ? undefined
+      : weekendMoveNote({ baseDate: base.baseDate, movedFromWeekend: base.movedFromWeekend }),
+  ].filter((sentence) => sentence !== undefined);
+  const note = notes.length === 0 ? undefined : notes.join(" ");
 
   function commit(value: string) {
     if (value === (date ?? "")) {

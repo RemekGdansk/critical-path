@@ -413,24 +413,24 @@ No format change: `dayCountingMode` has been written since S-03, and existing fi
 
 #### Automated
 
-- [x] 2.1 Edit, hook and file tests pass
-- [x] 2.2 No reference to day-counting-mode-not-supported-yet remains in src/
-- [x] 2.3 Whole suite, lint and type check pass
+- [x] 2.1 Edit, hook and file tests pass — ba74560
+- [x] 2.2 No reference to day-counting-mode-not-supported-yet remains in src/ — ba74560
+- [x] 2.3 Whole suite, lint and type check pass — ba74560
 
 #### Manual
 
-- [x] 2.4 Weekdays golden file and its expected project are hand-written
+- [x] 2.4 Weekdays golden file and its expected project are hand-written — ba74560
 
 ### Phase 3: UI
 
 #### Automated
 
-- [ ] 3.1 View, render and layout tests pass
-- [ ] 3.2 Full gate passes
-- [ ] 3.3 E2E stays green with no spec edits
+- [x] 3.1 View, render and layout tests pass
+- [x] 3.2 Full gate passes
+- [x] 3.3 E2E stays green with no spec edits
 
 #### Manual
 
-- [ ] 3.4 Kitchen sink weekdays cell shows select, units and both weekend notes
-- [ ] 3.5 Preview build: mode switch recomputes dates; weekdays export/import round-trips
-- [ ] 3.6 Keyboard: select reachable, operable, visible focus
+- [x] 3.4 Kitchen sink weekdays cell shows select, units and both weekend notes
+- [x] 3.5 Preview build: mode switch recomputes dates; weekdays export/import round-trips
+- [x] 3.6 Keyboard: select reachable, operable, visible focus

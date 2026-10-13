@@ -3,14 +3,26 @@ import { useId, useRef, useState, type ChangeEvent, type KeyboardEvent, type Sub
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
 import { downloadTextFile } from "@/lib/download";
-import { parseProjectFile, projectFileName, serializeProject } from "@/lib/services/project-file";
+import {
+  DAY_COUNTING_MODES,
+  isDayCountingMode,
+  parseProjectFile,
+  projectFileName,
+  serializeProject,
+} from "@/lib/services/project-file";
 import { PROJECT_NAME_MAX_LENGTH } from "@/lib/services/project";
-import type { Project } from "@/types";
+import type { DayCountingMode, Project } from "@/types";
 
 /** 5 MB, far above any real project: a 100-Task file is about 15–100 KB. */
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
+
+const DAY_COUNTING_MODE_LABELS: Record<DayCountingMode, string> = {
+  "calendar-days": "Calendar days",
+  weekdays: "Weekdays (Mon–Fri)",
+};
 
 interface ProjectControlsProps {
   /** The committed project name; undefined while unset. */
@@ -18,16 +30,25 @@ interface ProjectControlsProps {
   setProjectName: ProjectActions["setProjectName"];
   /** Called with an imported project only after `parseProjectFile` accepted it. */
   replaceProject: (project: Project) => void;
+  /** The committed mode: the select follows the project, so an import shows the imported mode. */
+  dayCountingMode: DayCountingMode;
+  setDayCountingMode: ProjectActions["setDayCountingMode"];
 }
 
 /**
- * The project name, Export and Import, in the header. Mount it with
+ * The project name, Export, Import and Day counting, in the header. Mount it with
  * `key={replacements}` so the name draft starts over from an imported name.
  * The name draft commits on Enter or blur, and Escape restores the committed
  * name. Export commits the draft first and exports the project that commit
  * returns, so typing a name and clicking Export downloads in one click.
  */
-export function ProjectControls({ name, setProjectName, replaceProject }: ProjectControlsProps) {
+export function ProjectControls({
+  name,
+  setProjectName,
+  replaceProject,
+  dayCountingMode,
+  setDayCountingMode,
+}: ProjectControlsProps) {
   const [draft, setDraft] = useState(name ?? "");
   const [nameError, setNameError] = useState<string | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
@@ -35,6 +56,7 @@ export function ProjectControls({ name, setProjectName, replaceProject }: Projec
   const fileRef = useRef<HTMLInputElement>(null);
   const nameId = useId();
   const nameErrorId = useId();
+  const modeId = useId();
 
   function commitName() {
     if (draft === (name ?? "")) {
@@ -169,6 +191,25 @@ export function ProjectControls({ name, setProjectName, replaceProject }: Projec
             void handleFileChange(event);
           }}
         />
+        <div className="flex items-center gap-3">
+          <Label htmlFor={modeId} className="shrink-0">
+            Day counting
+          </Label>
+          {/* Every mode is valid for every project, so a change commits at once and is never rejected. */}
+          <NativeSelect
+            id={modeId}
+            value={dayCountingMode}
+            onChange={(event) => {
+              if (isDayCountingMode(event.target.value)) setDayCountingMode(event.target.value);
+            }}
+          >
+            {DAY_COUNTING_MODES.map((mode) => (
+              <NativeSelectOption key={mode} value={mode}>
+                {DAY_COUNTING_MODE_LABELS[mode]}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
       </div>
       {fileError !== undefined && (
         <p role="alert" className="text-destructive max-w-md text-sm wrap-break-word">

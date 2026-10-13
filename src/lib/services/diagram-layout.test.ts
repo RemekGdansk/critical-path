@@ -176,8 +176,24 @@ describe("layoutDiagram projection", () => {
     });
   });
 
-  it("formats Durations in days", () => {
-    expect([1, 2, 30].map(formatDuration)).toEqual(["1 day", "2 days", "30 days"]);
+  it("carries the weekday unit in node data and aria label in weekdays mode", () => {
+    const project = accepted(setDuration(accepted(setDuration(projectWith("A", "B"), 1, "5")), 2, "1"));
+    const { nodes } = layoutDiagram({ ...project, dayCountingMode: "weekdays" });
+
+    expect(nodeById(nodes, "1")).toMatchObject({
+      data: { duration: 5, dayCountingMode: "weekdays" },
+      ariaLabel: "A, 5 weekdays",
+    });
+    expect(nodeById(nodes, "2")).toMatchObject({ ariaLabel: "B, 1 weekday" });
+  });
+
+  it("formats Durations in days or weekdays, by the mode", () => {
+    expect([1, 2, 30].map((days) => formatDuration(days, "calendar-days"))).toEqual(["1 day", "2 days", "30 days"]);
+    expect([1, 2, 30].map((days) => formatDuration(days, "weekdays"))).toEqual([
+      "1 weekday",
+      "2 weekdays",
+      "30 weekdays",
+    ]);
   });
 
   it("does not mutate the project", () => {

@@ -37,7 +37,7 @@ function TaskNodeComponent({ data, selected }: NodeProps<TaskNodeType>) {
         </span>
       ) : (
         data.duration !== undefined && (
-          <span className="text-muted-foreground text-xs">{formatDuration(data.duration)}</span>
+          <span className="text-muted-foreground text-xs">{formatDuration(data.duration, data.dayCountingMode)}</span>
         )
       )}
       <Handle type="source" position={Position.Right} isConnectable={false} className="opacity-0" />
