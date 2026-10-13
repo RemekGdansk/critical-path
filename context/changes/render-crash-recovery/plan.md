@@ -295,11 +295,11 @@ None. There is no file-format or stored-state change.
 
 #### Automated
 
-- [x] 3.1 The e2e case fails on the Phase 1-only build and passes now
-- [x] 3.2 Whole e2e suite passes
-- [x] 3.3 Full gate passes
+- [x] 3.1 The e2e case fails on the Phase 1-only build and passes now — 751427c
+- [x] 3.2 Whole e2e suite passes — 751427c
+- [x] 3.3 Full gate passes — 751427c
 
 #### Manual
 
-- [x] 3.4 Kitchen sink shows the crash fallback state
-- [x] 3.5 In npm run preview, the long-chain import shows the fallback, and Export, Go back and the console line work
+- [x] 3.4 Kitchen sink shows the crash fallback state — 751427c
+- [x] 3.5 In npm run preview, the long-chain import shows the fallback, and Export, Go back and the console line work — 751427c
