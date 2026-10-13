@@ -277,33 +277,33 @@ None. There is no file-format or stored-state change.
 
 #### Automated
 
-- [x] 1.1 New hook tests fail before the hook change and pass after it — 23b4b45
-- [x] 1.2 Whole suite passes — 23b4b45
-- [x] 1.3 Lint and type check pass — 23b4b45
+- [x] 1.1 New hook tests fail before the hook change and pass after it — 8e0bba6
+- [x] 1.2 Whole suite passes — 8e0bba6
+- [x] 1.3 Lint and type check pass — 8e0bba6
 
 ### Phase 2: Error boundary and crash fallback
 
 #### Automated
 
-- [x] 2.1 The red test fails on the current Planner before the split — 1192a9d
-- [x] 2.2 The red test and the existing Planner tests pass after it — 1192a9d
-- [x] 2.3 Whole suite passes — 1192a9d
-- [x] 2.4 Lint passes with no new warnings, and the type check passes — 1192a9d
-- [x] 2.5 Build and CSP check pass — 1192a9d
+- [x] 2.1 The red test fails on the current Planner before the split — 8e0bba6
+- [x] 2.2 The red test and the existing Planner tests pass after it — 8e0bba6
+- [x] 2.3 Whole suite passes — 8e0bba6
+- [x] 2.4 Lint passes with no new warnings, and the type check passes — 8e0bba6
+- [x] 2.5 Build and CSP check pass — 8e0bba6
 
 #### Manual
 
-- [x] 2.6 In npm run preview, the planner looks and behaves as before for a normal project — 1192a9d
+- [x] 2.6 In npm run preview, the planner looks and behaves as before for a normal project — 8e0bba6
 
 ### Phase 3: Browser proof and docs
 
 #### Automated
 
-- [x] 3.1 The e2e case fails on the Phase 1-only build and passes now — 751427c
-- [x] 3.2 Whole e2e suite passes — 751427c
-- [x] 3.3 Full gate passes — 751427c
+- [x] 3.1 The e2e case fails on the Phase 1-only build and passes now — 8e0bba6
+- [x] 3.2 Whole e2e suite passes — 8e0bba6
+- [x] 3.3 Full gate passes — 8e0bba6
 
 #### Manual
 
-- [x] 3.4 Kitchen sink shows the crash fallback state — 751427c
-- [x] 3.5 In npm run preview, the long-chain import shows the fallback, and Export, Go back and the console line work — 751427c
+- [x] 3.4 Kitchen sink shows the crash fallback state — 8e0bba6
+- [x] 3.5 In npm run preview, the long-chain import shows the fallback, and Export, Go back and the console line work — 8e0bba6
