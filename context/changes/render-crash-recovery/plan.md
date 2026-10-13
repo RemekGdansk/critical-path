@@ -230,6 +230,10 @@ Do not insert line breaks in prose.
 
 ---
 
+## Addendum: the boundary is keyed by go-backs, not `replacements`
+
+Decided during Phase 3 (2026-10-14), when the whole e2e suite first ran. Keying the boundary by `replacements`, as Key Discoveries, Critical Implementation Details and the Phase 2 contract say, remounted the whole `PlannerView` on every import, so the New Task input that `handleReplaceProject` focuses was unmounted right after and focus fell to `<body>` (`e2e/project-file.spec.ts:151` failed). `Planner` now keys the boundary by a local `goBacks` counter that only "Go back to the project before the last change" increments, next to `restorePreviousProject`. An import no longer remounts the view, as before this change. Nothing else can reset the boundary, and nothing needs to: while the fallback shows, the view is unmounted, so Go back is the only way to change the project. `ProjectControls` and the diagram's `fitKey` stay keyed by `replacements`, which `restorePreviousProject` still increments.
+
 ## Testing Strategy
 
 ### Unit Tests:

@@ -312,4 +312,22 @@ describe("Planner: a render crash keeps the project exportable", () => {
     expect(downloads).toHaveLength(1);
     expect(downloads[0].fileName).toBe("critical-path-recovered.json");
   });
+
+  it("still shows the fallback, with the reason, when the project cannot even be checked for Validation Errors", async () => {
+    // A shape no Project type allows (a Task name that is not a string), as only
+    // an import-parser bug could produce: `validateProject` itself throws on it.
+    const malformed = cyclicProject("Malformed plan");
+    const project: Project = {
+      ...malformed,
+      tasks: malformed.tasks.map((task) => (task.id === 1 ? { ...task, name: null as unknown as string } : task)),
+    };
+    expect(() => validateProject(project)).toThrow(TypeError);
+    renderCrashing(project);
+
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("The project could not be checked for Validation Errors: TypeError:");
+    fireEvent.click(within(alert).getByRole("button", { name: "Export the project as it was" }));
+    expect(downloads).toHaveLength(1);
+    expect(await downloads[0].blob.text()).toBe(serializeProject(project));
+  });
 });

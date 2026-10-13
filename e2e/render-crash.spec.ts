@@ -86,6 +86,8 @@ test.describe("render crash recovery in the built app", () => {
     await alert.getByRole("button", { name: "Go back to the project before the last change" }).click();
     await expect(page.getByRole("button", { name: "Keep me, no Duration" })).toBeVisible();
     await expect(page.getByRole("alert")).toHaveCount(0);
+    // The focused button went with the fallback, so focus goes to New Task, as after Import or Delete Task.
+    await expect(newTask).toBeFocused();
 
     // No cleanup: the project lives only in this page's memory, and the download is deleted with the context.
   });

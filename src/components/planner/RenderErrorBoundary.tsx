@@ -17,8 +17,9 @@ interface RenderErrorBoundaryState {
 /**
  * Catches a throw during render below it and shows `fallback` instead of a
  * blank page. A class component, since React 19 has no hook for this. It has no
- * reset method: mount it with a `key` that changes when the project is
- * replaced, and the new instance starts with no error.
+ * reset method: mount it with a `key` that changes when it should start over
+ * (in `Planner`, after going back to the previous project), and the new
+ * instance starts with no error.
  */
 export class RenderErrorBoundary extends Component<RenderErrorBoundaryProps, RenderErrorBoundaryState> {
   state: RenderErrorBoundaryState = { error: undefined, failed: false };

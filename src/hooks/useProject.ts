@@ -40,7 +40,7 @@ export interface ProjectState extends ProjectActions {
   selection: Selection;
   /** The selected Task, or undefined when none is selected or the selected one was deleted. */
   selectedTask: Task | undefined;
-  /** How many times `replaceProject` has run; a key that resets views holding drafts of the old project. */
+  /** How many times `replaceProject` or `restorePreviousProject` has run; a key that resets views holding drafts of the old project. */
   replacements: number;
   /**
    * The project the latest accepted edit or replacement superseded. Undefined until

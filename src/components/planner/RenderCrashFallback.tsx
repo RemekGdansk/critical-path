@@ -24,10 +24,26 @@ function describeError(error: unknown): string {
 }
 
 /**
+ * `validateProject` on the project the render threw on. Nothing catches a throw
+ * from this fallback, so a project too malformed to check (a shape only an
+ * import-parser bug could produce) yields the checker's own error, shown in
+ * the alert, instead of blanking the page.
+ */
+function checkProject(
+  project: Project,
+): { validationError: ReturnType<typeof validateProject> } | { checkError: unknown } {
+  try {
+    return { validationError: validateProject(project) };
+  } catch (checkError) {
+    return { checkError };
+  }
+}
+
+/**
  * Shown in place of the planner after a render throw. The project is still in
  * memory, so it stays one click from a file and, when there is one, the
  * previous project one click from the planner. Renders nothing that derives
- * from the project beyond its serialization and `validateProject`.
+ * from the project beyond its serialization and `checkProject`.
  */
 export function RenderCrashFallback({ error, project, previousProject, onGoBack }: RenderCrashFallbackProps) {
   const exportRef = useRef<HTMLButtonElement>(null);
@@ -36,7 +52,7 @@ export function RenderCrashFallback({ error, project, previousProject, onGoBack 
     exportRef.current?.focus();
   }, []);
 
-  const validationError = validateProject(project);
+  const check = checkProject(project);
 
   function handleExport() {
     const fileName = project.name === undefined ? RECOVERED_FILE_NAME : projectFileName(project.name);
@@ -47,13 +63,20 @@ export function RenderCrashFallback({ error, project, previousProject, onGoBack 
     <div className="flex h-full items-center justify-center p-4">
       <div role="alert" className="bg-card text-card-foreground flex max-w-xl flex-col gap-3 rounded-lg border p-6">
         <h2 className="text-destructive text-lg font-semibold">The planner stopped because of an internal error.</h2>
-        <p className="font-mono text-sm break-words">{describeError(error)}</p>
+        <p className="font-mono text-sm wrap-break-word">{describeError(error)}</p>
         <p className="text-muted-foreground text-sm">Your project is still here and can be exported.</p>
-        {validationError !== undefined && (
-          <p className="text-warning text-sm">
-            This project contains a Validation Error: {validationError.message} Import will reject the file until it is
-            fixed by hand.
+        {"checkError" in check ? (
+          <p className="text-destructive text-sm wrap-break-word">
+            The project could not be checked for Validation Errors: {describeError(check.checkError)}. Import may reject
+            the file until it is fixed by hand.
           </p>
+        ) : (
+          check.validationError !== undefined && (
+            <p className="text-destructive text-sm">
+              This project contains a Validation Error: {check.validationError.message} Import will reject the file
+              until it is fixed by hand.
+            </p>
+          )
         )}
         <div className="flex flex-wrap gap-3">
           <Button ref={exportRef} type="button" onClick={handleExport}>

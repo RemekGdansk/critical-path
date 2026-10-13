@@ -1,5 +1,5 @@
 import { ReactFlowProvider } from "@xyflow/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Diagram } from "@/components/planner/Diagram";
 import { ForecastSummary } from "@/components/planner/ForecastSummary";
@@ -89,7 +89,7 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
         />
       )}
     >
-      <PlannerView state={state} />
+      <PlannerView state={state} focusNewTaskOnMount={goBacks > 0} />
     </RenderErrorBoundary>
   );
 }
@@ -98,7 +98,7 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
  * Everything that derives from the project, and so may throw while rendering:
  * toolbar across the top, diagram filling the rest, side panel on the right.
  */
-function PlannerView({ state }: { state: ProjectState }) {
+function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focusNewTaskOnMount: boolean }) {
   const {
     project,
     selection,
@@ -154,6 +154,12 @@ function PlannerView({ state }: { state: ProjectState }) {
     },
     [deleteTask],
   );
+
+  // After Go back the view mounts afresh and the focused fallback button is
+  // gone, so focus goes to the New Task input, as after Delete Task or Import.
+  useEffect(() => {
+    if (focusNewTaskOnMount) newTaskInputRef.current?.focus();
+  }, [focusNewTaskOnMount]);
 
   // An imported project replaces the old one whole: the hook selects nothing,
   // which unmounts the panels and drops their drafts, and a pending focus
