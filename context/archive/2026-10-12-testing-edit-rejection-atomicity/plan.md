@@ -256,41 +256,41 @@ None. Dev dependencies only.
 
 #### Automated
 
-- [x] 1.1 The hook test passes: `npx vitest run src/hooks/useProject.test.ts` — 2aa2087
-- [x] 1.2 The whole suite stays green and Node-only tests still run in Node: `npm test` — 2aa2087
-- [x] 1.3 Lint passes, including type-checked rules on the new file: `npm run lint` — 2aa2087
-- [x] 1.4 Type check passes: `npx astro check` — 2aa2087
-- [x] 1.5 `vitest related` selects the new file for the hook: `npx vitest related src/hooks/useProject.ts --run` lists `src/hooks/useProject.test.ts` — 2aa2087
+- [x] 1.1 The hook test passes: `npx vitest run src/hooks/useProject.test.ts` — b79badc
+- [x] 1.2 The whole suite stays green and Node-only tests still run in Node: `npm test` — b79badc
+- [x] 1.3 Lint passes, including type-checked rules on the new file: `npm run lint` — b79badc
+- [x] 1.4 Type check passes: `npx astro check` — b79badc
+- [x] 1.5 `vitest related` selects the new file for the hook: `npx vitest related src/hooks/useProject.ts --run` lists `src/hooks/useProject.test.ts` — b79badc
 
 #### Manual
 
-- [x] 1.6 Deliberate break 1, `apply` commits unconditionally: the identity assertions go red; reverted, green. — 2aa2087
-- [x] 1.7 Deliberate break 2, `latest.current` advanced before the `ok` check: the same-event case goes red; reverted, green. — 2aa2087
-- [x] 1.8 Deliberate break 3, `setSelection(null)` (or a `replacements` bump) on a rejection: the selection/counter assertions go red; reverted, green. — 2aa2087
+- [x] 1.6 Deliberate break 1, `apply` commits unconditionally: the identity assertions go red; reverted, green. — b79badc
+- [x] 1.7 Deliberate break 2, `latest.current` advanced before the `ok` check: the same-event case goes red; reverted, green. — b79badc
+- [x] 1.8 Deliberate break 3, `setSelection(null)` (or a `replacements` bump) on a rejection: the selection/counter assertions go red; reverted, green. — b79badc
 
 ### Phase 2: `Planner` render — withheld, restored, no stale memo
 
 #### Automated
 
-- [x] 2.1 The `Planner` test passes: `npx vitest run src/components/planner/Planner.test.ts` — 10cdd3b
-- [x] 2.2 The whole suite stays green: `npm test` — 10cdd3b
-- [x] 2.3 Lint passes: `npm run lint` — 10cdd3b
-- [x] 2.4 Type check passes: `npx astro check` — 10cdd3b
-- [x] 2.5 `vitest related` selects the new file for the memo's file: `npx vitest related src/components/planner/Planner.tsx --run` lists `src/components/planner/Planner.test.ts` — 10cdd3b
+- [x] 2.1 The `Planner` test passes: `npx vitest run src/components/planner/Planner.test.ts` — b79badc
+- [x] 2.2 The whole suite stays green: `npm test` — b79badc
+- [x] 2.3 Lint passes: `npm run lint` — b79badc
+- [x] 2.4 Type check passes: `npx astro check` — b79badc
+- [x] 2.5 `vitest related` selects the new file for the memo's file: `npx vitest related src/components/planner/Planner.tsx --run` lists `src/components/planner/Planner.test.ts` — b79badc
 
 #### Manual
 
-- [x] 2.6 Deliberate break 4, the forecast `useMemo` dependencies changed to `[today]`: the withheld/restored case goes red; reverted, green. — 10cdd3b
-- [x] 2.7 Deliberate break 5, the `withheld` and dates branches swapped in `ForecastSummary`: the new `Planner` case and `ForecastSummary.test.ts` both go red; reverted, green. — 10cdd3b
-- [x] 2.8 The per-edit agent hook's `vitest related` on `useProject.ts` and `Planner.tsx` finishes inside its 50 s budget with the new jsdom files. — 10cdd3b
+- [x] 2.6 Deliberate break 4, the forecast `useMemo` dependencies changed to `[today]`: the withheld/restored case goes red; reverted, green. — b79badc
+- [x] 2.7 Deliberate break 5, the `withheld` and dates branches swapped in `ForecastSummary`: the new `Planner` case and `ForecastSummary.test.ts` both go red; reverted, green. — b79badc
+- [x] 2.8 The per-edit agent hook's `vitest related` on `useProject.ts` and `Planner.tsx` finishes inside its 50 s budget with the new jsdom files. — b79badc
 
 ### Phase 3: Test plan and project rules
 
 #### Automated
 
-- [x] 3.1 Prettier leaves both files unchanged after formatting: `npx prettier --check context/foundation/test-plan.md PROJECT_RULES.md` — 6a56d7a
-- [x] 3.2 The full pre-push gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 6a56d7a
+- [x] 3.1 Prettier leaves both files unchanged after formatting: `npx prettier --check context/foundation/test-plan.md PROJECT_RULES.md` — b79badc
+- [x] 3.2 The full pre-push gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — b79badc
 
 #### Manual
 
-- [x] 3.3 §2, §3, §4, §6.2 and §6.5 read consistently with each other and with what the two test files actually do (sizing variant, versions, test count). — 6a56d7a
+- [x] 3.3 §2, §3, §4, §6.2 and §6.5 read consistently with each other and with what the two test files actually do (sizing variant, versions, test count). — b79badc
