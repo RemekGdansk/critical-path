@@ -425,12 +425,12 @@ No format change: `dayCountingMode` has been written since S-03, and existing fi
 
 #### Automated
 
-- [x] 3.1 View, render and layout tests pass
-- [x] 3.2 Full gate passes
-- [x] 3.3 E2E stays green with no spec edits
+- [x] 3.1 View, render and layout tests pass — fa8d592
+- [x] 3.2 Full gate passes — fa8d592
+- [x] 3.3 E2E stays green with no spec edits — fa8d592
 
 #### Manual
 
-- [x] 3.4 Kitchen sink weekdays cell shows select, units and both weekend notes
-- [x] 3.5 Preview build: mode switch recomputes dates; weekdays export/import round-trips
-- [x] 3.6 Keyboard: select reachable, operable, visible focus
+- [x] 3.4 Kitchen sink weekdays cell shows select, units and both weekend notes — fa8d592
+- [x] 3.5 Preview build: mode switch recomputes dates; weekdays export/import round-trips — fa8d592
+- [x] 3.6 Keyboard: select reachable, operable, visible focus — fa8d592
