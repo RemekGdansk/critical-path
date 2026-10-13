@@ -1,7 +1,8 @@
 // The real Planner on a fixture, for the dev-only kitchen sink. Astro can pass
 // only serializable props to an island, so the page names a fixture and the
 // project is built here, through the edit functions, so it never holds a
-// Validation Error. No Tailwind classes: global.css excludes src/dev.
+// Validation Error (the one exception is the "render-crash" fixture). No
+// Tailwind classes: global.css excludes src/dev.
 import { useState } from "react";
 
 import { Planner } from "@/components/planner/Planner";
@@ -73,6 +74,28 @@ function weekdaysWeekendStartProject(): Project {
   return accepted(setStartDate(accepted(setDayCountingMode(smallProject(), "weekdays")), "2999-01-05"));
 }
 
+/**
+ * "Cyclic plan": A (1) depends on B (2) and B on A. Unlike every other fixture,
+ * it is built by hand and deliberately bypasses the edit functions, which would
+ * reject the cycle: no project they can build crashes the render at fixture
+ * size. `forecast()` throws "The project contains a cycle." on it, so the
+ * Planner shows its render crash fallback, as after the long imported chain of
+ * observability audit A1.
+ */
+function renderCrashProject(): Project {
+  return {
+    name: "Cyclic plan",
+    start: {},
+    finish: {},
+    dayCountingMode: "calendar-days",
+    nextTaskId: 3,
+    tasks: [
+      { id: 1, name: "A", predecessors: [2], duration: 5, status: "to-do" },
+      { id: 2, name: "B", predecessors: [1], duration: 3, status: "to-do" },
+    ],
+  };
+}
+
 const FIXTURES = {
   /** Build selected: one predecessor to remove, one Task to add and one that would create a cycle. */
   "selected-task": { project: smallProject, initialSelection: BUILD },
@@ -85,6 +108,8 @@ const FIXTURES = {
   /** START selected on a weekdays project whose START date is a Saturday: the weekend notes and weekday units. */
   "weekdays-weekend-start": { project: weekdaysWeekendStartProject, initialSelection: "start" },
   empty: { project: createEmptyProject, initialSelection: null },
+  /** A cyclic project the render throws on: the crash fallback, with nothing to go back to. */
+  "render-crash": { project: renderCrashProject, initialSelection: null },
 } satisfies Record<string, { project: () => Project; initialSelection: Selection }>;
 
 export type KitchenSinkFixture = keyof typeof FIXTURES;

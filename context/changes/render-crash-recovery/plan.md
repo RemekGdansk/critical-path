@@ -281,25 +281,25 @@ None. There is no file-format or stored-state change.
 
 #### Automated
 
-- [x] 2.1 The red test fails on the current Planner before the split
-- [x] 2.2 The red test and the existing Planner tests pass after it
-- [x] 2.3 Whole suite passes
-- [x] 2.4 Lint passes with no new warnings, and the type check passes
-- [x] 2.5 Build and CSP check pass
+- [x] 2.1 The red test fails on the current Planner before the split — 1192a9d
+- [x] 2.2 The red test and the existing Planner tests pass after it — 1192a9d
+- [x] 2.3 Whole suite passes — 1192a9d
+- [x] 2.4 Lint passes with no new warnings, and the type check passes — 1192a9d
+- [x] 2.5 Build and CSP check pass — 1192a9d
 
 #### Manual
 
-- [x] 2.6 In npm run preview, the planner looks and behaves as before for a normal project
+- [x] 2.6 In npm run preview, the planner looks and behaves as before for a normal project — 1192a9d
 
 ### Phase 3: Browser proof and docs
 
 #### Automated
 
-- [ ] 3.1 The e2e case fails on the Phase 1-only build and passes now
-- [ ] 3.2 Whole e2e suite passes
-- [ ] 3.3 Full gate passes
+- [x] 3.1 The e2e case fails on the Phase 1-only build and passes now
+- [x] 3.2 Whole e2e suite passes
+- [x] 3.3 Full gate passes
 
 #### Manual
 
-- [ ] 3.4 Kitchen sink shows the crash fallback state
-- [ ] 3.5 In npm run preview, the long-chain import shows the fallback, and Export, Go back and the console line work
+- [x] 3.4 Kitchen sink shows the crash fallback state
+- [x] 3.5 In npm run preview, the long-chain import shows the fallback, and Export, Go back and the console line work

@@ -148,6 +148,20 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
 
       <figure>
         <figcaption>
+          <h2>render-crash</h2>
+          <p>
+            A hand-built cyclic project the render throws on: the crash fallback shows the error and the Validation
+            Error in place of the planner, with Export the project as it was focused. No Go back button: nothing was
+            open before.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="render-crash" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
           <h2>loading</h2>
           <p>PlannerSkeleton, the fallback the page shows while the island loads, held here in place.</p>
         </figcaption>

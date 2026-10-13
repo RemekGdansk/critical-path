@@ -56,12 +56,19 @@ function logRenderCrash(project: Project, error: unknown, componentStack: string
 /**
  * The single React island. It holds the project state above an error boundary,
  * so a throw while rendering the project shows a fallback that can still export
- * it, instead of a blank page that loses it. Keyed by `replacements`, the
- * boundary starts over after an import or a go-back.
+ * it, instead of a blank page that loses it. The boundary is keyed by a count
+ * of go-backs, so it starts over with the restored project. It is not keyed by
+ * `replacements`: an import would then remount the whole view, and the focus
+ * that `handleReplaceProject` moves to New Task would land on an unmounted input.
  */
 export function Planner({ initialProject: givenProject, initialSelection }: PlannerProps = {}) {
   const state = useProject(givenProject ?? initialProject, initialSelection);
-  const { project, previousProject, restorePreviousProject, replacements } = state;
+  const { project, previousProject, restorePreviousProject } = state;
+  const [goBacks, setGoBacks] = useState(0);
+  const handleGoBack = useCallback(() => {
+    restorePreviousProject();
+    setGoBacks((count) => count + 1);
+  }, [restorePreviousProject]);
   const handleError = useCallback(
     (error: unknown, componentStack: string) => {
       logRenderCrash(project, error, componentStack);
@@ -71,14 +78,14 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
 
   return (
     <RenderErrorBoundary
-      key={replacements}
+      key={goBacks}
       onError={handleError}
       fallback={(error) => (
         <RenderCrashFallback
           error={error}
           project={project}
           previousProject={previousProject}
-          onGoBack={restorePreviousProject}
+          onGoBack={handleGoBack}
         />
       )}
     >
