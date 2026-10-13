@@ -3,7 +3,7 @@ project: "Critical Path"
 version: 1
 status: draft
 created: 2026-09-26
-updated: 2026-10-12
+updated: 2026-10-13
 prd_version: 1
 main_goal: quality
 top_blocker: time
@@ -47,7 +47,7 @@ Early-stage project planning needs near-zero-friction task capture, with details
 | S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | done     |
 | S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | done     |
 | S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | proposed |
-| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | planning |
+| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | done     |
 | S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | proposed |
 | S-08 | start-new-project           | user can start a new empty project, confirming first if changes were not exported           | S-03          | FR-016                                | proposed |
 
@@ -161,7 +161,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Isolated from S-04 so calendar arithmetic edge cases (weekend base dates) don't widen the forecast slice. Lifts the S-03 import rejection of `"dayCountingMode": "weekdays"` (rule `day-counting-mode-not-supported-yet`); the file version stays `"0.1"` until M-1 closes and then becomes `"1"`; adds a golden file holding a weekdays project next to the 0.1 one.
-- **Status:** planning
+- **Status:** done
 
 ### S-07: Progress-aware forecast
 
@@ -231,3 +231,4 @@ None open. The PRD's `## Open Questions` has none; the one cross-cutting decisio
 - **S-02: user who tries to add a dependency that would create a cycle, give START a predecessor, or make a Task depend on FINISH is refused, the project stays unchanged, and the message names the rule — for a cycle, the cycle itself (e.g. A → B → C → A).** — Archived 2026-10-04 → `context/archive/2026-10-04-reject-invalid-dependencies/`. Lesson: —.
 - **S-04: user can set a START date (today if unset) and positive whole-day Durations, and sees the Resource-Unconstrained Project Finish Date (unlimited parallelism) and the Resource-Constrained Project Finish Date (no parallelism); while any not-Done Task lacks a Duration, no finish date is shown and the affected Tasks are highlighted as a Validation Warning.** — Archived 2026-10-04 → `context/archive/2026-10-04-forecast-finish-dates/`. Lesson: —.
 - **S-03: user can set the project name, export the project to a human-readable plain-text file named after it (being asked for a name if none is set), and import that file in another browser to get exactly the same project; a file containing a Validation Error is rejected with a clear error, and a file with only Validation Warnings imports and shows them.** — Archived 2026-10-11 → `context/archive/2026-10-11-project-file-round-trip/`. Lesson: —.
+- **S-06: user can choose per project whether Durations count calendar days or weekdays (Mon–Fri) only; all finish dates recalculate, a weekend base date moves to the following Monday, and the choice round-trips through the exported file.** — Archived 2026-10-13 → `context/archive/2026-10-13-weekdays-day-counting/`. Lesson: —.
