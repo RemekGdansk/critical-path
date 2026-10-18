@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { createElement } from "react";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type MockInstance, vi } from "vitest";
 
+import { installFlowJsdomShim, restoreFlowJsdomShim } from "@/components/planner/diagram/flow-jsdom-shim";
 import { Planner } from "@/components/planner/Planner";
 import { serializeProject } from "@/lib/services/project-file";
 import {
@@ -15,77 +16,13 @@ import {
 } from "@/lib/services/project";
 import type { Project } from "@/types";
 
-/** Every property the shim below replaces, restored in `afterAll` so it never outlives this file. */
-const shimmed: [object, string][] = [
-  [globalThis, "ResizeObserver"],
-  [globalThis, "DOMMatrixReadOnly"],
-  [HTMLElement.prototype, "offsetHeight"],
-  [HTMLElement.prototype, "offsetWidth"],
-  [SVGElement.prototype, "getBBox"],
-];
-let originals: (PropertyDescriptor | undefined)[] = [];
-
-/**
- * React Flow's documented jsdom shim: jsdom has no layout, so React Flow
- * measures nothing and renders no node without it. Applied in this file only.
- */
+// React Flow's jsdom shim, applied for this file only.
 beforeAll(() => {
-  originals = shimmed.map(([target, key]) => Object.getOwnPropertyDescriptor(target, key));
-
-  class ResizeObserverShim {
-    constructor(private readonly callback: ResizeObserverCallback) {}
-    // Fires once per observed element, so React Flow measures each node. React
-    // Flow 12 also reads the pane's size from `contentRect`, which the shim in
-    // its docs omits; it is taken from the shimmed offset size below.
-    observe(target: Element) {
-      const { offsetWidth: width, offsetHeight: height } = target as HTMLElement;
-      this.callback([{ target, contentRect: { width, height } } as ResizeObserverEntry], this);
-    }
-    unobserve() {
-      // Nothing to stop: the shim never observes over time.
-    }
-    disconnect() {
-      // Nothing to stop: the shim never observes over time.
-    }
-  }
-
-  class DOMMatrixReadOnlyShim {
-    m22: number;
-    constructor(transform?: string) {
-      const scale = transform?.match(/scale\(([1-9.])\)/)?.[1];
-      this.m22 = scale === undefined ? 1 : Number(scale);
-    }
-  }
-
-  globalThis.ResizeObserver = ResizeObserverShim;
-  globalThis.DOMMatrixReadOnly = DOMMatrixReadOnlyShim as unknown as typeof DOMMatrixReadOnly;
-  Object.defineProperties(HTMLElement.prototype, {
-    offsetHeight: {
-      configurable: true,
-      get(this: HTMLElement) {
-        return Number.parseFloat(this.style.height) || 1;
-      },
-    },
-    offsetWidth: {
-      configurable: true,
-      get(this: HTMLElement) {
-        return Number.parseFloat(this.style.width) || 1;
-      },
-    },
-  });
-  // On SVGElement, as React Flow's shim has it; TypeScript types getBBox on SVGGraphicsElement only.
-  Object.defineProperty(SVGElement.prototype, "getBBox", {
-    configurable: true,
-    value: () => ({ x: 0, y: 0, width: 0, height: 0 }),
-  });
+  installFlowJsdomShim();
 });
 
 afterAll(() => {
-  shimmed.forEach(([target, key], index) => {
-    const original = originals[index];
-    if (original) Object.defineProperty(target, key, original);
-    else Reflect.deleteProperty(target, key);
-  });
+  restoreFlowJsdomShim();
 });
 
 afterEach(() => {

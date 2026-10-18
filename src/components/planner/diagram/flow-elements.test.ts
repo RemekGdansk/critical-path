@@ -1,0 +1,142 @@
+import { MarkerType } from "@xyflow/react";
+import { describe, expect, it } from "vitest";
+
+import {
+  type FlowNode,
+  selectionTarget,
+  toFlowEdges,
+  toFlowNode,
+  toFlowNodes,
+} from "@/components/planner/diagram/flow-elements";
+import {
+  FINISH_NODE_ID,
+  type LaidOutDiagram,
+  type LayoutEngine,
+  layoutDiagram,
+  projectDiagram,
+  START_FINISH_NODE_SIZE,
+  START_NODE_ID,
+  TASK_NODE_SIZE,
+  withStartDate,
+} from "@/lib/services/diagram";
+import { createEmptyProject, createTask, type EditResult, setDuration } from "@/lib/services/project";
+import type { Project } from "@/types";
+
+function accepted(result: EditResult): Project {
+  if (!result.ok)
+    throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
+  return result.project;
+}
+
+/** A project with one Task per name, ids 1..n in order. */
+function projectWith(...names: string[]): Project {
+  return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
+}
+
+/** A fake engine that puts node i at column i of one row, so positions are known without a real layout. */
+const gridEngine: LayoutEngine = (request) =>
+  new Map(request.nodes.map((node, index) => [node.id, { x: index * 200, y: 10 }]));
+
+function laidOut(project: Project): LaidOutDiagram {
+  return layoutDiagram(projectDiagram(project), gridEngine);
+}
+
+function flowNodeById(nodes: readonly FlowNode[], id: string): FlowNode {
+  const node = nodes.find((candidate) => candidate.id === id);
+  if (node === undefined) throw new Error(`No node "${id}" in the diagram`);
+  return node;
+}
+
+describe("toFlowNodes", () => {
+  it("keeps the Diagram's node order, and gives each node its kind as type, its position and its size", () => {
+    const nodes = toFlowNodes(laidOut(projectWith("A")));
+
+    expect(nodes.map((node) => [node.id, node.type])).toEqual([
+      [START_NODE_ID, "start"],
+      ["1", "task"],
+      [FINISH_NODE_ID, "finish"],
+    ]);
+    expect(flowNodeById(nodes, START_NODE_ID)).toMatchObject({ position: { x: 0, y: 10 }, ...START_FINISH_NODE_SIZE });
+    expect(flowNodeById(nodes, "1")).toMatchObject({ position: { x: 200, y: 10 }, ...TASK_NODE_SIZE });
+    expect(flowNodeById(nodes, FINISH_NODE_ID)).toMatchObject({
+      position: { x: 400, y: 10 },
+      ...START_FINISH_NODE_SIZE,
+    });
+  });
+
+  it("hands the custom nodes the domain node in data.node", () => {
+    const diagram = laidOut(accepted(setDuration(projectWith("A"), 1, "5")));
+    const nodes = toFlowNodes(diagram);
+
+    for (const node of diagram.nodes) expect(flowNodeById(nodes, node.id).data.node).toEqual(node);
+    expect(flowNodeById(nodes, "1").data.node).toMatchObject({ kind: "task", taskId: 1, durationText: "5 days" });
+  });
+
+  it("leaves START to the diagram settings like a Task node; FINISH is neither focusable nor selectable", () => {
+    const nodes = toFlowNodes(laidOut(projectWith("A")));
+    expect(flowNodeById(nodes, FINISH_NODE_ID)).toMatchObject({ focusable: false, selectable: false });
+    for (const id of [START_NODE_ID, "1"]) {
+      const node = flowNodeById(nodes, id);
+      expect(node).not.toHaveProperty("focusable");
+      expect(node).not.toHaveProperty("selectable");
+    }
+  });
+
+  it("announces START and every Task as a button under its accessible name, and FINISH by its text alone", () => {
+    const nodes = toFlowNodes(laidOut(projectWith("A")));
+    expect(flowNodeById(nodes, START_NODE_ID)).toMatchObject({ ariaLabel: "START, today", ariaRole: "button" });
+    expect(flowNodeById(nodes, "1")).toMatchObject({
+      ariaLabel: "A, no Duration (Validation Warning)",
+      ariaRole: "button",
+    });
+    expect(flowNodeById(nodes, FINISH_NODE_ID)).not.toHaveProperty("ariaRole");
+    expect(flowNodeById(nodes, FINISH_NODE_ID)).not.toHaveProperty("ariaLabel");
+  });
+
+  it("names START by the date withStartDate adds, and carries the date to the node", () => {
+    const start = laidOut(createEmptyProject()).nodes.find((node) => node.kind === "start");
+    if (start === undefined) throw new Error("No START node in the diagram");
+    const dated = { ...withStartDate(start, "2030-01-07"), position: start.position };
+
+    const node = toFlowNode(dated);
+    expect(node).toMatchObject({
+      id: START_NODE_ID,
+      type: "start",
+      ariaLabel: "START, 2030-01-07",
+      data: { node: { date: "2030-01-07" } },
+    });
+  });
+
+  it("sets no selection: the Diagram applies it", () => {
+    for (const node of toFlowNodes(laidOut(projectWith("A")))) expect(node).not.toHaveProperty("selected");
+  });
+});
+
+describe("toFlowEdges", () => {
+  it("draws an empty project's one edge with a closed arrowhead, and no edge kind", () => {
+    expect(toFlowEdges(laidOut(createEmptyProject()))).toEqual([
+      { id: "start->finish", source: "start", target: "finish", markerEnd: { type: MarkerType.ArrowClosed } },
+    ]);
+  });
+
+  it("keeps the Diagram's edge ids, ends and order", () => {
+    const diagram = laidOut(projectWith("A", "B"));
+    expect(toFlowEdges(diagram).map(({ id, source, target }) => ({ id, source, target }))).toEqual(
+      diagram.edges.map(({ id, source, target }) => ({ id, source, target })),
+    );
+  });
+});
+
+describe("selectionTarget", () => {
+  const nodes = toFlowNodes(laidOut(projectWith("A", "B")));
+
+  it("selects START, or a Task by its id", () => {
+    expect(selectionTarget(flowNodeById(nodes, START_NODE_ID))).toBe("start");
+    expect(selectionTarget(flowNodeById(nodes, "2"))).toBe(2);
+  });
+
+  it("selects nothing for FINISH or for no node", () => {
+    expect(selectionTarget(flowNodeById(nodes, FINISH_NODE_ID))).toBeUndefined();
+    expect(selectionTarget(undefined)).toBeUndefined();
+  });
+});

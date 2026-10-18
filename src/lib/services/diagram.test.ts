@@ -289,3 +289,27 @@ describe("layoutDiagram", () => {
     expect(() => layoutDiagram(diagram, forgetsFinish)).toThrow('The layout engine did not position node "finish".');
   });
 });
+
+describe("createPerfProject", () => {
+  it("builds the requested number of Tasks with branches, joins and Tasks feeding FINISH", () => {
+    const project = createPerfProject();
+    expect(project.tasks.map((task) => task.id)).toEqual(Array.from({ length: 100 }, (_, index) => index + 1));
+
+    const { edges } = projectDiagram(project);
+    const outDegree = new Map<string, number>();
+    for (const edge of edges) outDegree.set(edge.source, (outDegree.get(edge.source) ?? 0) + 1);
+
+    expect(project.tasks.some((task) => task.predecessors.length > 1)).toBe(true);
+    expect([...outDegree].some(([source, count]) => source !== START_NODE_ID && count > 1)).toBe(true);
+    expect(edges.filter((edge) => edge.kind === "feeds-finish").length).toBeGreaterThan(1);
+  });
+
+  it("is deterministic", () => {
+    expect(createPerfProject()).toEqual(createPerfProject());
+    expect(createPerfProject(7).tasks).toHaveLength(7);
+  });
+
+  it("gives every Task a Duration, so the fixture forecasts", () => {
+    expect(createPerfProject().tasks.every((task) => task.duration !== undefined)).toBe(true);
+  });
+});

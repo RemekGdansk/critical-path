@@ -1,11 +1,11 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import { memo } from "react";
 
+import type { FinishNodeProps } from "@/components/planner/diagram/flow-elements";
 import { TerminalNode } from "@/components/planner/TerminalNode";
-import type { FinishNodeType } from "@/lib/services/diagram-layout";
 
 // Handles only anchor edges: never connectable, and not drawn.
-function FinishNodeComponent(_props: NodeProps<FinishNodeType>) {
+function FinishNodeComponent(_props: FinishNodeProps) {
   return (
     <TerminalNode label="FINISH" interactive={false}>
       <Handle type="target" position={Position.Left} isConnectable={false} className="opacity-0" />

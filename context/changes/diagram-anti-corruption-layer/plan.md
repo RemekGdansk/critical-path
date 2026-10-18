@@ -326,32 +326,32 @@ None: layout is never stored (`prd.md:211`), so the Project file and golden file
 
 #### Automated
 
-- [x] 2.1 diagram.ts and diagram.test.ts import no third-party package but vitest
-- [x] 2.2 Parity test passes before the rewrite, then new tests and unchanged diagram-layout.test.ts pass
-- [x] 2.3 Full gate passes
-- [x] 2.4 E2E passes unchanged
-- [x] 2.5 Selective mutation run on diagram.ts reviewed
+- [x] 2.1 diagram.ts and diagram.test.ts import no third-party package but vitest — c7b057f
+- [x] 2.2 Parity test passes before the rewrite, then new tests and unchanged diagram-layout.test.ts pass — c7b057f
+- [x] 2.3 Full gate passes — c7b057f
+- [x] 2.4 E2E passes unchanged — c7b057f
+- [x] 2.5 Selective mutation run on diagram.ts reviewed — c7b057f
 
 #### Manual
 
-- [x] 2.6 Kitchen sink layout identical to before
+- [x] 2.6 Kitchen sink layout identical to before — c7b057f
 
 ### Phase 3: React Flow adapter directory
 
 #### Automated
 
-- [ ] 3.1 @xyflow/react only under diagram/ and in global.css
-- [ ] 3.2 @dagrejs/dagre only in layout-engine.ts and its test
-- [ ] 3.3 No reference to diagram-layout remains
-- [ ] 3.4 Built CSS byte-identical to Phase 2
-- [ ] 3.5 Full gate passes
-- [ ] 3.6 E2E passes unchanged
+- [x] 3.1 @xyflow/react only under diagram/ and in global.css
+- [x] 3.2 @dagrejs/dagre only in layout-engine.ts and its test
+- [x] 3.3 No reference to diagram-layout remains
+- [x] 3.4 Built CSS byte-identical to Phase 2
+- [x] 3.5 Full gate passes
+- [x] 3.6 E2E passes unchanged
 
 #### Manual
 
-- [ ] 3.7 Kitchen sink Diagram correct in every state
-- [ ] 3.8 Keyboard selection works and FINISH is skipped
-- [ ] 3.9 Preview build loads with no CSP violation
+- [x] 3.7 Kitchen sink Diagram correct in every state
+- [x] 3.8 Keyboard selection works and FINISH is skipped
+- [x] 3.9 Preview build loads with no CSP violation
 
 ### Phase 4: Fence and records
 

@@ -1,11 +1,20 @@
-import { Background, Controls, ReactFlow, useReactFlow, type NodeMouseHandler } from "@xyflow/react";
+import { Background, Controls, ReactFlow, ReactFlowProvider, useReactFlow, type NodeMouseHandler } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, type KeyboardEvent } from "react";
 
-import { FinishNode } from "@/components/planner/FinishNode";
-import { StartNode } from "@/components/planner/StartNode";
-import { TaskNode } from "@/components/planner/TaskNode";
+import { FinishNode } from "@/components/planner/diagram/FinishNode";
+import {
+  selectionTarget,
+  toFlowEdges,
+  toFlowNode,
+  toFlowNodes,
+  type FlowEdge,
+  type FlowNode,
+} from "@/components/planner/diagram/flow-elements";
+import { StartNode } from "@/components/planner/diagram/StartNode";
+import { TaskNode } from "@/components/planner/diagram/TaskNode";
 import type { Selection } from "@/hooks/useProject";
-import { layoutDiagram, type DiagramEdge, type DiagramNode } from "@/lib/services/diagram-layout";
+import { layoutEngine } from "@/lib/adapters/layout-engine";
+import { layoutDiagram, projectDiagram, withStartDate } from "@/lib/services/diagram";
 import type { Project, TaskId } from "@/types";
 
 // Module scope: an inline object would make React Flow re-mount every node on each render.
@@ -27,45 +36,60 @@ interface DiagramProps {
 }
 
 /**
- * The laid-out project. Nodes and edges are derived, never stored: layout runs
- * only when the Tasks or the day-counting mode change, and the selection and the START date are applied
- * in a second, cheap pass.
+ * The laid-out project, drawn by React Flow. This is the composition root that
+ * pairs the domain's layoutDiagram with the layout engine, and it owns React
+ * Flow's provider, so nothing above it knows which library draws the Diagram.
  */
-export function Diagram({ project, fitKey, selection, onSelect, onEdit }: DiagramProps) {
+export function Diagram(props: DiagramProps) {
+  return (
+    // useReactFlow() in DiagramCanvas throws without a provider above it.
+    <ReactFlowProvider>
+      <DiagramCanvas {...props} />
+    </ReactFlowProvider>
+  );
+}
+
+/**
+ * Nodes and edges are derived, never stored: layout runs only when the Tasks
+ * or the day-counting mode change, and the selection and the START date are
+ * applied in a second, cheap pass.
+ */
+function DiagramCanvas({ project, fitKey, selection, onSelect, onEdit }: DiagramProps) {
   const { tasks, dayCountingMode } = project;
   // The mode is a dependency too: it sets the unit in each node's text and accessible name.
-  const diagram = useMemo(() => layoutDiagram({ tasks, dayCountingMode }), [tasks, dayCountingMode]);
+  const flow = useMemo(() => {
+    const laidOut = layoutDiagram(projectDiagram({ tasks, dayCountingMode }), layoutEngine);
+    return { nodes: toFlowNodes(laidOut), edges: toFlowEdges(laidOut) };
+  }, [tasks, dayCountingMode]);
   const startDate = project.start.date;
+  // Only START and the selected Task get new objects; every other node keeps
+  // its object, so React Flow does not adopt all of them again on each selection.
   const nodes = useMemo(
     () =>
-      diagram.nodes.map((node): DiagramNode => {
+      flow.nodes.map((node): FlowNode => {
         if (node.type === "start") {
-          return {
-            ...node,
-            data: startDate === undefined ? {} : { date: startDate },
-            ariaLabel: `START, ${startDate ?? "today"}`,
-            selected: selection === "start",
-          };
+          const start = withStartDate(node.data.node, startDate);
+          return { ...toFlowNode({ ...start, position: node.position }), selected: selection === "start" };
         }
-        return node.type === "task" && node.data.taskId === selection ? { ...node, selected: true } : node;
+        return node.type === "task" && node.data.node.taskId === selection ? { ...node, selected: true } : node;
       }),
-    [diagram, selection, startDate],
+    [flow, selection, startDate],
   );
 
   // Refit when Tasks are created or deleted, or a project is imported (which
   // may keep the same ids), not on rename or selection. React Flow queues
   // fitView until the new nodes are measured.
-  const { fitView } = useReactFlow<DiagramNode, DiagramEdge>();
+  const { fitView } = useReactFlow<FlowNode, FlowEdge>();
   const taskIdsKey = project.tasks.map((task) => task.id).join(",");
   useEffect(() => {
     void fitView();
   }, [taskIdsKey, fitKey, fitView]);
 
-  const handleNodeClick = useCallback<NodeMouseHandler<DiagramNode>>(
+  const handleNodeClick = useCallback<NodeMouseHandler<FlowNode>>(
     (_event, node) => {
       // FINISH has nothing to edit, so clicking it selects nothing.
-      if (node.type === "task") onSelect(node.data.taskId);
-      else if (node.type === "start") onSelect("start");
+      const target = selectionTarget(node);
+      if (target !== undefined) onSelect(target);
     },
     [onSelect],
   );
@@ -81,22 +105,22 @@ export function Diagram({ project, fitKey, selection, onSelect, onEdit }: Diagra
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
       if (event.key !== "Enter" && event.key !== " ") return;
-      const target = event.target;
-      if (!(target instanceof HTMLElement) || !target.classList.contains("react-flow__node")) return;
-      const node = diagram.nodes.find((candidate) => candidate.id === target.dataset.id);
-      if (node?.type !== "task" && node?.type !== "start") return;
+      const element = event.target;
+      if (!(element instanceof HTMLElement) || !element.classList.contains("react-flow__node")) return;
+      const target = selectionTarget(flow.nodes.find((candidate) => candidate.id === element.dataset.id));
+      if (target === undefined) return;
       // The panel takes focus during this keydown; without this the key would
       // type a space into the focused field or submit its form.
       event.preventDefault();
-      onEdit(node.type === "task" ? node.data.taskId : "start");
+      onEdit(target);
     },
-    [diagram, onEdit],
+    [flow, onEdit],
   );
 
   return (
-    <ReactFlow<DiagramNode, DiagramEdge>
+    <ReactFlow<FlowNode, FlowEdge>
       nodes={nodes}
-      edges={diagram.edges}
+      edges={flow.edges}
       nodeTypes={nodeTypes}
       onNodeClick={handleNodeClick}
       onPaneClick={handlePaneClick}
@@ -104,7 +128,7 @@ export function Diagram({ project, fitKey, selection, onSelect, onEdit }: Diagra
       nodesDraggable={false}
       nodesConnectable={false}
       // START and Task nodes are tab stops so they can be selected by keyboard
-      // (handleKeyDown); FINISH opts out per node in diagram-layout.
+      // (handleKeyDown); FINISH opts out per node in toFlowNode.
       nodesFocusable
       edgesFocusable={false}
       // Delete Task has no confirmation, so no key on the diagram may delete anything.
