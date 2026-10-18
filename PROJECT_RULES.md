@@ -39,6 +39,7 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 - Path alias `@/*` → `./src/*`.
 - No `"use client"` — this is not Next.js.
 - Hooks in `src/hooks/` (matches the `hooks` alias in @components.json), helpers in `src/lib/`, extracted business logic in `src/lib/services/`, shared types in `src/types.ts`.
+- Third-party diagram libraries stay in their adapters: `@dagrejs/dagre` in `src/lib/adapters/`, `@xyflow/react` in `src/components/planner/diagram/` (and its stylesheet in `global.css`); the domain speaks `Diagram`/`LaidOutDiagram` and the `LayoutEngine` port.
 - Node 24.21.0 (@.nvmrc), read by CI and by Cloudflare Workers Builds. The app has no environment variables or secrets; the only repo secret is `ROADMAP_SYNC_TOKEN`, used solely by @.github/workflows/roadmap-sync.yml.
 - GitHub Issues with the `roadmap` label are mirrored from @context/foundation/roadmap.md by `scripts/sync-roadmap.mjs` (run on push to `main`, or `node scripts/sync-roadmap.mjs --dry-run` locally). Change roadmap items in the roadmap, never in the issue title or body; the next sync overwrites them. Close a slice's issue with `Closes #N` in its PR, then mark the slice done in the roadmap.
 

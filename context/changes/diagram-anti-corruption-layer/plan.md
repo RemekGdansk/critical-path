@@ -340,27 +340,27 @@ None: layout is never stored (`prd.md:211`), so the Project file and golden file
 
 #### Automated
 
-- [x] 3.1 @xyflow/react only under diagram/ and in global.css
-- [x] 3.2 @dagrejs/dagre only in layout-engine.ts and its test
-- [x] 3.3 No reference to diagram-layout remains
-- [x] 3.4 Built CSS byte-identical to Phase 2
-- [x] 3.5 Full gate passes
-- [x] 3.6 E2E passes unchanged
+- [x] 3.1 @xyflow/react only under diagram/ and in global.css — 7b1d479
+- [x] 3.2 @dagrejs/dagre only in layout-engine.ts and its test — 7b1d479
+- [x] 3.3 No reference to diagram-layout remains — 7b1d479
+- [x] 3.4 Built CSS byte-identical to Phase 2 — 7b1d479
+- [x] 3.5 Full gate passes — 7b1d479
+- [x] 3.6 E2E passes unchanged — 7b1d479
 
 #### Manual
 
-- [x] 3.7 Kitchen sink Diagram correct in every state
-- [x] 3.8 Keyboard selection works and FINISH is skipped
-- [x] 3.9 Preview build loads with no CSP violation
+- [x] 3.7 Kitchen sink Diagram correct in every state — 7b1d479
+- [x] 3.8 Keyboard selection works and FINISH is skipped — 7b1d479
+- [x] 3.9 Preview build loads with no CSP violation — 7b1d479
 
 ### Phase 4: Fence and records
 
 #### Automated
 
-- [ ] 4.1 Lint fails on deliberate leaks and passes after revert
-- [ ] 4.2 Full gate passes
-- [ ] 4.3 E2E passes unchanged
+- [x] 4.1 Lint fails on deliberate leaks and passes after revert
+- [x] 4.2 Full gate passes
+- [x] 4.3 E2E passes unchanged
 
 #### Manual
 
-- [ ] 4.4 PROJECT_RULES.md and glossary read correctly after prettier
+- [x] 4.4 PROJECT_RULES.md and glossary read correctly after prettier
