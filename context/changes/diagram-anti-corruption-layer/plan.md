@@ -314,27 +314,27 @@ None: layout is never stored (`prd.md:211`), so the Project file and golden file
 
 #### Automated
 
-- [x] 1.1 No file imports durationUnit or formatDuration from diagram-layout
-- [x] 1.2 Full gate passes
-- [x] 1.3 E2E passes unchanged
+- [x] 1.1 No file imports durationUnit or formatDuration from diagram-layout — e7d1722
+- [x] 1.2 Full gate passes — e7d1722
+- [x] 1.3 E2E passes unchanged — e7d1722
 
 #### Manual
 
-- [x] 1.4 Kitchen sink Task nodes and Duration label read as before in both modes
+- [x] 1.4 Kitchen sink Task nodes and Duration label read as before in both modes — e7d1722
 
 ### Phase 2: Domain model, layout port and dagre adapter (test-first)
 
 #### Automated
 
-- [ ] 2.1 diagram.ts and diagram.test.ts import no third-party package but vitest
-- [ ] 2.2 Parity test passes before the rewrite, then new tests and unchanged diagram-layout.test.ts pass
-- [ ] 2.3 Full gate passes
-- [ ] 2.4 E2E passes unchanged
-- [ ] 2.5 Selective mutation run on diagram.ts reviewed
+- [x] 2.1 diagram.ts and diagram.test.ts import no third-party package but vitest
+- [x] 2.2 Parity test passes before the rewrite, then new tests and unchanged diagram-layout.test.ts pass
+- [x] 2.3 Full gate passes
+- [x] 2.4 E2E passes unchanged
+- [x] 2.5 Selective mutation run on diagram.ts reviewed
 
 #### Manual
 
-- [ ] 2.6 Kitchen sink layout identical to before
+- [x] 2.6 Kitchen sink layout identical to before
 
 ### Phase 3: React Flow adapter directory
 
