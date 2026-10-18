@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   type DiagramNode,
   FINISH_NODE_ID,
-  formatDuration,
   layoutDiagram,
   RANK_SEPARATION,
   START_FINISH_NODE_HEIGHT,
@@ -185,15 +184,6 @@ describe("layoutDiagram projection", () => {
       ariaLabel: "A, 5 weekdays",
     });
     expect(nodeById(nodes, "2")).toMatchObject({ ariaLabel: "B, 1 weekday" });
-  });
-
-  it("formats Durations in days or weekdays, by the mode", () => {
-    expect([1, 2, 30].map((days) => formatDuration(days, "calendar-days"))).toEqual(["1 day", "2 days", "30 days"]);
-    expect([1, 2, 30].map((days) => formatDuration(days, "weekdays"))).toEqual([
-      "1 weekday",
-      "2 weekdays",
-      "30 weekdays",
-    ]);
   });
 
   it("does not mutate the project", () => {

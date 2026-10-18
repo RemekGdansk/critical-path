@@ -7,6 +7,7 @@
 import { Graph, layout, type EdgeLabel, type GraphLabel, type NodeLabel } from "@dagrejs/dagre";
 import type { Edge as FlowEdge, Node } from "@xyflow/react";
 
+import { formatDuration } from "@/lib/services/duration";
 import { validationWarnings } from "@/lib/services/validation-warnings";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
@@ -45,17 +46,6 @@ const LAYOUT: GraphLabel = { rankdir: "LR", nodesep: 40, ranksep: RANK_SEPARATIO
 
 function taskNodeId(taskId: TaskId): string {
   return String(taskId);
-}
-
-/** The unit a Duration counts in, singular: "day" in calendar-days mode, "weekday" in weekdays mode. */
-export function durationUnit(mode: DayCountingMode): string {
-  return mode === "weekdays" ? "weekday" : "day";
-}
-
-/** "1 day", "5 days" in calendar-days mode; "1 weekday", "5 weekdays" in weekdays mode. */
-export function formatDuration(days: number, mode: DayCountingMode): string {
-  const unit = durationUnit(mode);
-  return days === 1 ? `1 ${unit}` : `${days} ${unit}s`;
 }
 
 function taskAriaLabel(task: Task, durationMissing: boolean, mode: DayCountingMode): string {

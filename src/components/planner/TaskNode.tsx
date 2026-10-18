@@ -2,7 +2,8 @@ import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { TriangleAlertIcon } from "lucide-react";
 import { memo } from "react";
 
-import { formatDuration, type TaskNodeType } from "@/lib/services/diagram-layout";
+import type { TaskNodeType } from "@/lib/services/diagram-layout";
+import { formatDuration } from "@/lib/services/duration";
 import { cn } from "@/lib/utils";
 
 // Handles only anchor edges: never connectable, and not drawn.

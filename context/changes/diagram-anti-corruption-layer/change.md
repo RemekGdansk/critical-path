@@ -1,7 +1,7 @@
 ---
 change_id: diagram-anti-corruption-layer
 title: Diagram anti corruption layer
-status: plan_reviewed
+status: implementing
 created: 2026-10-18
 updated: 2026-10-18
 archived_at: null

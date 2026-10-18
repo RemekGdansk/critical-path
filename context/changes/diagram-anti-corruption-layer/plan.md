@@ -314,13 +314,13 @@ None: layout is never stored (`prd.md:211`), so the Project file and golden file
 
 #### Automated
 
-- [ ] 1.1 No file imports durationUnit or formatDuration from diagram-layout
-- [ ] 1.2 Full gate passes
-- [ ] 1.3 E2E passes unchanged
+- [x] 1.1 No file imports durationUnit or formatDuration from diagram-layout
+- [x] 1.2 Full gate passes
+- [x] 1.3 E2E passes unchanged
 
 #### Manual
 
-- [ ] 1.4 Kitchen sink Task nodes and Duration label read as before in both modes
+- [x] 1.4 Kitchen sink Task nodes and Duration label read as before in both modes
 
 ### Phase 2: Domain model, layout port and dagre adapter (test-first)
 
