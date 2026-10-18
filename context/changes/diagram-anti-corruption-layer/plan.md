@@ -357,10 +357,10 @@ None: layout is never stored (`prd.md:211`), so the Project file and golden file
 
 #### Automated
 
-- [x] 4.1 Lint fails on deliberate leaks and passes after revert
-- [x] 4.2 Full gate passes
-- [x] 4.3 E2E passes unchanged
+- [x] 4.1 Lint fails on deliberate leaks and passes after revert — 639b48c
+- [x] 4.2 Full gate passes — 639b48c
+- [x] 4.3 E2E passes unchanged — 639b48c
 
 #### Manual
 
-- [x] 4.4 PROJECT_RULES.md and glossary read correctly after prettier
+- [x] 4.4 PROJECT_RULES.md and glossary read correctly after prettier — 639b48c
