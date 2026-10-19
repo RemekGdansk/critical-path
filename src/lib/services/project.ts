@@ -2,7 +2,9 @@
 // either the new project or the Validation Error the edit would create; the
 // input project is never mutated, so a rejected edit leaves it as it was.
 // Which Validation Errors a project holds is decided by one rule list,
-// `TASK_CHECKS` and `PROJECT_CHECKS` at the end of this module.
+// `TASK_CHECKS` and `PROJECT_CHECKS` at the end of this module. Only this module
+// mints a `CheckedProject`: through an accepted edit, `createEmptyProject`, or
+// the two doors for a project no edit built, `checkProject` and `toCheckedProject`.
 import { isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { cyclePathFor, findCycle } from "@/lib/services/task-graph";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
@@ -33,7 +35,15 @@ export interface ValidationError {
   message: string;
 }
 
-export type EditResult = { ok: true; project: Project } | { ok: false; error: ValidationError };
+declare const checked: unique symbol;
+
+/**
+ * A Project the guardian found free of Validation Errors. Only this module mints one.
+ * Limit: the brand survives a spread, so `{ ...project, tasks }` still type-checks as checked.
+ */
+export type CheckedProject = Project & { readonly [checked]: true };
+
+export type EditResult = { ok: true; project: CheckedProject } | { ok: false; error: ValidationError };
 
 /** Words a rule's message for the edit that broke it; undefined keeps the rule's own message. */
 type Explanations = Partial<Record<ValidationErrorRule, () => string | undefined>>;
@@ -44,10 +54,10 @@ type Explanations = Partial<Record<ValidationErrorRule, () => string | undefined
  * edit held no Validation Error, so the first one the candidate holds is the
  * edit's doing. Throws ProjectInvariantBreach on a broken model shape.
  */
-function accept(candidate: Project, explain?: Explanations): EditResult {
+function accept(candidate: Project, explain?: Explanations, wording: Wording = "edit"): EditResult {
   assertModelShape(candidate);
-  const error = firstValidationError(candidate, "edit");
-  if (error === undefined) return { ok: true, project: candidate };
+  const error = firstValidationError(candidate, wording);
+  if (error === undefined) return { ok: true, project: candidate as CheckedProject };
   return rejectWith({ ...error, message: explain?.[error.rule]?.() ?? error.message });
 }
 
@@ -142,16 +152,31 @@ function replaceTask(project: Project, updated: Task): Project {
   return { ...project, tasks: project.tasks.map((task) => (task.id === updated.id ? updated : task)) };
 }
 
-export function createEmptyProject(): Project {
-  return { start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId: 1, tasks: [] };
+export function createEmptyProject(): CheckedProject {
+  return toCheckedProject({ start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId: 1, tasks: [] });
 }
 
-export function createTask(project: Project, name: string): EditResult {
+/**
+ * Import's door: the guardian on a project no edit built, in file wording.
+ * Throws ProjectInvariantBreach on a broken model shape.
+ */
+export function checkProject(project: Project): EditResult {
+  return accept(project, undefined, "file");
+}
+
+/** For hand-built fixtures: throws ProjectInvariantBreach unless the guardian accepts the project. */
+export function toCheckedProject(project: Project): CheckedProject {
+  const result = checkProject(project);
+  if (!result.ok) throw new ProjectInvariantBreach(result.error);
+  return result.project;
+}
+
+export function createTask(project: CheckedProject, name: string): EditResult {
   const task: Task = { id: project.nextTaskId, name: name.trim(), predecessors: [], status: "to-do" };
   return accept({ ...project, nextTaskId: project.nextTaskId + 1, tasks: [...project.tasks, task] });
 }
 
-export function renameTask(project: Project, taskId: TaskId, name: string): EditResult {
+export function renameTask(project: CheckedProject, taskId: TaskId, name: string): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
 
@@ -163,7 +188,7 @@ export function renameTask(project: Project, taskId: TaskId, name: string): Edit
  * predecessors are not bridged to its successors, and `nextTaskId` is kept so
  * the id is never reused.
  */
-export function deleteTask(project: Project, taskId: TaskId): EditResult {
+export function deleteTask(project: CheckedProject, taskId: TaskId): EditResult {
   if (findTask(project, taskId) === undefined) return unknownTask(taskId);
 
   const tasks = project.tasks
@@ -176,7 +201,7 @@ export function deleteTask(project: Project, taskId: TaskId): EditResult {
   return accept({ ...project, tasks });
 }
 
-export function addPredecessor(project: Project, taskId: TaskId, predecessorId: TaskId): EditResult {
+export function addPredecessor(project: CheckedProject, taskId: TaskId, predecessorId: TaskId): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
   const predecessor = findTask(project, predecessorId);
@@ -195,7 +220,7 @@ export function addPredecessor(project: Project, taskId: TaskId, predecessorId: 
   });
 }
 
-export function removePredecessor(project: Project, taskId: TaskId, predecessorId: TaskId): EditResult {
+export function removePredecessor(project: CheckedProject, taskId: TaskId, predecessorId: TaskId): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
   if (!task.predecessors.includes(predecessorId)) return accept(project);
@@ -206,7 +231,7 @@ export function removePredecessor(project: Project, taskId: TaskId, predecessorI
 }
 
 /** Sets the project name, trimmed, under the project name rules (the Task name rules, worded for the project); empty input clears it by removing the field. */
-export function setProjectName(project: Project, input: string): EditResult {
+export function setProjectName(project: CheckedProject, input: string): EditResult {
   const trimmed = input.trim();
   if (trimmed === "") {
     const cleared = { ...project };
@@ -231,7 +256,7 @@ const DIGITS_ONLY = /^[0-9]+$/;
  * only, a positive whole number of days. Empty input clears the Duration,
  * which is allowed and raises a Validation Warning instead.
  */
-export function setDuration(project: Project, taskId: TaskId, input: string): EditResult {
+export function setDuration(project: CheckedProject, taskId: TaskId, input: string): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
 
@@ -247,7 +272,7 @@ export function setDuration(project: Project, taskId: TaskId, input: string): Ed
 }
 
 /** Sets the START date from an ISO date (yyyy-mm-dd); empty input clears it, so the forecast starts from today. */
-export function setStartDate(project: Project, input: string): EditResult {
+export function setStartDate(project: CheckedProject, input: string): EditResult {
   const trimmed = input.trim();
   if (trimmed === "") {
     const start = { ...project.start };
@@ -265,7 +290,7 @@ export function isDayCountingMode(value: string): value is DayCountingMode {
 }
 
 /** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project. */
-export function setDayCountingMode(project: Project, mode: DayCountingMode): EditResult {
+export function setDayCountingMode(project: CheckedProject, mode: DayCountingMode): EditResult {
   if (project.dayCountingMode === mode) return accept(project);
   return accept({ ...project, dayCountingMode: mode });
 }

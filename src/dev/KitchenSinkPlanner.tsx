@@ -9,6 +9,7 @@ import { Planner } from "@/components/planner/Planner";
 import type { Selection } from "@/hooks/useProject";
 import {
   addPredecessor,
+  type CheckedProject,
   createEmptyProject,
   createTask,
   type EditResult,
@@ -17,9 +18,9 @@ import {
   setProjectName,
   setStartDate,
 } from "@/lib/services/project";
-import type { Project, TaskId } from "@/types";
+import type { TaskId } from "@/types";
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Fixture edit was rejected (${result.error.rule}): ${result.error.message}`);
   return result.project;
 }
@@ -34,7 +35,7 @@ const WRITE_DOCS: TaskId = 4;
  * docs (2): every other Task depends on Design. No START date, so it forecasts
  * from today.
  */
-function smallProject(): Project {
+function smallProject(): CheckedProject {
   let project = accepted(setProjectName(createEmptyProject(), "Website relaunch"));
   for (const name of ["Design", "Build", "Test", "Write docs"]) project = accepted(createTask(project, name));
   project = accepted(addPredecessor(project, BUILD, DESIGN));
@@ -52,17 +53,17 @@ function smallProject(): Project {
 }
 
 /** Design alone: no other Task can become its predecessor. */
-function onlyTaskProject(): Project {
+function onlyTaskProject(): CheckedProject {
   return accepted(createTask(createEmptyProject(), "Design"));
 }
 
 /** The small project with Test's Duration cleared: a Validation Warning withholds the forecast. */
-function warnedProject(): Project {
+function warnedProject(): CheckedProject {
   return accepted(setDuration(smallProject(), TEST, ""));
 }
 
 /** The small project with a START date fixed in the past, so the forecast starts from today. */
-function pastStartProject(): Project {
+function pastStartProject(): CheckedProject {
   return accepted(setStartDate(smallProject(), "2020-01-01"));
 }
 
@@ -70,7 +71,7 @@ function pastStartProject(): Project {
  * The small project counting weekdays, with START on Saturday 2999-01-05 (far
  * ahead of any real today): the forecast moves it to Monday 2999-01-07.
  */
-function weekdaysWeekendStartProject(): Project {
+function weekdaysWeekendStartProject(): CheckedProject {
   return accepted(setStartDate(accepted(setDayCountingMode(smallProject(), "weekdays")), "2999-01-05"));
 }
 
@@ -82,7 +83,8 @@ function weekdaysWeekendStartProject(): Project {
  * Planner shows its render crash fallback, as after the long imported chain of
  * observability audit A1.
  */
-function renderCrashProject(): Project {
+function renderCrashProject(): CheckedProject {
+  // A cast, not toCheckedProject: the guardian would refuse the cycle this fixture exists to hold.
   return {
     name: "Cyclic plan",
     start: {},
@@ -93,7 +95,7 @@ function renderCrashProject(): Project {
       { id: 1, name: "A", predecessors: [2], duration: 5, status: "to-do" },
       { id: 2, name: "B", predecessors: [1], duration: 3, status: "to-do" },
     ],
-  };
+  } as CheckedProject;
 }
 
 const FIXTURES = {
@@ -110,7 +112,7 @@ const FIXTURES = {
   empty: { project: createEmptyProject, initialSelection: null },
   /** A cyclic project the render throws on: the crash fallback, with nothing to go back to. */
   "render-crash": { project: renderCrashProject, initialSelection: null },
-} satisfies Record<string, { project: () => Project; initialSelection: Selection }>;
+} satisfies Record<string, { project: () => CheckedProject; initialSelection: Selection }>;
 
 export type KitchenSinkFixture = keyof typeof FIXTURES;
 

@@ -5,8 +5,8 @@
 import { useCallback, useRef, useState } from "react";
 
 import * as edits from "@/lib/services/project";
-import type { EditResult } from "@/lib/services/project";
-import type { DayCountingMode, Project, Task, TaskId } from "@/types";
+import type { CheckedProject, EditResult } from "@/lib/services/project";
+import type { DayCountingMode, Task, TaskId } from "@/types";
 
 /** What the side panel edits: a Task, START, or nothing. */
 export type Selection = TaskId | "start" | null;
@@ -23,10 +23,10 @@ export interface ProjectActions {
   setDayCountingMode: (mode: DayCountingMode) => EditResult;
   setProjectName: (input: string) => EditResult;
   /**
-   * Replaces the whole project and selects nothing. Takes only a project that
-   * `parseProjectFile` accepted: the hook does not validate it again.
+   * Replaces the whole project and selects nothing. Takes a `CheckedProject`,
+   * such as one `parseProjectFile` accepted or a new empty project.
    */
-  replaceProject: (project: Project) => void;
+  replaceProject: (project: CheckedProject) => void;
   /**
    * Commits `previousProject` again, clears it, selects nothing and counts as a
    * replacement. A no-op when there is no previous project.
@@ -35,7 +35,7 @@ export interface ProjectActions {
 }
 
 export interface ProjectState extends ProjectActions {
-  project: Project;
+  project: CheckedProject;
   /** As selected: a deleted Task's id is kept here, and `selectedTask` resolves it to undefined. */
   selection: Selection;
   /** The selected Task, or undefined when none is selected or the selected one was deleted. */
@@ -46,15 +46,18 @@ export interface ProjectState extends ProjectActions {
    * The project the latest accepted edit or replacement superseded. Undefined until
    * the first commit and after a restore; a rejected edit leaves it unchanged.
    */
-  previousProject: Project | undefined;
+  previousProject: CheckedProject | undefined;
 }
 
 /**
  * `initial` may be a lazy initializer, as with `useState`, so a costly project is built once.
  * `initialSelection` is what is selected on first render; nothing by default.
  */
-export function useProject(initial?: Project | (() => Project), initialSelection: Selection = null): ProjectState {
-  const [project, setProject] = useState<Project>(initial ?? edits.createEmptyProject);
+export function useProject(
+  initial?: CheckedProject | (() => CheckedProject),
+  initialSelection: Selection = null,
+): ProjectState {
+  const [project, setProject] = useState<CheckedProject>(initial ?? edits.createEmptyProject);
   // Stored as given and resolved on read: a deleted Task simply resolves to
   // "nothing selected", and a START selection survives every Task edit.
   const [selection, setSelection] = useState<Selection>(initialSelection);
@@ -64,12 +67,12 @@ export function useProject(initial?: Project | (() => Project), initialSelection
   const [replacements, setReplacements] = useState(0);
   // The project the latest commit superseded, mirrored in a ref for the same
   // reason as `latest`: a restore reads it in the event that calls it.
-  const [previousProject, setPreviousProject] = useState<Project | undefined>(undefined);
-  const previous = useRef<Project | undefined>(undefined);
+  const [previousProject, setPreviousProject] = useState<CheckedProject | undefined>(undefined);
+  const previous = useRef<CheckedProject | undefined>(undefined);
 
   // Every commit goes through here, recording what it supersedes before
   // overwriting `latest`.
-  const commit = useCallback((next: Project, superseded: Project | undefined) => {
+  const commit = useCallback((next: CheckedProject, superseded: CheckedProject | undefined) => {
     previous.current = superseded;
     setPreviousProject(superseded);
     latest.current = next;
@@ -77,7 +80,7 @@ export function useProject(initial?: Project | (() => Project), initialSelection
   }, []);
 
   const apply = useCallback(
-    (edit: (current: Project) => EditResult): EditResult => {
+    (edit: (current: CheckedProject) => EditResult): EditResult => {
       const result = edit(latest.current);
       if (result.ok) commit(result.project, latest.current);
       return result;
@@ -121,7 +124,7 @@ export function useProject(initial?: Project | (() => Project), initialSelection
   // Commits through the latest ref like every edit. The selection is cleared,
   // not kept: a stored Task id would resolve to an unrelated imported Task.
   const replaceProject = useCallback(
-    (replacement: Project) => {
+    (replacement: CheckedProject) => {
       commit(replacement, latest.current);
       setSelection(null);
       setReplacements((count) => count + 1);

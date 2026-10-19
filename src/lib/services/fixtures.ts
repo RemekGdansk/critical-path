@@ -1,12 +1,19 @@
 // Deterministic projects for tests and the dev-only 200 ms check. Built only
 // through the edit functions, so a fixture never holds a Validation Error.
-import { addPredecessor, createEmptyProject, createTask, type EditResult, setDuration } from "@/lib/services/project";
-import type { Project, TaskId } from "@/types";
+import {
+  addPredecessor,
+  type CheckedProject,
+  createEmptyProject,
+  createTask,
+  type EditResult,
+  setDuration,
+} from "@/lib/services/project";
+import type { TaskId } from "@/types";
 
 // Tasks per layer, repeated until the Task count is reached.
 const LAYER_SIZES = [3, 5, 4, 6, 5, 7, 4, 6, 5, 3];
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Fixture edit was rejected (${result.error.rule}): ${result.error.message}`);
   return result.project;
 }
@@ -18,7 +25,7 @@ function accepted(result: EditResult): Project {
  * every fifth one also on a Task two layers back (links that skip a layer).
  * Every Task has a Duration of 1–5 days, so the project forecasts.
  */
-export function createPerfProject(taskCount = 100): Project {
+export function createPerfProject(taskCount = 100): CheckedProject {
   let project = createEmptyProject();
   const layers: TaskId[][] = [];
 

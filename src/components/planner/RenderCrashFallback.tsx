@@ -29,7 +29,7 @@ function describeError(error: unknown): string {
  * import-parser bug could produce) yields the checker's own error, shown in
  * the alert, instead of blanking the page.
  */
-function checkProject(
+function inspectCrashedProject(
   project: Project,
 ): { validationError: ReturnType<typeof validateProject> } | { checkError: unknown } {
   try {
@@ -43,7 +43,7 @@ function checkProject(
  * Shown in place of the planner after a render throw. The project is still in
  * memory, so it stays one click from a file and, when there is one, the
  * previous project one click from the planner. Renders nothing that derives
- * from the project beyond its serialization and `checkProject`.
+ * from the project beyond its serialization and `inspectCrashedProject`.
  */
 export function RenderCrashFallback({ error, project, previousProject, onGoBack }: RenderCrashFallbackProps) {
   const exportRef = useRef<HTMLButtonElement>(null);
@@ -52,7 +52,7 @@ export function RenderCrashFallback({ error, project, previousProject, onGoBack 
     exportRef.current?.focus();
   }, []);
 
-  const check = checkProject(project);
+  const check = inspectCrashedProject(project);
 
   function handleExport() {
     const fileName = project.name === undefined ? RECOVERED_FILE_NAME : projectFileName(project.name);

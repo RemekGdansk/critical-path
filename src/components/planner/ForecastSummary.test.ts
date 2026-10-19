@@ -6,6 +6,7 @@ import { ForecastSummary } from "@/components/planner/ForecastSummary";
 import { forecast } from "@/lib/services/forecast";
 import {
   addPredecessor,
+  type CheckedProject,
   createEmptyProject,
   createTask,
   type EditResult,
@@ -13,15 +14,15 @@ import {
   setDuration,
   setStartDate,
 } from "@/lib/services/project";
-import type { DayCountingMode, Project, TaskId } from "@/types";
+import type { DayCountingMode, TaskId } from "@/types";
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
   return result.project;
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
-function withDependencies(project: Project, ...pairs: [TaskId, TaskId][]): Project {
+function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
     (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
     project,
@@ -29,7 +30,7 @@ function withDependencies(project: Project, ...pairs: [TaskId, TaskId][]): Proje
 }
 
 /** US-02 AC 1: START 2026-09-01, A (5) → B (3) → C (2) and A → D → C, with D (id 4) not yet estimated. */
-function us02WithoutDDuration(): Project {
+function us02WithoutDDuration(): CheckedProject {
   const chain: [string, string][] = [
     ["A", "5"],
     ["B", "3"],
@@ -44,13 +45,13 @@ function us02WithoutDDuration(): Project {
 }
 
 /** A (id 1, 5 days or weekdays) alone, in the given mode. */
-function singleTask(mode: DayCountingMode): Project {
+function singleTask(mode: DayCountingMode): CheckedProject {
   const withA = accepted(createTask(createEmptyProject(), "A"));
   return accepted(setDayCountingMode(accepted(setDuration(withA, 1, "5")), mode));
 }
 
 /** The static markup of `ForecastSummary` for the project, forecast as of `today` (by default 2026-08-20, before START). */
-function renderedMarkup(project: Project, today = "2026-08-20"): string {
+function renderedMarkup(project: CheckedProject, today = "2026-08-20"): string {
   return renderToStaticMarkup(
     createElement(ForecastSummary, {
       forecast: forecast(project, today),

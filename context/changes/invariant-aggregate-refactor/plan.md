@@ -427,29 +427,29 @@ No data migration. The file format and version (`"0.1"`) are unchanged, and ever
 
 #### Automated
 
-- [x] 3.1 Domain and hook tests pass with the forged-project and breach tests added
-- [x] 3.2 No checkName, isPositiveWholeDays or isIsoDate call remains inside an edit function
-- [x] 3.3 Full gate passes
-- [x] 3.4 E2E passes, including the unchanged import alert text
+- [x] 3.1 Domain and hook tests pass with the forged-project and breach tests added — 0b06ea3
+- [x] 3.2 No checkName, isPositiveWholeDays or isIsoDate call remains inside an edit function — 0b06ea3
+- [x] 3.3 Full gate passes — 0b06ea3
+- [x] 3.4 E2E passes, including the unchanged import alert text — 0b06ea3
 
 #### Manual
 
-- [x] 3.5 One edit on the 100-Task project is measured and recorded in change.md Notes
-- [x] 3.6 A rejected edit in each panel shows the same message as before the change
+- [x] 3.5 One edit on the 100-Task project is measured and recorded in change.md Notes — 0b06ea3
+- [x] 3.6 A rejected edit in each panel shows the same message as before the change — 0b06ea3
 
 ### Phase 4: Seal the entry points
 
 #### Automated
 
-- [ ] 4.1 Type check passes, including the @ts-expect-error lines
-- [ ] 4.2 Lint passes, and a temporary as CheckedProject in a view and in the hook makes lint fail
-- [ ] 4.3 Full gate passes
-- [ ] 4.4 E2E passes
+- [x] 4.1 Type check passes, including the @ts-expect-error lines
+- [x] 4.2 Lint passes, and a temporary as CheckedProject in a view and in the hook makes lint fail
+- [x] 4.3 Full gate passes
+- [x] 4.4 E2E passes
 
 #### Manual
 
-- [ ] 4.5 The kitchen sink shows every fixture as before, including the render-crash fallback
-- [ ] 4.6 ?fixture=perf100 still loads the 100-Task project
+- [x] 4.5 The kitchen sink shows every fixture as before, including the render-crash fallback
+- [x] 4.6 ?fixture=perf100 still loads the 100-Task project
 
 ### Phase 5: Id ceiling and docs
 

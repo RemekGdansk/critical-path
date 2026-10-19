@@ -19,17 +19,23 @@ import {
   TASK_NODE_SIZE,
   withStartDate,
 } from "@/lib/services/diagram";
-import { createEmptyProject, createTask, type EditResult, setDuration } from "@/lib/services/project";
+import {
+  type CheckedProject,
+  createEmptyProject,
+  createTask,
+  type EditResult,
+  setDuration,
+} from "@/lib/services/project";
 import type { Project } from "@/types";
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
     throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
   return result.project;
 }
 
 /** A project with one Task per name, ids 1..n in order. */
-function projectWith(...names: string[]): Project {
+function projectWith(...names: string[]): CheckedProject {
   return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
 }
 

@@ -7,6 +7,7 @@ import { installFlowJsdomShim, restoreFlowJsdomShim } from "@/components/planner
 import { Planner } from "@/components/planner/Planner";
 import { serializeProject } from "@/lib/services/project-file";
 import {
+  type CheckedProject,
   createEmptyProject,
   createTask,
   type EditResult,
@@ -14,7 +15,6 @@ import {
   setStartDate,
   validateProject,
 } from "@/lib/services/project";
-import type { Project } from "@/types";
 
 // React Flow's jsdom shim, applied for this file only.
 beforeAll(() => {
@@ -29,7 +29,7 @@ afterEach(() => {
   cleanup();
 });
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
     throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
   return result.project;
@@ -38,7 +38,7 @@ function accepted(result: EditResult): Project {
 const A_ID = 1;
 
 /** START 2999-01-01 (far ahead of any real today), A (id 1, 5 days) and B (id 2, 3 days), independent. */
-function fixture(): Project {
+function fixture(): CheckedProject {
   const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), A_ID, "5"));
   const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, "3"));
   return accepted(setStartDate(withB, "2999-01-01"));
@@ -152,8 +152,9 @@ describe("Planner: the forecast follows the committed project", () => {
  * through the edit functions, which would reject the cycle: it stands for a
  * project that makes a render throw (`forecast()` throws "The project contains
  * a cycle." for it), the way a too-long imported chain does in the browser.
+ * Cast, not `toCheckedProject`: the guardian would refuse the cycle it exists to hold.
  */
-function cyclicProject(name: string | undefined): Project {
+function cyclicProject(name: string | undefined): CheckedProject {
   return {
     ...(name === undefined ? {} : { name }),
     start: { date: "2999-01-01" },
@@ -164,7 +165,7 @@ function cyclicProject(name: string | undefined): Project {
       { id: 1, name: "A", predecessors: [2], duration: 5, status: "to-do" },
       { id: 2, name: "B", predecessors: [1], duration: 3, status: "to-do" },
     ],
-  };
+  } as CheckedProject;
 }
 
 describe("Planner: a render crash keeps the project exportable", () => {
@@ -210,7 +211,7 @@ describe("Planner: a render crash keeps the project exportable", () => {
     });
   });
 
-  function renderCrashing(project: Project): void {
+  function renderCrashing(project: CheckedProject): void {
     render(createElement<NonNullable<Parameters<typeof Planner>[0]>>(Planner, { initialProject: project }));
   }
 
@@ -254,7 +255,7 @@ describe("Planner: a render crash keeps the project exportable", () => {
     // A shape no Project type allows (a Task name that is not a string), as only
     // an import-parser bug could produce: `validateProject` itself throws on it.
     const malformed = cyclicProject("Malformed plan");
-    const project: Project = {
+    const project: CheckedProject = {
       ...malformed,
       tasks: malformed.tasks.map((task) => (task.id === 1 ? { ...task, name: null as unknown as string } : task)),
     };

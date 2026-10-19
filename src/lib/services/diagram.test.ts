@@ -20,6 +20,7 @@ import {
 import { createPerfProject } from "@/lib/services/fixtures";
 import {
   addPredecessor,
+  type CheckedProject,
   createEmptyProject,
   createTask,
   deleteTask,
@@ -28,19 +29,19 @@ import {
 } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
     throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
   return result.project;
 }
 
 /** A project with one Task per name, ids 1..n in order. */
-function projectWith(...names: string[]): Project {
+function projectWith(...names: string[]): CheckedProject {
   return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
-function withDependencies(project: Project, ...pairs: [TaskId, TaskId][]): Project {
+function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
     (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
     project,

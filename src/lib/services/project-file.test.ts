@@ -5,6 +5,7 @@ import { createPerfProject } from "@/lib/services/fixtures";
 import { forecast } from "@/lib/services/forecast";
 import {
   addPredecessor,
+  type CheckedProject,
   createEmptyProject,
   createTask,
   deleteTask,
@@ -71,14 +72,14 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
     throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
   return result.project;
 }
 
 /** The imported project; the forecast must not throw on it, since the planner runs it during render. */
-function imported(result: ImportResult): Project {
+function imported(result: ImportResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the import to succeed, got ${result.error.rule}: ${result.error.message}`);
   expect(() => forecast(result.project, TODAY)).not.toThrow();
   return result.project;
@@ -92,12 +93,12 @@ function expectRejected(result: ImportResult, rule: ValidationErrorRule | Projec
 }
 
 /** A project with one Task per name, ids 1..n in order. */
-function projectWith(...names: string[]): Project {
+function projectWith(...names: string[]): CheckedProject {
   return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
-function withDependencies(project: Project, ...pairs: [TaskId, TaskId][]): Project {
+function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
     (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
     project,
@@ -217,7 +218,7 @@ describe("serializeProject", () => {
 
 describe("export then import", () => {
   /** Every US-03 field the model can hold before S-07 but the day-counting mode (its own case below): name, START date, Durations, a cleared one, a deleted id. */
-  function fullProject(): Project {
+  function fullProject(): CheckedProject {
     let project = withDependencies(
       projectWith("Design", "Build", "Write copy", "Review", "Launch"),
       [1, 2],

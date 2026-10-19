@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { type ProjectState, useProject } from "@/hooks/useProject";
 import {
   addPredecessor,
+  type CheckedProject,
   createEmptyProject,
   createTask,
   type EditResult,
@@ -15,6 +16,7 @@ import {
   TASK_NAME_MAX_LENGTH,
   type ValidationErrorRule,
 } from "@/lib/services/project";
+import { parseProjectFile, serializeProject } from "@/lib/services/project-file";
 import type { Project } from "@/types";
 
 afterEach(() => {
@@ -29,14 +31,14 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
     throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
   return result.project;
 }
 
 /** "Q3 plan", START 2026-09-01, A (id 1, 5 days) → B (id 2, 3 days); deep-frozen, so any write throws. */
-function fixture(): Project {
+function fixture(): CheckedProject {
   const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), 1, "5"));
   const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, "3"));
   const dependent = accepted(addPredecessor(withB, 2, 1));
@@ -314,5 +316,31 @@ describe("useProject: the previous project", () => {
     expect(result.current.selection).toBe(1);
     expect(result.current.replacements).toBe(0);
     expect(result.current.previousProject).toBeUndefined();
+  });
+});
+
+describe("useProject: only a checked project gets in", () => {
+  // The doors are closed by type, so `npx astro check` is the assertion here:
+  // each @ts-expect-error fails the type check if the line after it compiles.
+  const plain: Project = { start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId: 1, tasks: [] };
+
+  it("takes a parsed file or a new empty project, never a plain Project", () => {
+    // @ts-expect-error -- a plain Project is not checked
+    renderHook(() => useProject(plain));
+    const { result } = renderHook(() => useProject());
+    const parsed = parseProjectFile(serializeProject(fixture()));
+    if (!parsed.ok) throw new Error(`Expected the fixture to import, got ${parsed.error.rule}`);
+
+    act(() => {
+      result.current.replaceProject(parsed.project);
+    });
+    act(() => {
+      result.current.replaceProject(createEmptyProject());
+    });
+    act(() => {
+      // @ts-expect-error -- a plain Project is not checked
+      result.current.replaceProject(plain);
+    });
+    expect(result.current.replacements).toBe(3);
   });
 });

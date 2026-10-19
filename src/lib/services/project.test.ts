@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { createPerfProject } from "@/lib/services/fixtures";
 import {
   addPredecessor,
+  type CheckedProject,
+  checkProject,
   createEmptyProject,
   createTask,
   deleteTask,
@@ -18,6 +20,7 @@ import {
   setStartDate,
   TASK_NAME_MAX_LENGTH,
   taskLabel,
+  toCheckedProject,
   validateProject,
   type ValidationErrorRule,
 } from "@/lib/services/project";
@@ -36,8 +39,8 @@ function deepFreeze<T>(value: T): T {
  * checks the input is still deep-equal to a copy taken before the call.
  */
 function edit<A extends unknown[]>(
-  fn: (project: Project, ...args: A) => EditResult,
-  project: Project,
+  fn: (project: CheckedProject, ...args: A) => EditResult,
+  project: CheckedProject,
   ...args: A
 ): EditResult {
   const before = structuredClone(project);
@@ -46,7 +49,7 @@ function edit<A extends unknown[]>(
   return result;
 }
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
     throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
   return result.project;
@@ -59,12 +62,12 @@ function expectRejected(result: EditResult, rule: ValidationErrorRule): void {
 }
 
 /** A project with one Task per name, ids 1..n in order. */
-function projectWith(...names: string[]): Project {
+function projectWith(...names: string[]): CheckedProject {
   return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
-function withDependencies(project: Project, ...pairs: [TaskId, TaskId][]): Project {
+function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
     (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
     project,
@@ -602,15 +605,16 @@ describe("ProjectInvariantBreach", () => {
 describe("the guardian", () => {
   // A ⇄ B is a cycle no edit can build; C is unrelated to it. An edit that
   // checked only the rule it knows it can break would accept every edit on C.
-  const cyclic = projectOf([task(1, "A", [2]), task(2, "B", [1]), task(3, "C")]);
+  // Cast past the doors, which would refuse it, so the edits meet it.
+  const cyclic = projectOf([task(1, "A", [2]), task(2, "B", [1]), task(3, "C")]) as CheckedProject;
   const cycleMessage = "The project contains the cycle 1: A → 2: B → 1: A.";
 
   it.each([
-    ["setDuration", (project: Project) => setDuration(project, 3, "5")],
-    ["renameTask", (project: Project) => renameTask(project, 3, "Ship")],
-    ["setProjectName", (project: Project) => setProjectName(project, "Website")],
-    ["setDayCountingMode", (project: Project) => setDayCountingMode(project, "weekdays")],
-    ["addPredecessor", (project: Project) => addPredecessor(project, 3, 1)],
+    ["setDuration", (project: CheckedProject) => setDuration(project, 3, "5")],
+    ["renameTask", (project: CheckedProject) => renameTask(project, 3, "Ship")],
+    ["setProjectName", (project: CheckedProject) => setProjectName(project, "Website")],
+    ["setDayCountingMode", (project: CheckedProject) => setDayCountingMode(project, "weekdays")],
+    ["addPredecessor", (project: CheckedProject) => addPredecessor(project, 3, 1)],
   ])("rejects %s when the resulting project holds a cycle, not only the rule the edit can break", (_name, apply) => {
     const result = apply(deepFreeze(structuredClone(cyclic)));
 
@@ -630,7 +634,7 @@ describe("the guardian", () => {
       "The predecessors of Task 3 must be strictly ascending: 1 follows 2.",
     ],
   ])("throws ProjectInvariantBreach when createTask meets %s", (_name, project, message) => {
-    expect(() => createTask(project, "New")).toThrow(
+    expect(() => createTask(project as CheckedProject, "New")).toThrow(
       expect.objectContaining({ name: "ProjectInvariantBreach", fault: { rule: "model-shape", message } }),
     );
   });
@@ -639,10 +643,45 @@ describe("the guardian", () => {
     // Not createTask: it would mint the duplicate id 2 and report that first.
     const project = projectOf([task(1, "A"), task(2, "B")], { nextTaskId: 2 });
 
-    expect(() => renameTask(project, 1, "Design")).toThrow(
+    expect(() => renameTask(project as CheckedProject, 1, "Design")).toThrow(
       expect.objectContaining({
         name: "ProjectInvariantBreach",
         fault: { rule: "model-shape", message: "nextTaskId must be above every Task id: it is 2, and Task 2 exists." },
+      }),
+    );
+  });
+});
+
+describe("the doors for a project no edit built", () => {
+  const cyclic = projectOf([task(1, "A", [2]), task(2, "B", [1]), task(3, "C")]);
+
+  it("checkProject accepts a project with no Validation Error, as it is", () => {
+    const project = projectOf([task(1, "Design", [], { duration: 3 }), task(2, "Build", [1])], { name: "Website" });
+
+    expect(checkProject(project)).toEqual({ ok: true, project });
+  });
+
+  it("checkProject rejects a project's first Validation Error, worded for a file", () => {
+    expect(checkProject(projectOf([task(1, "Design"), task(2, " ")]))).toEqual({
+      ok: false,
+      error: { rule: "task-name-empty", message: "Task 2: A Task name cannot be empty." },
+    });
+  });
+
+  it("toCheckedProject throws ProjectInvariantBreach carrying the Validation Error of a cyclic project", () => {
+    expect(() => toCheckedProject(cyclic)).toThrow(
+      expect.objectContaining({
+        name: "ProjectInvariantBreach",
+        fault: { rule: "cycle", message: "The project contains the cycle 1: A → 2: B → 1: A." },
+      }),
+    );
+  });
+
+  it("toCheckedProject throws ProjectInvariantBreach with a model-shape fault for duplicate Task ids", () => {
+    expect(() => toCheckedProject(projectOf([task(1, "A"), task(1, "B")]))).toThrow(
+      expect.objectContaining({
+        name: "ProjectInvariantBreach",
+        fault: { rule: "model-shape", message: "Task ids must be strictly ascending: Task 1 follows Task 1." },
       }),
     );
   });

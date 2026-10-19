@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addPredecessor,
+  type CheckedProject,
   createEmptyProject,
   createTask,
   DAY_COUNTING_MODES,
@@ -16,7 +17,6 @@ import {
   setStartDate,
   validateProject,
 } from "@/lib/services/project";
-import type { Project } from "@/types";
 
 function deepFreeze<T>(value: T): T {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
@@ -61,7 +61,7 @@ const steps = fc.oneof(
 
 type Step = typeof steps extends fc.Arbitrary<infer S> ? S : never;
 
-function apply(project: Project, step: Step): EditResult {
+function apply(project: CheckedProject, step: Step): EditResult {
   switch (step.edit) {
     case "createTask":
       return createTask(project, step.name);

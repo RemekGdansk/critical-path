@@ -12,7 +12,7 @@ import { useProject, type ProjectState, type Selection } from "@/hooks/useProjec
 import { todayIsoDate } from "@/lib/services/calendar-date";
 import { createPerfProject } from "@/lib/services/fixtures";
 import { forecast } from "@/lib/services/forecast";
-import { createEmptyProject } from "@/lib/services/project";
+import { type CheckedProject, createEmptyProject } from "@/lib/services/project";
 import { serializeProject } from "@/lib/services/project-file";
 import type { Project, TaskId } from "@/types";
 
@@ -21,7 +21,7 @@ import type { Project, TaskId } from "@/types";
  * 100-Task fixture for the 200 ms check; `import.meta.env.DEV` is `false` in the
  * production build, so the branch and the fixture module are eliminated from it.
  */
-function initialProject(): Project {
+function initialProject(): CheckedProject {
   if (import.meta.env.DEV) {
     if (new URLSearchParams(window.location.search).get("fixture") === "perf100") return createPerfProject();
   }
@@ -30,7 +30,7 @@ function initialProject(): Project {
 
 interface PlannerProps {
   /** Starts from this project instead of the default one; the dev-only kitchen sink passes its fixtures here. */
-  initialProject?: Project;
+  initialProject?: CheckedProject;
   /** What is selected on first render; nothing by default. */
   initialSelection?: Selection;
 }
@@ -166,7 +166,7 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
   // the New Task input, as after Delete Task: the remount keyed by
   // `replacements` removes the Import button, which would drop it to <body>.
   const handleReplaceProject = useCallback(
-    (imported: Project) => {
+    (imported: CheckedProject) => {
       replaceProject(imported);
       setFocusRequest(null);
       newTaskInputRef.current?.focus();

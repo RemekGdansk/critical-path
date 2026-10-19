@@ -3,21 +3,23 @@ import { describe, expect, it } from "vitest";
 import { type Forecast, forecast, forecastBaseDate } from "@/lib/services/forecast";
 import {
   addPredecessor,
+  type CheckedProject,
   createEmptyProject,
   createTask,
   type EditResult,
   setDuration,
   setStartDate,
+  toCheckedProject,
 } from "@/lib/services/project";
-import type { Project, TaskId, TaskStatus } from "@/types";
+import type { TaskId, TaskStatus } from "@/types";
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
   return result.project;
 }
 
 /** A project with one Task per [name, Duration] pair, ids 1..n; an empty Duration leaves it unset. */
-function projectWith(startDate: string, ...tasks: [string, string][]): Project {
+function projectWith(startDate: string, ...tasks: [string, string][]): CheckedProject {
   const project = tasks.reduce((current, [name, duration]) => {
     const created = accepted(createTask(current, name));
     return accepted(setDuration(created, created.nextTaskId - 1, duration));
@@ -26,7 +28,7 @@ function projectWith(startDate: string, ...tasks: [string, string][]): Project {
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
-function withDependencies(project: Project, ...pairs: [TaskId, TaskId][]): Project {
+function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
     (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
     project,
@@ -41,9 +43,9 @@ function finishDates(result: Forecast): [string, string] {
   return [show(result.resourceUnconstrainedProjectFinishDate), show(result.resourceConstrainedProjectFinishDate)];
 }
 
-/** START 2026-09-01, A → B (3) with B To Do and A's Status, completion date and Duration as given: built by hand, since no edit sets a Status yet. */
-function aWithStatus(status: TaskStatus, completionDate: string | undefined, aDuration?: number): Project {
-  return {
+/** START 2026-09-01, A → B (3) with B To Do and A's Status, completion date and Duration as given: built by hand, since no edit sets a Status yet, then checked by the guardian. */
+function aWithStatus(status: TaskStatus, completionDate: string | undefined, aDuration?: number): CheckedProject {
+  return toCheckedProject({
     ...createEmptyProject(),
     start: { date: "2026-09-01" },
     nextTaskId: 3,
@@ -58,23 +60,23 @@ function aWithStatus(status: TaskStatus, completionDate: string | undefined, aDu
       },
       { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
     ],
-  };
+  });
 }
 
 /** START → A (5) → B (3), both To Do, built through the edit functions; an empty START date leaves it unset. */
-function aThenB(startDate: string): Project {
+function aThenB(startDate: string): CheckedProject {
   return withDependencies(projectWith(startDate, ["A", "5"], ["B", "3"]), [1, 2]);
 }
 
 /** `project` counting weekdays (Mon–Fri) instead of calendar days. */
-function inWeekdays(project: Project): Project {
+function inWeekdays(project: CheckedProject): CheckedProject {
   return { ...project, dayCountingMode: "weekdays" };
 }
 
 interface PrdExample {
   /** The PRD source of the row; also the test name. */
   rule: string;
-  project: Project;
+  project: CheckedProject;
   today: string;
   baseDate: string;
   baseDateReason: "start-date" | "start-date-unset" | "start-date-in-past";

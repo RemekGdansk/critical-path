@@ -15,12 +15,12 @@ import {
   TASK_NODE_SIZE,
 } from "@/lib/services/diagram";
 import { createPerfProject } from "@/lib/services/fixtures";
-import { createEmptyProject, createTask, type EditResult } from "@/lib/services/project";
+import { type CheckedProject, createEmptyProject, createTask, type EditResult } from "@/lib/services/project";
 import type { Project } from "@/types";
 
 type LaidOutNode = LaidOutDiagram["nodes"][number];
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
     throw new Error(`Expected the edit to be accepted, got ${result.error.rule}: ${result.error.message}`);
   return result.project;

@@ -77,20 +77,44 @@ const literalValuePatterns = [
 ];
 const literalValueMessage =
   "Use a token class from src/styles/global.css instead of a literal colour, palette class or arbitrary value (PROJECT_RULES.md → UI).";
-const plannerLiteralValuesConfig = defineConfig({
-  files: ["src/components/planner/**/*.{ts,tsx,astro}"],
-  rules: {
-    "no-restricted-syntax": [
-      "error",
-      ...literalValuePatterns.flatMap((pattern) => [
-        { selector: `Literal[value=/${pattern}/]`, message: literalValueMessage },
-        { selector: `TemplateElement[value.raw=/${pattern}/]`, message: literalValueMessage },
-      ]),
-      // Inline styles bypass the tokens, and React sets them through the CSSOM, out of the CSP's reach.
-      { selector: "JSXAttribute[name.name='style']", message: literalValueMessage },
-    ],
+const literalValueSelectors = [
+  ...literalValuePatterns.flatMap((pattern) => [
+    { selector: `Literal[value=/${pattern}/]`, message: literalValueMessage },
+    { selector: `TemplateElement[value.raw=/${pattern}/]`, message: literalValueMessage },
+  ]),
+  // Inline styles bypass the tokens, and React sets them through the CSSOM, out of the CSP's reach.
+  { selector: "JSXAttribute[name.name='style']", message: literalValueMessage },
+];
+
+// The Project aggregate's seal as a lint gate: only src/lib/services/project.ts mints a CheckedProject.
+// Tests and the dev-only kitchen sink may cast, for fixtures that must reach the view unchecked.
+const checkedProjectCastSelectors = [
+  {
+    selector:
+      ":matches(TSAsExpression, TSTypeAssertion) > TSTypeReference.typeAnnotation[typeName.name='CheckedProject']",
+    message:
+      "Only src/lib/services/project.ts mints a CheckedProject: take it from an edit, checkProject (import) or toCheckedProject (a hand-built project), never from a cast.",
   },
+];
+const checkedProjectCastConfig = defineConfig({
+  files: ["src/**/*.{ts,tsx,astro}"],
+  ignores: ["src/lib/services/project.ts", "src/**/*.test.ts", "src/dev/**"],
+  rules: { "no-restricted-syntax": ["error", ...checkedProjectCastSelectors] },
 });
+
+// A later block's no-restricted-syntax replaces an earlier one's, so the planner block restates the cast ban,
+// and its test files, which may cast, get the literal-value selectors alone.
+const plannerLiteralValuesConfig = defineConfig(
+  {
+    files: ["src/components/planner/**/*.{ts,tsx,astro}"],
+    ignores: ["src/components/planner/**/*.test.ts"],
+    rules: { "no-restricted-syntax": ["error", ...literalValueSelectors, ...checkedProjectCastSelectors] },
+  },
+  {
+    files: ["src/components/planner/**/*.test.ts"],
+    rules: { "no-restricted-syntax": ["error", ...literalValueSelectors] },
+  },
+);
 
 // The diagram anti-corruption layer as a lint gate: each third-party diagram library is importable only from its adapter.
 // A later block's no-restricted-imports replaces an earlier one's, so each adapter block forbids the other library again.
@@ -141,6 +165,7 @@ export default defineConfig(
   eslintPluginAstro.configs["flat/recommended"],
   eslintPluginAstro.configs["flat/jsx-a11y-recommended"],
   astroConfig,
+  checkedProjectCastConfig,
   plannerLiteralValuesConfig,
   diagramLibrariesConfig,
   scriptsConfig,
