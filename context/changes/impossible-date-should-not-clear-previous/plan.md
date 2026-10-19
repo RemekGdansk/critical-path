@@ -209,23 +209,23 @@ An e2e test proves the premise jsdom can only stub: Chromium really reports `""`
 
 #### Automated
 
-- [x] 1.1 Domain and planner tests pass: `npx vitest run src/lib/services/project.test.ts src/components/planner/Planner.test.ts`
-- [x] 1.2 Lint passes: `npm run lint`
-- [x] 1.3 Type check passes: `npx astro check`
-- [x] 1.4 Full suite passes: `npm test`
+- [x] 1.1 Domain and planner tests pass: `npx vitest run src/lib/services/project.test.ts src/components/planner/Planner.test.ts` — b652129
+- [x] 1.2 Lint passes: `npm run lint` — b652129
+- [x] 1.3 Type check passes: `npx astro check` — b652129
+- [x] 1.4 Full suite passes: `npm test` — b652129
 
 #### Manual
 
-- [x] 1.5 Under `npm run dev` in Chromium, an impossible START date shows the alert and keeps the START date; Escape and Clear behave
+- [x] 1.5 Under `npm run dev` in Chromium, an impossible START date shows the alert and keeps the START date; Escape and Clear behave — b652129
 
 ### Phase 2: Pin it in Chromium and document
 
 #### Automated
 
-- [ ] 2.1 E2E passes against build + preview: `npm run test:e2e -- e2e/start-date.spec.ts`
-- [ ] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [ ] 2.3 Full E2E suite passes: `npm run test:e2e`
+- [x] 2.1 E2E passes against build + preview: `npm run test:e2e -- e2e/start-date.spec.ts`
+- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 2.3 Full E2E suite passes: `npm run test:e2e`
 
 #### Manual
 
-- [ ] 2.4 The test-plan §6.2 sentence and the follow-up line read correctly in context
+- [x] 2.4 The test-plan §6.2 sentence and the follow-up line read correctly in context
