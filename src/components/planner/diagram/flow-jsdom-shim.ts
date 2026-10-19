@@ -2,6 +2,7 @@
 // Diagram. jsdom has no layout, so React Flow measures nothing and renders no
 // node without it. It lives next to the React Flow adapter, so a renderer swap
 // touches one directory. No production code imports it, so it never ships.
+// Import it only from a `// @vitest-environment jsdom` test, and install it once per restore.
 
 /** Every property the shim replaces, restored by restoreFlowJsdomShim so it never outlives a test file. */
 const shimmed: [object, string][] = [
