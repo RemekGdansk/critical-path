@@ -539,6 +539,15 @@ describe("validateProject", () => {
     );
   });
 
+  it("rejects a nextTaskId above the id ceiling", () => {
+    expectValidationError(
+      projectOf([task(1, "Design")], { nextTaskId: 2147483648 }),
+      "task-id-limit-reached",
+      "Task ids go up to 2147483646 and this project has reached that limit, so no more Tasks can be created.",
+    );
+    expect(validateProject(projectOf([task(1, "Design")], { nextTaskId: 2147483647 }))).toBeUndefined();
+  });
+
   it("names the cycle the project holds", () => {
     // A → B → A, and C hanging off A.
     expectValidationError(
@@ -556,10 +565,14 @@ describe("validateProject", () => {
     );
   });
 
-  it("returns the first Validation Error: Tasks in array order, then START date, project name and cycle", () => {
+  it("returns the first Validation Error: Tasks in array order, then START date, project name, id ceiling and cycle", () => {
     const cycle = [task(1, "A", [2]), task(2, "B", [1])];
     const badStart = { start: { date: "2026-13-01" } };
     const badName = { name: "" };
+    const pastCeiling = { nextTaskId: 2147483648 };
+
+    expect(validateProject(projectOf(cycle, { ...badName, ...pastCeiling }))?.rule).toBe("project-name-empty");
+    expect(validateProject(projectOf(cycle, pastCeiling))?.rule).toBe("task-id-limit-reached");
 
     expect(validateProject(projectOf([...cycle, task(3, "")], { ...badStart, ...badName }))?.rule).toBe(
       "task-name-empty",

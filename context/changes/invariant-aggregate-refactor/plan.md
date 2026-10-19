@@ -441,26 +441,26 @@ No data migration. The file format and version (`"0.1"`) are unchanged, and ever
 
 #### Automated
 
-- [x] 4.1 Type check passes, including the @ts-expect-error lines
-- [x] 4.2 Lint passes, and a temporary as CheckedProject in a view and in the hook makes lint fail
-- [x] 4.3 Full gate passes
-- [x] 4.4 E2E passes
+- [x] 4.1 Type check passes, including the @ts-expect-error lines — 913852a
+- [x] 4.2 Lint passes, and a temporary as CheckedProject in a view and in the hook makes lint fail — 913852a
+- [x] 4.3 Full gate passes — 913852a
+- [x] 4.4 E2E passes — 913852a
 
 #### Manual
 
-- [x] 4.5 The kitchen sink shows every fixture as before, including the render-crash fallback
-- [x] 4.6 ?fixture=perf100 still loads the 100-Task project
+- [x] 4.5 The kitchen sink shows every fixture as before, including the render-crash fallback — 913852a
+- [x] 4.6 ?fixture=perf100 still loads the 100-Task project — 913852a
 
 ### Phase 5: Id ceiling and docs
 
 #### Automated
 
-- [ ] 5.1 The ceiling tests pass
-- [ ] 5.2 The cap literal lives in one module
-- [ ] 5.3 Full gate passes
-- [ ] 5.4 E2E passes
-- [ ] 5.5 Mutation testing on the guardian's lines is reviewed
+- [x] 5.1 The ceiling tests pass
+- [x] 5.2 The cap literal lives in one module
+- [x] 5.3 Full gate passes
+- [x] 5.4 E2E passes
+- [x] 5.5 Mutation testing on the guardian's lines is reviewed
 
 #### Manual
 
-- [ ] 5.6 The test-plan and glossary wording reads correctly and uses the glossary's own terms
+- [x] 5.6 The test-plan and glossary wording reads correctly and uses the glossary's own terms

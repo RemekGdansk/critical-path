@@ -12,6 +12,12 @@ import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 export const TASK_NAME_MAX_LENGTH = 200;
 export const PROJECT_NAME_MAX_LENGTH = TASK_NAME_MAX_LENGTH;
 
+// The largest nextTaskId a project may hold, with every Task id below it. Far below
+// Number.MAX_SAFE_INTEGER: a file at that edge would be accepted with an inexact
+// nextTaskId, re-export a file it cannot import, and let createTask mint one id twice.
+export const MAX_NEXT_TASK_ID = 2_147_483_647;
+export const MAX_TASK_ID = MAX_NEXT_TASK_ID - 1;
+
 export type ValidationErrorRule =
   | "task-name-empty"
   | "task-name-too-long"
@@ -22,6 +28,7 @@ export type ValidationErrorRule =
   | "project-name-malformed"
   | "project-name-control-character"
   | "unknown-task"
+  | "task-id-limit-reached"
   | "cycle"
   // The model cannot hold these two (START and FINISH are never Tasks), so only
   // a file that spells them out can: the project file import reports them.
@@ -401,6 +408,14 @@ const PROJECT_CHECKS: readonly ProjectCheck[] = [
       ? undefined
       : { rule: "start-date-not-a-date", message: START_DATE_MESSAGE },
   (project) => (project.name === undefined ? undefined : checkName(project.name, PROJECT_NAME_RULES)),
+  // Only createTask reaches it: import's shape stage rejects a file above the ceiling first.
+  (project) =>
+    project.nextTaskId <= MAX_NEXT_TASK_ID
+      ? undefined
+      : {
+          rule: "task-id-limit-reached",
+          message: `Task ids go up to ${MAX_TASK_ID} and this project has reached that limit, so no more Tasks can be created.`,
+        },
   // Last, since `findCycle` ignores the unknown ids the Task checks report.
   (project) => {
     const cycle = findCycle(project);

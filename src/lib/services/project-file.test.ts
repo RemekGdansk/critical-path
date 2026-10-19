@@ -827,6 +827,21 @@ describe("parseProjectFile", () => {
       expect(imported(parseProjectFile(serializeProject(project)))).toStrictEqual(project);
     });
 
+    it("at the id ceiling, refuses createTask, so the project's export still imports", () => {
+      const project = imported(parseProjectFile(fileWith((file) => (file.nextTaskId = 2147483647))));
+      const before = structuredClone(project);
+
+      const result = createTask(project, "One more");
+      if (result.ok) throw new Error("Expected createTask to be rejected at the id ceiling");
+      expect(result.error).toStrictEqual({
+        rule: "task-id-limit-reached",
+        message:
+          "Task ids go up to 2147483646 and this project has reached that limit, so no more Tasks can be created.",
+      });
+      expect(project).toStrictEqual(before);
+      expect(imported(parseProjectFile(serializeProject(project)))).toStrictEqual(project);
+    });
+
     it("leaves out an absent START date and Duration rather than writing undefined", () => {
       const text = fileWith((file) => {
         file.start = {};

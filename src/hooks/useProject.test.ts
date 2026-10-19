@@ -216,6 +216,33 @@ describe("useProject: a rejected edit commits nothing", () => {
     expect(result.current.replacements).toBe(0);
   });
 
+  it("createTask on a replaced project at the id ceiling is rejected with task-id-limit-reached", () => {
+    // Not a row in the table above: it needs a replaced project, not fixture().
+    const row: RejectionRow = {
+      name: "createTask at the id ceiling",
+      run: (state) => state.createTask("One more"),
+      rule: "task-id-limit-reached",
+      fragment: "no more Tasks can be created",
+    };
+    const parsed = parseProjectFile(serializeProject({ ...createEmptyProject(), nextTaskId: 2147483647 }));
+    if (!parsed.ok) throw new Error(`Expected the file to import, got ${parsed.error.rule}`);
+    const before = structuredClone(parsed.project);
+    const { result } = renderHook(() => useProject());
+
+    act(() => {
+      result.current.replaceProject(parsed.project);
+    });
+    let edit: EditResult | undefined;
+    act(() => {
+      edit = row.run(result.current);
+    });
+
+    if (edit === undefined) throw new Error("The action did not run");
+    expectRejected(edit, row);
+    expect(result.current.project).toBe(parsed.project);
+    expect(result.current.project).toStrictEqual(before);
+  });
+
   it("two accepted edits in one event apply in sequence, the second to the first's result", () => {
     const project = fixture();
     const { result } = renderHook(() => useProject(project, 1));

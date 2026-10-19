@@ -10,6 +10,8 @@ import {
   checkProject,
   type CheckedProject,
   DAY_COUNTING_MODES,
+  MAX_NEXT_TASK_ID,
+  MAX_TASK_ID,
   type ValidationErrorRule,
 } from "@/lib/services/project";
 import type { Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
@@ -253,12 +255,6 @@ function readNumber(value: unknown, path: string): number {
   if (typeof value !== "number") notAProject(`${path} must be a number, not ${jsonType(value)}`);
   return value;
 }
-
-// The largest nextTaskId a file may hold, with every Task id below it. Far below
-// Number.MAX_SAFE_INTEGER: a file at that edge would be accepted with an inexact
-// nextTaskId, re-export a file it cannot import, and let createTask mint one id twice.
-const MAX_NEXT_TASK_ID = 2_147_483_647;
-const MAX_TASK_ID = MAX_NEXT_TASK_ID - 1;
 
 function readPositiveWholeNumber(value: unknown, path: string, max: number, what = "a positive whole number"): number {
   if (isTaskId(value)) {
