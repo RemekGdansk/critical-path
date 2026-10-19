@@ -1,7 +1,7 @@
 ---
 change_id: impossible-date-should-not-clear-previous
 title: Impossible date should not clear previous
-status: new
+status: planned
 created: 2026-10-19
 updated: 2026-10-19
 archived_at: null
