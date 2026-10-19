@@ -222,10 +222,10 @@ An e2e test proves the premise jsdom can only stub: Chromium really reports `""`
 
 #### Automated
 
-- [x] 2.1 E2E passes against build + preview: `npm run test:e2e -- e2e/start-date.spec.ts`
-- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [x] 2.3 Full E2E suite passes: `npm run test:e2e`
+- [x] 2.1 E2E passes against build + preview: `npm run test:e2e -- e2e/start-date.spec.ts` — 50f1ce4
+- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 50f1ce4
+- [x] 2.3 Full E2E suite passes: `npm run test:e2e` — 50f1ce4
 
 #### Manual
 
-- [x] 2.4 The test-plan §6.2 sentence and the follow-up line read correctly in context
+- [x] 2.4 The test-plan §6.2 sentence and the follow-up line read correctly in context — 50f1ce4
