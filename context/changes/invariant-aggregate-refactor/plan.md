@@ -406,12 +406,12 @@ No data migration. The file format and version (`"0.1"`) are unchanged, and ever
 
 #### Automated
 
-- [ ] 1.1 The property test passes on the unchanged production code
-- [ ] 1.2 Full gate passes
+- [x] 1.1 The property test passes on the unchanged production code
+- [x] 1.2 Full gate passes
 
 #### Manual
 
-- [ ] 1.3 Temporarily breaking one edit makes the property test fail with a shrunk sequence
+- [x] 1.3 Temporarily breaking one edit makes the property test fail with a shrunk sequence
 
 ### Phase 2: One rule list
 
