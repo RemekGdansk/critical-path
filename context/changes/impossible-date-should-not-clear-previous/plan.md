@@ -143,6 +143,8 @@ An e2e test proves the premise jsdom can only stub: Chromium really reports `""`
   7. Type only the month segment and press Enter (a partly filled date); assert the same alert and an unchanged START node.
 - No console errors, collected as in `e2e/project-file.spec.ts`.
 
+**As implemented:** Chromium on macOS takes the date segment order from the system region, not from the context locale, so the spec does not pin `en-US`; it detects the order from the segment ArrowUp moves and types each segment in that order. The partly filled date is the committed date with one segment emptied by Backspace, which works in any order. The implementation review (F1) added two steps: Clear on an unreadable date, and Escape on an unreadable date with START unset, so the two DOM resets in `StartPanel` are each pinned.
+
 #### 2. Cookbook note for the stubbed `validity`
 
 **File**: `context/foundation/test-plan.md`

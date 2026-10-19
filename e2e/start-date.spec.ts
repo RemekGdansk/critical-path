@@ -79,6 +79,13 @@ async function segmentOrder(page: Page, field: Locator): Promise<Segment[]> {
   return ["day", "month", "year"];
 }
 
+/** Types 2026-02-30 from the first segment, segment by segment in the field's own order. */
+async function typeImpossibleDate(page: Page, field: Locator, order: Segment[]) {
+  const parts: Record<Segment, string> = { year: "2026", month: "02", day: "30" };
+  await focusFirstSegment(page, field);
+  for (const segment of order) await page.keyboard.type(parts[segment]);
+}
+
 test.describe("an unreadable START date in the built app", () => {
   test("an impossible or partly filled START date keeps the committed one and names the START date rule", async ({
     page,
@@ -95,11 +102,8 @@ test.describe("an unreadable START date in the built app", () => {
     await expect(startNode).toBeVisible();
     await expectProjectFinishDates(page, "2999-01-04", "2999-01-04");
 
-    // Type 2026-02-30, segment by segment in the field's own order.
-    const parts: Record<Segment, string> = { year: "2026", month: "02", day: "30" };
     const order = await segmentOrder(page, startDate);
-    await focusFirstSegment(page, startDate);
-    for (const segment of order) await page.keyboard.type(parts[segment]);
+    await typeImpossibleDate(page, startDate, order);
 
     // The browser premise: an impossible date reads as an empty value, flagged as unreadable.
     expect(await readField(startDate)).toEqual({ value: "", badInput: true });
@@ -122,6 +126,24 @@ test.describe("an unreadable START date in the built app", () => {
     await page.keyboard.press("Enter");
     await expect(alert).toHaveText(START_DATE_MESSAGE);
     await expect(startNode).toBeVisible();
+
+    // Clear on an unreadable date clears the START date: the DOM reset drops `badInput`, so the
+    // field does not keep naming the rule. (The blur before the click shows the alert first.)
+    await page.keyboard.press("Escape");
+    await typeImpossibleDate(page, startDate, order);
+    await page.getByRole("button", { name: "Clear" }).click();
+    expect(await readField(startDate)).toEqual({ value: "", badInput: false });
+    await expect(alert).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "START, today" })).toBeVisible();
+
+    // With START unset, Escape empties the unreadable segments too: React alone would skip
+    // writing "" over the DOM's "", leaving `badInput` set.
+    await typeImpossibleDate(page, startDate, order);
+    await page.keyboard.press("Enter");
+    await expect(alert).toHaveText(START_DATE_MESSAGE);
+    await page.keyboard.press("Escape");
+    expect(await readField(startDate)).toEqual({ value: "", badInput: false });
+    await expect(alert).toHaveCount(0);
 
     expect(consoleErrors).toEqual([]);
 
