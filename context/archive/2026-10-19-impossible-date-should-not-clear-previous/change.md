@@ -1,10 +1,10 @@
 ---
 change_id: impossible-date-should-not-clear-previous
 title: Impossible date should not clear previous
-status: impl_reviewed
+status: archived
 created: 2026-10-19
 updated: 2026-10-19
-archived_at: null
+archived_at: 2026-10-19T19:45:45Z
 ---
 
 ## Notes
