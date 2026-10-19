@@ -9,6 +9,7 @@ import {
   type EditResult,
   isPositiveWholeDays,
   PROJECT_NAME_MAX_LENGTH,
+  ProjectInvariantBreach,
   removePredecessor,
   renameTask,
   setDayCountingMode,
@@ -570,5 +571,30 @@ describe("validateProject", () => {
     expect(validateProject(projectOf([...cycle, task(3, "C", [9])], badStart))?.rule).toBe("unknown-task");
     expect(validateProject(projectOf(cycle, { ...badStart, ...badName }))?.rule).toBe("start-date-not-a-date");
     expect(validateProject(projectOf(cycle, badName))?.rule).toBe("project-name-empty");
+  });
+
+  it("checks every rule of a Task before the next Task: name, Duration, then predecessor ids", () => {
+    expect(validateProject(projectOf([task(1, "", [], { duration: 0 })]))?.rule).toBe("task-name-empty");
+    // A walk rule by rule over all Tasks would report Task 2's empty name first.
+    expectValidationError(
+      projectOf([task(1, "Design", [9]), task(2, "")]),
+      "unknown-task",
+      "Task 1: Design depends on Task 9, which is not in the project.",
+    );
+  });
+});
+
+describe("ProjectInvariantBreach", () => {
+  it("is an Error that names itself in a console trace and carries the fault", () => {
+    const fault = {
+      rule: "model-shape",
+      message: "Task ids must be strictly ascending: Task 2 follows Task 3.",
+    } as const;
+    const breach = new ProjectInvariantBreach(fault);
+
+    expect(breach).toBeInstanceOf(Error);
+    expect(breach.name).toBe("ProjectInvariantBreach");
+    expect(breach.message).toBe(fault.message);
+    expect(breach.fault).toEqual(fault);
   });
 });

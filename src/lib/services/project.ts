@@ -1,6 +1,8 @@
 // The only way to change a project. Every edit is a pure function that returns
 // either the new project or the Validation Error the edit would create; the
 // input project is never mutated, so a rejected edit leaves it as it was.
+// Which Validation Errors a project holds is decided by one rule list,
+// `TASK_CHECKS` and `PROJECT_CHECKS` at the end of this module.
 import { isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { cyclePathFor, findCycle } from "@/lib/services/task-graph";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
@@ -268,40 +270,111 @@ export function setDayCountingMode(project: Project, mode: DayCountingMode): Edi
   return accept({ ...project, dayCountingMode: mode });
 }
 
+/** A model invariant the project breaks, named for the first violation found. */
+interface ModelShapeFault {
+  rule: "model-shape";
+  message: string;
+}
+
 /**
- * The first Validation Error the project already holds, or undefined when it
- * holds none: each Task in array order (its name, its Duration, then each
- * predecessor id), the START date, the project name, and last the cycle, since
- * `findCycle` ignores unknown ids. Assumes the model invariants (unique
- * ascending ids, sorted and unique predecessors); import establishes them first.
+ * Thrown when a project breaks a model invariant (unique ascending Task ids,
+ * sorted predecessors, `nextTaskId` above every id) or holds a Validation Error
+ * where the aggregate was promised none. A code bug, never a user mistake.
  */
-export function validateProject(project: Project): ValidationError | undefined {
-  const taskIds = new Set(project.tasks.map((task) => task.id));
-  for (const task of project.tasks) {
+export class ProjectInvariantBreach extends Error {
+  override readonly name = "ProjectInvariantBreach";
+  readonly fault: ValidationError | ModelShapeFault;
+
+  constructor(fault: ValidationError | ModelShapeFault) {
+    super(fault.message);
+    this.fault = fault;
+  }
+}
+
+/**
+ * Who reads the message. An edit already points at its Task, so its messages
+ * name the rule alone; a file's messages also name the Task they found.
+ */
+type Wording = "edit" | "file";
+
+/** The project under check and its Task lookup, built once per walk. */
+interface ProjectIndex {
+  project: Project;
+  tasksById: ReadonlyMap<TaskId, Task>;
+}
+
+type TaskCheck = (task: Task, index: ProjectIndex, wording: Wording) => ValidationError | undefined;
+type ProjectCheck = (project: Project, wording: Wording) => ValidationError | undefined;
+
+/**
+ * The rules about one Task, run Task by Task in array order. A new Validation
+ * Error rule about a Task is one entry here, in reporting order.
+ */
+const TASK_CHECKS: readonly TaskCheck[] = [
+  (task, _index, wording) => {
+    const error = checkName(task.name, TASK_NAME_RULES);
     // By id only: the label would repeat the rejected name inside the message.
-    const nameError = checkName(task.name, TASK_NAME_RULES);
-    if (nameError) return { rule: nameError.rule, message: `Task ${task.id}: ${nameError.message}` };
-    if (task.duration !== undefined && !isPositiveWholeDays(task.duration)) {
-      return { rule: "duration-not-positive-whole-number", message: `Task ${taskLabel(task)}: ${DURATION_MESSAGE}` };
+    return error && wording === "file" ? { ...error, message: `Task ${task.id}: ${error.message}` } : error;
+  },
+  (task, _index, wording) =>
+    task.duration === undefined || isPositiveWholeDays(task.duration)
+      ? undefined
+      : {
+          rule: "duration-not-positive-whole-number",
+          message: wording === "file" ? `Task ${taskLabel(task)}: ${DURATION_MESSAGE}` : DURATION_MESSAGE,
+        },
+  (task, { tasksById }) => {
+    const unknownId = task.predecessors.find((id) => !tasksById.has(id));
+    return unknownId === undefined
+      ? undefined
+      : {
+          rule: "unknown-task",
+          message: `Task ${taskLabel(task)} depends on Task ${unknownId}, which is not in the project.`,
+        };
+  },
+];
+
+/**
+ * The rules about the whole project, run after every Task passed. A new
+ * Validation Error rule about the project is one entry here, in reporting order.
+ */
+const PROJECT_CHECKS: readonly ProjectCheck[] = [
+  (project) =>
+    project.start.date === undefined || isIsoDate(project.start.date)
+      ? undefined
+      : { rule: "start-date-not-a-date", message: START_DATE_MESSAGE },
+  (project) => (project.name === undefined ? undefined : checkName(project.name, PROJECT_NAME_RULES)),
+  // Last, since `findCycle` ignores the unknown ids the Task checks report.
+  (project) => {
+    const cycle = findCycle(project);
+    return cycle === undefined
+      ? undefined
+      : { rule: "cycle", message: `The project contains the cycle ${pathLabel(project, cycle)}.` };
+  },
+];
+
+function firstValidationError(project: Project, wording: Wording): ValidationError | undefined {
+  const index: ProjectIndex = { project, tasksById: new Map(project.tasks.map((task) => [task.id, task])) };
+  for (const task of project.tasks) {
+    for (const check of TASK_CHECKS) {
+      const error = check(task, index, wording);
+      if (error) return error;
     }
-    const unknownId = task.predecessors.find((id) => !taskIds.has(id));
-    if (unknownId !== undefined) {
-      return {
-        rule: "unknown-task",
-        message: `Task ${taskLabel(task)} depends on Task ${unknownId}, which is not in the project.`,
-      };
-    }
   }
-  if (project.start.date !== undefined && !isIsoDate(project.start.date)) {
-    return { rule: "start-date-not-a-date", message: START_DATE_MESSAGE };
-  }
-  if (project.name !== undefined) {
-    const nameError = checkName(project.name, PROJECT_NAME_RULES);
-    if (nameError) return nameError;
-  }
-  const cycle = findCycle(project);
-  if (cycle !== undefined) {
-    return { rule: "cycle", message: `The project contains the cycle ${pathLabel(project, cycle)}.` };
+  for (const check of PROJECT_CHECKS) {
+    const error = check(project, wording);
+    if (error) return error;
   }
   return undefined;
+}
+
+/**
+ * The first Validation Error the project already holds, worded for a file, or
+ * undefined when it holds none. It walks the aggregate's one rule list:
+ * `TASK_CHECKS` for each Task in array order, then `PROJECT_CHECKS`. Assumes
+ * the model invariants (unique ascending ids, sorted and unique predecessors);
+ * import establishes them first.
+ */
+export function validateProject(project: Project): ValidationError | undefined {
+  return firstValidationError(project, "file");
 }

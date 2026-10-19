@@ -120,6 +120,8 @@ Restructure `validateProject` into one rule list without changing what it return
 
 **Contract**: `export class ProjectInvariantBreach extends Error` carrying `readonly fault: ValidationError | { rule: "model-shape"; message: string }`, with `name` set so a console trace reads "ProjectInvariantBreach". Internal `assertModelShape(project: Project): void`: Task ids strictly ascending, each `predecessors` list strictly ascending, `nextTaskId` greater than every Task id. It throws `ProjectInvariantBreach` with a `model-shape` fault that names the first violation.
 
+**Moved during implementation (2026-10-19):** `assertModelShape` lands in Phase 3 §1 with `accept`, its only caller. Added here with no caller, it fails `npm run lint` (`no-unused-vars`). Phase 2 adds `ProjectInvariantBreach` only.
+
 #### 3. Tests
 
 **File**: `src/lib/services/project.test.ts`
@@ -406,20 +408,20 @@ No data migration. The file format and version (`"0.1"`) are unchanged, and ever
 
 #### Automated
 
-- [x] 1.1 The property test passes on the unchanged production code
-- [x] 1.2 Full gate passes
+- [x] 1.1 The property test passes on the unchanged production code — 2e47fac
+- [x] 1.2 Full gate passes — 2e47fac
 
 #### Manual
 
-- [x] 1.3 Temporarily breaking one edit makes the property test fail with a shrunk sequence
+- [x] 1.3 Temporarily breaking one edit makes the property test fail with a shrunk sequence — 2e47fac
 
 ### Phase 2: One rule list
 
 #### Automated
 
-- [ ] 2.1 Existing validateProject and import tests pass unchanged
-- [ ] 2.2 The property test still passes
-- [ ] 2.3 Full gate passes
+- [x] 2.1 Existing validateProject and import tests pass unchanged
+- [x] 2.2 The property test still passes
+- [x] 2.3 Full gate passes
 
 ### Phase 3: accept becomes the guardian
 
