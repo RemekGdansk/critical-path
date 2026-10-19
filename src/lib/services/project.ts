@@ -251,6 +251,11 @@ export function setProjectName(project: CheckedProject, input: string): EditResu
 const DURATION_MESSAGE = "A Duration must be a positive whole number of days.";
 const START_DATE_MESSAGE = `The START date must be a calendar date from ${MIN_ISO_DATE} to ${MAX_ISO_DATE}.`;
 
+/** The Validation Error for a START date that is not a date; the view also shows it for a date the browser cannot read. */
+export function startDateNotADate(): ValidationError {
+  return { rule: "start-date-not-a-date", message: START_DATE_MESSAGE };
+}
+
 /** True for a Duration the project may hold: a positive whole number of days, exact as a JavaScript number. */
 export function isPositiveWholeDays(value: number): boolean {
   return Number.isSafeInteger(value) && value > 0;
@@ -403,10 +408,7 @@ const TASK_CHECKS: readonly TaskCheck[] = [
  * Validation Error rule about the project is one entry here, in reporting order.
  */
 const PROJECT_CHECKS: readonly ProjectCheck[] = [
-  (project) =>
-    project.start.date === undefined || isIsoDate(project.start.date)
-      ? undefined
-      : { rule: "start-date-not-a-date", message: START_DATE_MESSAGE },
+  (project) => (project.start.date === undefined || isIsoDate(project.start.date) ? undefined : startDateNotADate()),
   (project) => (project.name === undefined ? undefined : checkName(project.name, PROJECT_NAME_RULES)),
   // Only createTask reaches it: import's shape stage rejects a file above the ceiling first.
   (project) =>

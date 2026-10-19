@@ -44,14 +44,11 @@ function fixture(): CheckedProject {
   return accepted(setStartDate(withB, "2999-01-01"));
 }
 
-function renderPlanner(): void {
+type PlannerProps = NonNullable<Parameters<typeof Planner>[0]>;
+
+function renderPlanner(selection: PlannerProps["initialSelection"] = A_ID, project: CheckedProject = fixture()): void {
   // Explicit props type: Planner's props parameter is optional, which createElement cannot infer.
-  render(
-    createElement<NonNullable<Parameters<typeof Planner>[0]>>(Planner, {
-      initialProject: fixture(),
-      initialSelection: A_ID,
-    }),
-  );
+  render(createElement<PlannerProps>(Planner, { initialProject: project, initialSelection: selection }));
 }
 
 /** The forecast's live region, told apart from any other status region by its content. */
@@ -144,6 +141,65 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(weekdays).not.toContain("2999-01-09");
     expect(await screen.findByRole("button", { name: "A, 5 weekdays" })).toBeDefined();
     expect(screen.getByLabelText("Duration (weekdays)")).toBeDefined();
+  });
+});
+
+const START_DATE_MESSAGE = "The START date must be a calendar date from 0001-01-01 to 9999-12-31.";
+
+/**
+ * Types a START date draft and commits it by Enter or blur. The key press comes
+ * first, so the change takes the typed-draft path. With `badInput`, `validity`
+ * is stubbed as Chromium reports an impossible date: jsdom never sets it, and
+ * sanitizes "2026-02-30" to "", the value Chromium reports too.
+ */
+function commitStartDate(value: string, by: "Enter" | "blur", { badInput }: { badInput: boolean }): void {
+  const field = screen.getByLabelText("START date");
+  fireEvent.keyDown(field, { key: "2" });
+  if (badInput) Object.defineProperty(field, "validity", { configurable: true, value: { badInput: true } });
+  fireEvent.change(field, { target: { value } });
+  if (by === "Enter") fireEvent.keyDown(field, { key: "Enter" });
+  else fireEvent.blur(field);
+}
+
+describe("Planner: an unreadable START date keeps the previous one", () => {
+  it("names the START date rule and keeps every committed view on the set START date", async () => {
+    renderPlanner("start");
+    await screen.findByRole("button", { name: "START, 2999-01-01" });
+
+    commitStartDate("2026-02-30", "Enter", { badInput: true });
+
+    const alert = screen.getByRole("alert");
+    expect(within(alert).getByText(START_DATE_MESSAGE)).toBeDefined();
+    expect(alert.textContent).not.toMatch(/invalid|conflict|blocked/i);
+    expect(await screen.findByRole("button", { name: "START, 2999-01-01" })).toBeDefined();
+    const forecast = textOf(forecastRegion());
+    expect(forecast).toContain("Resource-Unconstrained Project Finish Date 2999-01-06");
+    expect(forecast).toContain("Resource-Constrained Project Finish Date 2999-01-09");
+    expect(screen.queryByText(/^Not set/)).toBeNull();
+  });
+
+  it("names the START date rule and keeps the START date unset", async () => {
+    renderPlanner("start", accepted(setStartDate(fixture(), "")));
+    await screen.findByRole("button", { name: "START, today" });
+
+    commitStartDate("2026-02-30", "blur", { badInput: true });
+
+    const alert = screen.getByRole("alert");
+    expect(within(alert).getByText(START_DATE_MESSAGE)).toBeDefined();
+    expect(alert.textContent).not.toMatch(/invalid|conflict|blocked/i);
+    expect(await screen.findByRole("button", { name: "START, today" })).toBeDefined();
+    expect(screen.getByText(/^Not set: the forecast starts from today/)).toBeDefined();
+  });
+
+  it("still clears the START date once every segment is emptied", async () => {
+    renderPlanner("start");
+    await screen.findByRole("button", { name: "START, 2999-01-01" });
+
+    commitStartDate("", "blur", { badInput: false });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(await screen.findByRole("button", { name: "START, today" })).toBeDefined();
+    expect(screen.getByText(/^Not set: the forecast starts from today/)).toBeDefined();
   });
 });
 
