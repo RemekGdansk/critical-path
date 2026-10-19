@@ -8,7 +8,7 @@ import type { ProjectActions } from "@/hooks/useProject";
 import { downloadTextFile } from "@/lib/download";
 import { parseProjectFile, projectFileName, serializeProject } from "@/lib/services/project-file";
 import { DAY_COUNTING_MODES, isDayCountingMode, PROJECT_NAME_MAX_LENGTH } from "@/lib/services/project";
-import type { DayCountingMode, Project } from "@/types";
+import type { DayCountingMode } from "@/types";
 
 /** 5 MB, far above any real project: a 100-Task file is about 15–100 KB. */
 const MAX_IMPORT_BYTES = 5 * 1024 * 1024;
@@ -23,7 +23,7 @@ interface ProjectControlsProps {
   name: string | undefined;
   setProjectName: ProjectActions["setProjectName"];
   /** Called with an imported project only after `parseProjectFile` accepted it. */
-  replaceProject: (project: Project) => void;
+  replaceProject: ProjectActions["replaceProject"];
   /** The committed mode: the select follows the project, so an import shows the imported mode. */
   dayCountingMode: DayCountingMode;
   setDayCountingMode: ProjectActions["setDayCountingMode"];

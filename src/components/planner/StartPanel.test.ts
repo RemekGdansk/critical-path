@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { StartPanel } from "@/components/planner/StartPanel";
 import {
+  type CheckedProject,
   createEmptyProject,
   createTask,
   type EditResult,
@@ -12,7 +13,7 @@ import {
 } from "@/lib/services/project";
 import type { DayCountingMode, Project } from "@/types";
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
   return result.project;
 }

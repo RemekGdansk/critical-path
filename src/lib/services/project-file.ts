@@ -3,9 +3,17 @@
 // so a re-export is byte-identical, and Prettier leaves it as it is while each
 // predecessors list fits in 120 columns (see taskLines). Import runs a pipeline
 // of stages, each assuming the previous one passed: parse, version,
-// shape, normalise, unique ids, the pre-S-07 limits, then validateProject.
-// Only a project that passes every stage is returned.
-import { DAY_COUNTING_MODES, validateProject, type ValidationErrorRule } from "@/lib/services/project";
+// shape, normalise, unique ids, the pre-S-07 limits, then the aggregate's
+// guardian (checkProject). Only a project that passes every stage is returned,
+// as a CheckedProject.
+import {
+  checkProject,
+  type CheckedProject,
+  DAY_COUNTING_MODES,
+  MAX_NEXT_TASK_ID,
+  MAX_TASK_ID,
+  type ValidationErrorRule,
+} from "@/lib/services/project";
 import type { Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
 
 export const PROJECT_FILE_VERSION = "0.1";
@@ -18,7 +26,7 @@ export interface ImportError {
   message: string;
 }
 
-export type ImportResult = { ok: true; project: Project } | { ok: false; error: ImportError };
+export type ImportResult = { ok: true; project: CheckedProject } | { ok: false; error: ImportError };
 
 // ---------------------------------------------------------------------------
 // Export
@@ -248,12 +256,6 @@ function readNumber(value: unknown, path: string): number {
   return value;
 }
 
-// The largest nextTaskId a file may hold, with every Task id below it. Far below
-// Number.MAX_SAFE_INTEGER: a file at that edge would be accepted with an inexact
-// nextTaskId, re-export a file it cannot import, and let createTask mint one id twice.
-const MAX_NEXT_TASK_ID = 2_147_483_647;
-const MAX_TASK_ID = MAX_NEXT_TASK_ID - 1;
-
 function readPositiveWholeNumber(value: unknown, path: string, max: number, what = "a positive whole number"): number {
   if (isTaskId(value)) {
     if (value <= max) return value;
@@ -349,7 +351,7 @@ function checkUniqueIds(project: Project): void {
 const STATUS_NAMES: Record<TaskStatus, string> = { "to-do": "To Do", "in-progress": "In Progress", done: "Done" };
 
 function checkSupportedYet(project: Project): void {
-  // By id only: the name rules run later, in validateProject, so the name may not be fit to show yet.
+  // By id only: the name rules run later, in the guardian, so the name may not be fit to show yet.
   for (const task of project.tasks) {
     if (task.status !== "to-do") {
       fail(
@@ -366,16 +368,16 @@ function checkSupportedYet(project: Project): void {
   }
 }
 
-function importProject(data: unknown): Project {
+function importProject(data: unknown): CheckedProject {
   if (!isObject(data)) notAProject(`it must hold a JSON object, not ${jsonType(data)}`);
   checkVersion(data);
   checkStartAndFinish(data);
   const project = normalise(readProject(data));
   checkUniqueIds(project);
   checkSupportedYet(project);
-  const error = validateProject(project);
-  if (error !== undefined) fail(error.rule, error.message);
-  return project;
+  const result = checkProject(project);
+  if (!result.ok) fail(result.error.rule, result.error.message);
+  return result.project;
 }
 
 /**

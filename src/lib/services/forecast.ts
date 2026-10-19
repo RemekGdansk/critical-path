@@ -5,6 +5,7 @@
 // Durations count calendar days or weekdays (Mon–Fri), per the project's
 // dayCountingMode; in weekdays mode a base date on a weekend moves to Monday.
 import { addDays, addWeekdays, compareIsoDates, dayOfWeek, nextWeekday } from "@/lib/services/calendar-date";
+import type { CheckedProject } from "@/lib/services/project";
 import { topologicalOrder } from "@/lib/services/task-graph";
 import { type ValidationWarning, validationWarnings } from "@/lib/services/validation-warnings";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
@@ -77,9 +78,14 @@ function forecastDate(mode: DayCountingMode, baseDate: string, days: number): Fo
  * counted as whole-day offsets from the base date. A Done Task
  * is not remaining work: it counts as finishing on the base date, which the
  * Done rules make exact (a completion date is never after today nor before the
- * START date, so the base date is today whenever a Task is Done).
+ * START date, so the base date is today whenever a Task is Done). Those rules
+ * join the aggregate's rule list in S-07; until then a `CheckedProject` does
+ * not vouch for them.
+ *
+ * Takes a `CheckedProject`: the guardian has ruled out a cycle and a malformed
+ * START date, the two things this would otherwise throw on.
  */
-export function forecast(project: Project, today: string): Forecast {
+export function forecast(project: CheckedProject, today: string): Forecast {
   const warnings = validationWarnings(project);
   if (warnings.length > 0) return { kind: "withheld", warnings };
 

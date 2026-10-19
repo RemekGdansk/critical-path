@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { createEmptyProject, createTask, type EditResult, setDuration } from "@/lib/services/project";
+import {
+  type CheckedProject,
+  createEmptyProject,
+  createTask,
+  type EditResult,
+  setDuration,
+} from "@/lib/services/project";
 import { validationWarnings } from "@/lib/services/validation-warnings";
 import type { Project } from "@/types";
 
-function accepted(result: EditResult): Project {
+function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
   return result.project;
 }

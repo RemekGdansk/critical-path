@@ -1,12 +1,22 @@
 // The only way to change a project. Every edit is a pure function that returns
 // either the new project or the Validation Error the edit would create; the
 // input project is never mutated, so a rejected edit leaves it as it was.
+// Which Validation Errors a project holds is decided by one rule list,
+// `TASK_CHECKS` and `PROJECT_CHECKS` at the end of this module. Only this module
+// mints a `CheckedProject`: through an accepted edit, `createEmptyProject`, or
+// the two doors for a project no edit built, `checkProject` and `toCheckedProject`.
 import { isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { cyclePathFor, findCycle } from "@/lib/services/task-graph";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
 export const TASK_NAME_MAX_LENGTH = 200;
 export const PROJECT_NAME_MAX_LENGTH = TASK_NAME_MAX_LENGTH;
+
+// The largest nextTaskId a project may hold, with every Task id below it. Far below
+// Number.MAX_SAFE_INTEGER: a file at that edge would be accepted with an inexact
+// nextTaskId, re-export a file it cannot import, and let createTask mint one id twice.
+export const MAX_NEXT_TASK_ID = 2_147_483_647;
+export const MAX_TASK_ID = MAX_NEXT_TASK_ID - 1;
 
 export type ValidationErrorRule =
   | "task-name-empty"
@@ -18,6 +28,7 @@ export type ValidationErrorRule =
   | "project-name-malformed"
   | "project-name-control-character"
   | "unknown-task"
+  | "task-id-limit-reached"
   | "cycle"
   // The model cannot hold these two (START and FINISH are never Tasks), so only
   // a file that spells them out can: the project file import reports them.
@@ -31,10 +42,30 @@ export interface ValidationError {
   message: string;
 }
 
-export type EditResult = { ok: true; project: Project } | { ok: false; error: ValidationError };
+declare const checked: unique symbol;
 
-function accept(project: Project): EditResult {
-  return { ok: true, project };
+/**
+ * A Project the guardian found free of Validation Errors. Only this module mints one.
+ * Limit: the brand survives a spread, so `{ ...project, tasks }` still type-checks as checked.
+ */
+export type CheckedProject = Project & { readonly [checked]: true };
+
+export type EditResult = { ok: true; project: CheckedProject } | { ok: false; error: ValidationError };
+
+/** Words a rule's message for the edit that broke it; undefined keeps the rule's own message. */
+type Explanations = Partial<Record<ValidationErrorRule, () => string | undefined>>;
+
+/**
+ * The guardian, and the only way an edit is accepted: it checks the whole
+ * candidate project, not the rule the edit expects to break. The input of the
+ * edit held no Validation Error, so the first one the candidate holds is the
+ * edit's doing. Throws ProjectInvariantBreach on a broken model shape.
+ */
+function accept(candidate: Project, explain?: Explanations, wording: Wording = "edit"): EditResult {
+  assertModelShape(candidate);
+  const error = firstValidationError(candidate, wording);
+  if (error === undefined) return { ok: true, project: candidate as CheckedProject };
+  return rejectWith({ ...error, message: explain?.[error.rule]?.() ?? error.message });
 }
 
 function reject(rule: ValidationErrorRule, message: string): EditResult {
@@ -128,28 +159,35 @@ function replaceTask(project: Project, updated: Task): Project {
   return { ...project, tasks: project.tasks.map((task) => (task.id === updated.id ? updated : task)) };
 }
 
-export function createEmptyProject(): Project {
-  return { start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId: 1, tasks: [] };
+export function createEmptyProject(): CheckedProject {
+  return toCheckedProject({ start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId: 1, tasks: [] });
 }
 
-export function createTask(project: Project, name: string): EditResult {
-  const trimmed = name.trim();
-  const nameError = checkName(trimmed, TASK_NAME_RULES);
-  if (nameError) return rejectWith(nameError);
+/**
+ * Import's door: the guardian on a project no edit built, in file wording.
+ * Throws ProjectInvariantBreach on a broken model shape.
+ */
+export function checkProject(project: Project): EditResult {
+  return accept(project, undefined, "file");
+}
 
-  const task: Task = { id: project.nextTaskId, name: trimmed, predecessors: [], status: "to-do" };
+/** For hand-built fixtures: throws ProjectInvariantBreach unless the guardian accepts the project. */
+export function toCheckedProject(project: Project): CheckedProject {
+  const result = checkProject(project);
+  if (!result.ok) throw new ProjectInvariantBreach(result.error);
+  return result.project;
+}
+
+export function createTask(project: CheckedProject, name: string): EditResult {
+  const task: Task = { id: project.nextTaskId, name: name.trim(), predecessors: [], status: "to-do" };
   return accept({ ...project, nextTaskId: project.nextTaskId + 1, tasks: [...project.tasks, task] });
 }
 
-export function renameTask(project: Project, taskId: TaskId, name: string): EditResult {
+export function renameTask(project: CheckedProject, taskId: TaskId, name: string): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
 
-  const trimmed = name.trim();
-  const nameError = checkName(trimmed, TASK_NAME_RULES);
-  if (nameError) return rejectWith(nameError);
-
-  return accept(replaceTask(project, { ...task, name: trimmed }));
+  return accept(replaceTask(project, { ...task, name: name.trim() }));
 }
 
 /**
@@ -157,7 +195,7 @@ export function renameTask(project: Project, taskId: TaskId, name: string): Edit
  * predecessors are not bridged to its successors, and `nextTaskId` is kept so
  * the id is never reused.
  */
-export function deleteTask(project: Project, taskId: TaskId): EditResult {
+export function deleteTask(project: CheckedProject, taskId: TaskId): EditResult {
   if (findTask(project, taskId) === undefined) return unknownTask(taskId);
 
   const tasks = project.tasks
@@ -170,25 +208,26 @@ export function deleteTask(project: Project, taskId: TaskId): EditResult {
   return accept({ ...project, tasks });
 }
 
-export function addPredecessor(project: Project, taskId: TaskId, predecessorId: TaskId): EditResult {
+export function addPredecessor(project: CheckedProject, taskId: TaskId, predecessorId: TaskId): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
   const predecessor = findTask(project, predecessorId);
   if (predecessor === undefined) return unknownTask(predecessorId);
   if (task.predecessors.includes(predecessorId)) return accept(project);
-  const cycle = cyclePathFor(project, taskId, predecessorId);
-  if (cycle !== undefined) {
-    return reject(
-      "cycle",
-      `Adding ${taskLabel(predecessor)} as a predecessor of ${taskLabel(task)} would create the cycle ${pathLabel(project, cycle)}.`,
-    );
-  }
 
   const predecessors = [...task.predecessors, predecessorId].toSorted((a, b) => a - b);
-  return accept(replaceTask(project, { ...task, predecessors }));
+  return accept(replaceTask(project, { ...task, predecessors }), {
+    // The shortest cycle through the new dependency, starting at the Task (US-01).
+    cycle: () => {
+      const cycle = cyclePathFor(project, taskId, predecessorId);
+      return cycle === undefined
+        ? undefined
+        : `Adding ${taskLabel(predecessor)} as a predecessor of ${taskLabel(task)} would create the cycle ${pathLabel(project, cycle)}.`;
+    },
+  });
 }
 
-export function removePredecessor(project: Project, taskId: TaskId, predecessorId: TaskId): EditResult {
+export function removePredecessor(project: CheckedProject, taskId: TaskId, predecessorId: TaskId): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
   if (!task.predecessors.includes(predecessorId)) return accept(project);
@@ -199,15 +238,13 @@ export function removePredecessor(project: Project, taskId: TaskId, predecessorI
 }
 
 /** Sets the project name, trimmed, under the project name rules (the Task name rules, worded for the project); empty input clears it by removing the field. */
-export function setProjectName(project: Project, input: string): EditResult {
+export function setProjectName(project: CheckedProject, input: string): EditResult {
   const trimmed = input.trim();
   if (trimmed === "") {
     const cleared = { ...project };
     delete cleared.name;
     return accept(cleared);
   }
-  const nameError = checkName(trimmed, PROJECT_NAME_RULES);
-  if (nameError) return rejectWith(nameError);
   return accept({ ...project, name: trimmed });
 }
 
@@ -226,7 +263,7 @@ const DIGITS_ONLY = /^[0-9]+$/;
  * only, a positive whole number of days. Empty input clears the Duration,
  * which is allowed and raises a Validation Warning instead.
  */
-export function setDuration(project: Project, taskId: TaskId, input: string): EditResult {
+export function setDuration(project: CheckedProject, taskId: TaskId, input: string): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
 
@@ -236,22 +273,19 @@ export function setDuration(project: Project, taskId: TaskId, input: string): Ed
     delete cleared.duration;
     return accept(replaceTask(project, cleared));
   }
-  const duration = Number(trimmed);
-  if (!DIGITS_ONLY.test(trimmed) || !isPositiveWholeDays(duration)) {
-    return reject("duration-not-positive-whole-number", DURATION_MESSAGE);
-  }
-  return accept(replaceTask(project, { ...task, duration }));
+  // Parsing only: "0" or a 20-digit number parse, and the rule list rejects them.
+  if (!DIGITS_ONLY.test(trimmed)) return reject("duration-not-positive-whole-number", DURATION_MESSAGE);
+  return accept(replaceTask(project, { ...task, duration: Number(trimmed) }));
 }
 
 /** Sets the START date from an ISO date (yyyy-mm-dd); empty input clears it, so the forecast starts from today. */
-export function setStartDate(project: Project, input: string): EditResult {
+export function setStartDate(project: CheckedProject, input: string): EditResult {
   const trimmed = input.trim();
   if (trimmed === "") {
     const start = { ...project.start };
     delete start.date;
     return accept({ ...project, start });
   }
-  if (!isIsoDate(trimmed)) return reject("start-date-not-a-date", START_DATE_MESSAGE);
   return accept({ ...project, start: { ...project.start, date: trimmed } });
 }
 
@@ -262,46 +296,157 @@ export function isDayCountingMode(value: string): value is DayCountingMode {
   return DAY_COUNTING_MODES.some((mode) => mode === value);
 }
 
-/** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project, so it never rejects. */
-export function setDayCountingMode(project: Project, mode: DayCountingMode): EditResult {
+/** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project. */
+export function setDayCountingMode(project: CheckedProject, mode: DayCountingMode): EditResult {
   if (project.dayCountingMode === mode) return accept(project);
   return accept({ ...project, dayCountingMode: mode });
 }
 
+/** A model invariant the project breaks, named for the first violation found. */
+interface ModelShapeFault {
+  rule: "model-shape";
+  message: string;
+}
+
 /**
- * The first Validation Error the project already holds, or undefined when it
- * holds none: each Task in array order (its name, its Duration, then each
- * predecessor id), the START date, the project name, and last the cycle, since
- * `findCycle` ignores unknown ids. Assumes the model invariants (unique
- * ascending ids, sorted and unique predecessors); import establishes them first.
+ * Thrown when a project breaks a model invariant (unique ascending Task ids,
+ * sorted predecessors, `nextTaskId` above every id) or holds a Validation Error
+ * where the aggregate was promised none. A code bug, never a user mistake.
  */
-export function validateProject(project: Project): ValidationError | undefined {
-  const taskIds = new Set(project.tasks.map((task) => task.id));
+export class ProjectInvariantBreach extends Error {
+  override readonly name = "ProjectInvariantBreach";
+  readonly fault: ValidationError | ModelShapeFault;
+
+  constructor(fault: ValidationError | ModelShapeFault) {
+    super(fault.message);
+    this.fault = fault;
+  }
+}
+
+function modelShapeBreach(message: string): ProjectInvariantBreach {
+  return new ProjectInvariantBreach({ rule: "model-shape", message });
+}
+
+/**
+ * Throws ProjectInvariantBreach unless the model invariants no user action can
+ * break hold: Task ids and each Task's predecessors strictly ascending (so
+ * unique), and `nextTaskId` above every Task id.
+ */
+function assertModelShape(project: Project): void {
+  let lastId: TaskId | undefined;
   for (const task of project.tasks) {
+    if (lastId !== undefined && task.id <= lastId) {
+      throw modelShapeBreach(`Task ids must be strictly ascending: Task ${task.id} follows Task ${lastId}.`);
+    }
+    lastId = task.id;
+  }
+  for (const task of project.tasks) {
+    const unsorted = task.predecessors.findIndex((id, i) => i > 0 && id <= task.predecessors[i - 1]);
+    if (unsorted !== -1) {
+      throw modelShapeBreach(
+        `The predecessors of Task ${task.id} must be strictly ascending: ${task.predecessors[unsorted]} follows ${task.predecessors[unsorted - 1]}.`,
+      );
+    }
+  }
+  if (lastId !== undefined && project.nextTaskId <= lastId) {
+    throw modelShapeBreach(
+      `nextTaskId must be above every Task id: it is ${project.nextTaskId}, and Task ${lastId} exists.`,
+    );
+  }
+}
+
+/**
+ * Who reads the message. An edit already points at its Task, so its messages
+ * name the rule alone; a file's messages also name the Task they found.
+ */
+type Wording = "edit" | "file";
+
+/** The project under check and its Task lookup, built once per walk. */
+interface ProjectIndex {
+  project: Project;
+  tasksById: ReadonlyMap<TaskId, Task>;
+}
+
+type TaskCheck = (task: Task, index: ProjectIndex, wording: Wording) => ValidationError | undefined;
+type ProjectCheck = (project: Project, wording: Wording) => ValidationError | undefined;
+
+/**
+ * The rules about one Task, run Task by Task in array order. A new Validation
+ * Error rule about a Task is one entry here, in reporting order.
+ */
+const TASK_CHECKS: readonly TaskCheck[] = [
+  (task, _index, wording) => {
+    const error = checkName(task.name, TASK_NAME_RULES);
     // By id only: the label would repeat the rejected name inside the message.
-    const nameError = checkName(task.name, TASK_NAME_RULES);
-    if (nameError) return { rule: nameError.rule, message: `Task ${task.id}: ${nameError.message}` };
-    if (task.duration !== undefined && !isPositiveWholeDays(task.duration)) {
-      return { rule: "duration-not-positive-whole-number", message: `Task ${taskLabel(task)}: ${DURATION_MESSAGE}` };
+    return error && wording === "file" ? { ...error, message: `Task ${task.id}: ${error.message}` } : error;
+  },
+  (task, _index, wording) =>
+    task.duration === undefined || isPositiveWholeDays(task.duration)
+      ? undefined
+      : {
+          rule: "duration-not-positive-whole-number",
+          message: wording === "file" ? `Task ${taskLabel(task)}: ${DURATION_MESSAGE}` : DURATION_MESSAGE,
+        },
+  (task, { tasksById }) => {
+    const unknownId = task.predecessors.find((id) => !tasksById.has(id));
+    return unknownId === undefined
+      ? undefined
+      : {
+          rule: "unknown-task",
+          message: `Task ${taskLabel(task)} depends on Task ${unknownId}, which is not in the project.`,
+        };
+  },
+];
+
+/**
+ * The rules about the whole project, run after every Task passed. A new
+ * Validation Error rule about the project is one entry here, in reporting order.
+ */
+const PROJECT_CHECKS: readonly ProjectCheck[] = [
+  (project) =>
+    project.start.date === undefined || isIsoDate(project.start.date)
+      ? undefined
+      : { rule: "start-date-not-a-date", message: START_DATE_MESSAGE },
+  (project) => (project.name === undefined ? undefined : checkName(project.name, PROJECT_NAME_RULES)),
+  // Only createTask reaches it: import's shape stage rejects a file above the ceiling first.
+  (project) =>
+    project.nextTaskId <= MAX_NEXT_TASK_ID
+      ? undefined
+      : {
+          rule: "task-id-limit-reached",
+          message: `Task ids go up to ${MAX_TASK_ID} and this project has reached that limit, so no more Tasks can be created.`,
+        },
+  // Last, since `findCycle` ignores the unknown ids the Task checks report.
+  (project) => {
+    const cycle = findCycle(project);
+    return cycle === undefined
+      ? undefined
+      : { rule: "cycle", message: `The project contains the cycle ${pathLabel(project, cycle)}.` };
+  },
+];
+
+function firstValidationError(project: Project, wording: Wording): ValidationError | undefined {
+  const index: ProjectIndex = { project, tasksById: new Map(project.tasks.map((task) => [task.id, task])) };
+  for (const task of project.tasks) {
+    for (const check of TASK_CHECKS) {
+      const error = check(task, index, wording);
+      if (error) return error;
     }
-    const unknownId = task.predecessors.find((id) => !taskIds.has(id));
-    if (unknownId !== undefined) {
-      return {
-        rule: "unknown-task",
-        message: `Task ${taskLabel(task)} depends on Task ${unknownId}, which is not in the project.`,
-      };
-    }
   }
-  if (project.start.date !== undefined && !isIsoDate(project.start.date)) {
-    return { rule: "start-date-not-a-date", message: START_DATE_MESSAGE };
-  }
-  if (project.name !== undefined) {
-    const nameError = checkName(project.name, PROJECT_NAME_RULES);
-    if (nameError) return nameError;
-  }
-  const cycle = findCycle(project);
-  if (cycle !== undefined) {
-    return { rule: "cycle", message: `The project contains the cycle ${pathLabel(project, cycle)}.` };
+  for (const check of PROJECT_CHECKS) {
+    const error = check(project, wording);
+    if (error) return error;
   }
   return undefined;
+}
+
+/**
+ * The first Validation Error the project already holds, worded for a file, or
+ * undefined when it holds none. It walks the aggregate's one rule list:
+ * `TASK_CHECKS` for each Task in array order, then `PROJECT_CHECKS`. Assumes
+ * the model invariants (unique ascending ids, sorted and unique predecessors);
+ * import establishes them first.
+ */
+export function validateProject(project: Project): ValidationError | undefined {
+  return firstValidationError(project, "file");
 }
