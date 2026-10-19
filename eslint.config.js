@@ -88,12 +88,25 @@ const literalValueSelectors = [
 
 // The Project aggregate's seal as a lint gate: only src/lib/services/project.ts mints a CheckedProject.
 // Tests and the dev-only kitchen sink may cast, for fixtures that must reach the view unchecked.
+// The ban matches the brand and the two results that carry it, by plain or qualified name (edits.CheckedProject),
+// as the cast type or anywhere inside it (CheckedProject | undefined, Readonly<CheckedProject>, CheckedProject[]).
+const checkedProjectTypeName = "/^(CheckedProject|EditResult|ImportResult)$/";
+const checkedProjectName = `:matches([typeName.name=${checkedProjectTypeName}], [typeName.right.name=${checkedProjectTypeName}])`;
+const checkedProjectCastMessage =
+  "Only src/lib/services/project.ts mints a CheckedProject: take it from an edit, checkProject (import) or toCheckedProject (a hand-built project), never from a cast.";
 const checkedProjectCastSelectors = [
   {
-    selector:
-      ":matches(TSAsExpression, TSTypeAssertion) > TSTypeReference.typeAnnotation[typeName.name='CheckedProject']",
-    message:
-      "Only src/lib/services/project.ts mints a CheckedProject: take it from an edit, checkProject (import) or toCheckedProject (a hand-built project), never from a cast.",
+    selector: `:matches(TSAsExpression, TSTypeAssertion) > TSTypeReference.typeAnnotation${checkedProjectName}`,
+    message: checkedProjectCastMessage,
+  },
+  {
+    selector: `:matches(TSAsExpression, TSTypeAssertion) > .typeAnnotation TSTypeReference${checkedProjectName}`,
+    message: checkedProjectCastMessage,
+  },
+  // A renamed import would slip past the names above.
+  {
+    selector: "ImportSpecifier[imported.name='CheckedProject'][local.name!='CheckedProject']",
+    message: "Import CheckedProject under its own name, so the cast ban above can see it.",
   },
 ];
 const checkedProjectCastConfig = defineConfig({

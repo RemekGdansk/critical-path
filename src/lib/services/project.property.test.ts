@@ -17,6 +17,7 @@ import {
   setStartDate,
   validateProject,
 } from "@/lib/services/project";
+import { parseProjectFile, serializeProject } from "@/lib/services/project-file";
 
 function deepFreeze<T>(value: T): T {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
@@ -26,7 +27,7 @@ function deepFreeze<T>(value: T): T {
   return value;
 }
 
-// Mostly valid names, so Tasks accumulate, and one of each kind a name rule
+// Mostly names the rules accept, so Tasks accumulate, and one of each kind a name rule
 // rejects: empty, whitespace, invisible only, 201 code units, a control
 // character, a lone surrogate.
 const names = fc.oneof(
@@ -98,6 +99,12 @@ describe("edit sequences", () => {
           const result = apply(deepFreeze(project), step);
           if (result.ok) {
             expect(validateProject(result.project)).toBeUndefined();
+            // The file module's shape stage is a second check of the model shape and the Task id caps,
+            // independent of the guardian, and the round-trip pins the serializer for every reachable Project.
+            expect(parseProjectFile(serializeProject(result.project))).toStrictEqual({
+              ok: true,
+              project: result.project,
+            });
             project = result.project;
           } else {
             expect(project).toEqual(before);

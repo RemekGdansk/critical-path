@@ -78,7 +78,7 @@ function predecessorsOf(project: Project, taskId: TaskId): TaskId[] | undefined 
   return project.tasks.find((task) => task.id === taskId)?.predecessors;
 }
 
-/** A to-do Task literal, built by hand so invalid values can be held. */
+/** A to-do Task literal, built by hand so it can hold values that break a Validation Error rule. */
 function task(id: TaskId, name: string, predecessors: TaskId[] = [], extra: Partial<Task> = {}): Task {
   return { id, name, predecessors, status: "to-do", ...extra };
 }
@@ -645,6 +645,11 @@ describe("the guardian", () => {
       "unsorted predecessors",
       projectOf([task(1, "A"), task(2, "B"), task(3, "C", [2, 1])]),
       "The predecessors of Task 3 must be strictly ascending: 1 follows 2.",
+    ],
+    [
+      "a duplicate predecessor",
+      projectOf([task(1, "A"), task(2, "B", [1, 1])]),
+      "The predecessors of Task 2 must be strictly ascending: 1 follows 1.",
     ],
   ])("throws ProjectInvariantBreach when createTask meets %s", (_name, project, message) => {
     expect(() => createTask(project as CheckedProject, "New")).toThrow(

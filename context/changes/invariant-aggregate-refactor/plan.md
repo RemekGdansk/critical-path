@@ -164,6 +164,8 @@ function accept(candidate: Project, explain?: Partial<Record<ValidationErrorRule
 
 `reject`/`rejectWith` remain for addressing and parsing rejections only.
 
+**Changed during implementation (2026-10-19):** `accept(candidate, explain?, wording = "edit")` takes the wording as a third parameter, so Phase 4's `checkProject` runs the same guardian in file wording. An explanation returns `string | undefined`, and `undefined` falls back to the rule list's message (e.g. when `cyclePathFor` finds no path).
+
 #### 2. Every edit through the guardian
 
 **File**: `src/lib/services/project.ts`
@@ -205,7 +207,7 @@ function accept(candidate: Project, explain?: Partial<Record<ValidationErrorRule
 #### Manual Verification:
 
 - One edit on the 100-Task project is measured and recorded in `change.md` Notes, well inside the 200 ms NFR
-- In `npm run dev`, a rejected edit in each panel (empty Task name, Duration `0`, a cycle-closing predecessor, a project name with only invisible characters) shows the same message as before the change. The START date `2026-02-30` cannot be typed into the panel: the native date input reports `""` for it, which clears the date (pre-existing, recorded as a follow-up in `change.md` Notes); `start-date-not-a-date` is covered by the hook rejection table instead
+- In `npm run dev`, a rejected edit in each panel (empty Task name, Duration `0`, a cycle-closing predecessor, a project name with only invisible characters) shows the same message as before the change. **Changed during implementation (2026-10-19):** the START date `2026-02-30` step was dropped from this list, since that date cannot be typed into the panel: the native date input reports `""` for it, which clears the date (pre-existing, recorded as a follow-up in `change.md` Notes); `start-date-not-a-date` is covered by the hook rejection table instead
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
