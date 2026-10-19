@@ -18,6 +18,7 @@ import {
   setDuration,
   setProjectName,
   setStartDate,
+  startDateNotADate,
   TASK_NAME_MAX_LENGTH,
   taskLabel,
   toCheckedProject,
@@ -372,6 +373,13 @@ describe("setStartDate", () => {
     const result = edit(setStartDate, createEmptyProject(), "2026-02-30");
     if (result.ok) throw new Error("Expected a rejection");
     expect(result.error.message).toBe("The START date must be a calendar date from 0001-01-01 to 9999-12-31.");
+  });
+
+  it("rejects with the same Validation Error the view shows for a date the browser cannot read", () => {
+    const result = edit(setStartDate, createEmptyProject(), "2026-02-30");
+    if (result.ok) throw new Error("Expected a rejection");
+    expect(result.error).toStrictEqual(startDateNotADate());
+    expect(result.error.message).not.toMatch(/invalid|conflict|blocked/i);
   });
 });
 

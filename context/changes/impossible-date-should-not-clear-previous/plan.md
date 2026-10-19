@@ -209,14 +209,14 @@ An e2e test proves the premise jsdom can only stub: Chromium really reports `""`
 
 #### Automated
 
-- [ ] 1.1 Domain and planner tests pass: `npx vitest run src/lib/services/project.test.ts src/components/planner/Planner.test.ts`
-- [ ] 1.2 Lint passes: `npm run lint`
-- [ ] 1.3 Type check passes: `npx astro check`
-- [ ] 1.4 Full suite passes: `npm test`
+- [x] 1.1 Domain and planner tests pass: `npx vitest run src/lib/services/project.test.ts src/components/planner/Planner.test.ts`
+- [x] 1.2 Lint passes: `npm run lint`
+- [x] 1.3 Type check passes: `npx astro check`
+- [x] 1.4 Full suite passes: `npm test`
 
 #### Manual
 
-- [ ] 1.5 Under `npm run dev` in Chromium, an impossible START date shows the alert and keeps the START date; Escape and Clear behave
+- [x] 1.5 Under `npm run dev` in Chromium, an impossible START date shows the alert and keeps the START date; Escape and Clear behave
 
 ### Phase 2: Pin it in Chromium and document
 

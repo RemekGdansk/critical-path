@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import type { ProjectActions } from "@/hooks/useProject";
 import { MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { forecastBaseDate, weekendMoveNote } from "@/lib/services/forecast";
+import { startDateNotADate } from "@/lib/services/project";
 import type { Project } from "@/types";
 
 interface StartPanelProps {
@@ -23,8 +24,11 @@ interface StartPanelProps {
  * while the year is typed digit by digit (0002, 0020, 0202, 2026), so typing
  * edits a draft that commits on Enter or blur, and Escape restores it. Picking
  * from the calendar popup does not blur the input, so a change that follows no
- * key press in the field commits at once. Emptying a segment empties the value;
- * committed, that clears the date, as the browsers' own clear control does.
+ * key press in the field commits at once. Emptying every segment empties the
+ * value; committed, that clears the date, as the browsers' own clear control
+ * does. An impossible or partly filled date also reads as an empty value, but
+ * with `validity.badInput` set: committed, it keeps the date and names the
+ * START date rule.
  */
 export function StartPanel({ project, today, setStartDate, focusRequest }: StartPanelProps) {
   const dateRef = useRef<HTMLInputElement>(null);
@@ -56,6 +60,11 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
   const note = notes.length === 0 ? undefined : notes.join(" ");
 
   function commit(value: string) {
+    // Before the unchanged-value return: with START unset, an unreadable date is "" too.
+    if (value === "" && dateRef.current?.validity.badInput === true) {
+      setError(startDateNotADate().message);
+      return;
+    }
     if (value === (date ?? "")) {
       setError(undefined);
       return;
@@ -72,6 +81,8 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
       commit(event.currentTarget.value);
     } else if (event.key === "Escape") {
       typing.current = false;
+      // Through the DOM too: React skips a value equal to the DOM's, and an unreadable date's is "".
+      if (dateRef.current) dateRef.current.value = date ?? "";
       setDraft(date ?? "");
       setError(undefined);
     } else {
@@ -113,6 +124,8 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
               type="button"
               variant="outline"
               onClick={() => {
+                // Empties unreadable segments too, so `badInput` no longer holds the date.
+                if (dateRef.current) dateRef.current.value = "";
                 setDraft("");
                 commit("");
                 // The button unmounts with the date, so focus would otherwise fall to <body>.
