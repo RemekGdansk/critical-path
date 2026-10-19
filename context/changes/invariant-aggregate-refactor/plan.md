@@ -205,7 +205,7 @@ function accept(candidate: Project, explain?: Partial<Record<ValidationErrorRule
 #### Manual Verification:
 
 - One edit on the 100-Task project is measured and recorded in `change.md` Notes, well inside the 200 ms NFR
-- In `npm run dev`, a rejected edit in each panel (empty Task name, Duration `0`, START date `2026-02-30`, a cycle-closing predecessor, a project name with only invisible characters) shows the same message as before the change
+- In `npm run dev`, a rejected edit in each panel (empty Task name, Duration `0`, a cycle-closing predecessor, a project name with only invisible characters) shows the same message as before the change. The START date `2026-02-30` cannot be typed into the panel: the native date input reports `""` for it, which clears the date (pre-existing, recorded as a follow-up in `change.md` Notes); `start-date-not-a-date` is covered by the hook rejection table instead
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase.
 
@@ -419,23 +419,23 @@ No data migration. The file format and version (`"0.1"`) are unchanged, and ever
 
 #### Automated
 
-- [x] 2.1 Existing validateProject and import tests pass unchanged
-- [x] 2.2 The property test still passes
-- [x] 2.3 Full gate passes
+- [x] 2.1 Existing validateProject and import tests pass unchanged — b1a7816
+- [x] 2.2 The property test still passes — b1a7816
+- [x] 2.3 Full gate passes — b1a7816
 
 ### Phase 3: accept becomes the guardian
 
 #### Automated
 
-- [ ] 3.1 Domain and hook tests pass with the forged-project and breach tests added
-- [ ] 3.2 No checkName, isPositiveWholeDays or isIsoDate call remains inside an edit function
-- [ ] 3.3 Full gate passes
-- [ ] 3.4 E2E passes, including the unchanged import alert text
+- [x] 3.1 Domain and hook tests pass with the forged-project and breach tests added
+- [x] 3.2 No checkName, isPositiveWholeDays or isIsoDate call remains inside an edit function
+- [x] 3.3 Full gate passes
+- [x] 3.4 E2E passes, including the unchanged import alert text
 
 #### Manual
 
-- [ ] 3.5 One edit on the 100-Task project is measured and recorded in change.md Notes
-- [ ] 3.6 A rejected edit in each panel shows the same message as before the change
+- [x] 3.5 One edit on the 100-Task project is measured and recorded in change.md Notes
+- [x] 3.6 A rejected edit in each panel shows the same message as before the change
 
 ### Phase 4: Seal the entry points
 

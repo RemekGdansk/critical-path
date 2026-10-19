@@ -35,8 +35,20 @@ export interface ValidationError {
 
 export type EditResult = { ok: true; project: Project } | { ok: false; error: ValidationError };
 
-function accept(project: Project): EditResult {
-  return { ok: true, project };
+/** Words a rule's message for the edit that broke it; undefined keeps the rule's own message. */
+type Explanations = Partial<Record<ValidationErrorRule, () => string | undefined>>;
+
+/**
+ * The guardian, and the only way an edit is accepted: it checks the whole
+ * candidate project, not the rule the edit expects to break. The input of the
+ * edit held no Validation Error, so the first one the candidate holds is the
+ * edit's doing. Throws ProjectInvariantBreach on a broken model shape.
+ */
+function accept(candidate: Project, explain?: Explanations): EditResult {
+  assertModelShape(candidate);
+  const error = firstValidationError(candidate, "edit");
+  if (error === undefined) return { ok: true, project: candidate };
+  return rejectWith({ ...error, message: explain?.[error.rule]?.() ?? error.message });
 }
 
 function reject(rule: ValidationErrorRule, message: string): EditResult {
@@ -135,11 +147,7 @@ export function createEmptyProject(): Project {
 }
 
 export function createTask(project: Project, name: string): EditResult {
-  const trimmed = name.trim();
-  const nameError = checkName(trimmed, TASK_NAME_RULES);
-  if (nameError) return rejectWith(nameError);
-
-  const task: Task = { id: project.nextTaskId, name: trimmed, predecessors: [], status: "to-do" };
+  const task: Task = { id: project.nextTaskId, name: name.trim(), predecessors: [], status: "to-do" };
   return accept({ ...project, nextTaskId: project.nextTaskId + 1, tasks: [...project.tasks, task] });
 }
 
@@ -147,11 +155,7 @@ export function renameTask(project: Project, taskId: TaskId, name: string): Edit
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
 
-  const trimmed = name.trim();
-  const nameError = checkName(trimmed, TASK_NAME_RULES);
-  if (nameError) return rejectWith(nameError);
-
-  return accept(replaceTask(project, { ...task, name: trimmed }));
+  return accept(replaceTask(project, { ...task, name: name.trim() }));
 }
 
 /**
@@ -178,16 +182,17 @@ export function addPredecessor(project: Project, taskId: TaskId, predecessorId: 
   const predecessor = findTask(project, predecessorId);
   if (predecessor === undefined) return unknownTask(predecessorId);
   if (task.predecessors.includes(predecessorId)) return accept(project);
-  const cycle = cyclePathFor(project, taskId, predecessorId);
-  if (cycle !== undefined) {
-    return reject(
-      "cycle",
-      `Adding ${taskLabel(predecessor)} as a predecessor of ${taskLabel(task)} would create the cycle ${pathLabel(project, cycle)}.`,
-    );
-  }
 
   const predecessors = [...task.predecessors, predecessorId].toSorted((a, b) => a - b);
-  return accept(replaceTask(project, { ...task, predecessors }));
+  return accept(replaceTask(project, { ...task, predecessors }), {
+    // The shortest cycle through the new dependency, starting at the Task (US-01).
+    cycle: () => {
+      const cycle = cyclePathFor(project, taskId, predecessorId);
+      return cycle === undefined
+        ? undefined
+        : `Adding ${taskLabel(predecessor)} as a predecessor of ${taskLabel(task)} would create the cycle ${pathLabel(project, cycle)}.`;
+    },
+  });
 }
 
 export function removePredecessor(project: Project, taskId: TaskId, predecessorId: TaskId): EditResult {
@@ -208,8 +213,6 @@ export function setProjectName(project: Project, input: string): EditResult {
     delete cleared.name;
     return accept(cleared);
   }
-  const nameError = checkName(trimmed, PROJECT_NAME_RULES);
-  if (nameError) return rejectWith(nameError);
   return accept({ ...project, name: trimmed });
 }
 
@@ -238,11 +241,9 @@ export function setDuration(project: Project, taskId: TaskId, input: string): Ed
     delete cleared.duration;
     return accept(replaceTask(project, cleared));
   }
-  const duration = Number(trimmed);
-  if (!DIGITS_ONLY.test(trimmed) || !isPositiveWholeDays(duration)) {
-    return reject("duration-not-positive-whole-number", DURATION_MESSAGE);
-  }
-  return accept(replaceTask(project, { ...task, duration }));
+  // Parsing only: "0" or a 20-digit number parse, and the rule list rejects them.
+  if (!DIGITS_ONLY.test(trimmed)) return reject("duration-not-positive-whole-number", DURATION_MESSAGE);
+  return accept(replaceTask(project, { ...task, duration: Number(trimmed) }));
 }
 
 /** Sets the START date from an ISO date (yyyy-mm-dd); empty input clears it, so the forecast starts from today. */
@@ -253,7 +254,6 @@ export function setStartDate(project: Project, input: string): EditResult {
     delete start.date;
     return accept({ ...project, start });
   }
-  if (!isIsoDate(trimmed)) return reject("start-date-not-a-date", START_DATE_MESSAGE);
   return accept({ ...project, start: { ...project.start, date: trimmed } });
 }
 
@@ -264,7 +264,7 @@ export function isDayCountingMode(value: string): value is DayCountingMode {
   return DAY_COUNTING_MODES.some((mode) => mode === value);
 }
 
-/** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project, so it never rejects. */
+/** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project. */
 export function setDayCountingMode(project: Project, mode: DayCountingMode): EditResult {
   if (project.dayCountingMode === mode) return accept(project);
   return accept({ ...project, dayCountingMode: mode });
@@ -288,6 +288,38 @@ export class ProjectInvariantBreach extends Error {
   constructor(fault: ValidationError | ModelShapeFault) {
     super(fault.message);
     this.fault = fault;
+  }
+}
+
+function modelShapeBreach(message: string): ProjectInvariantBreach {
+  return new ProjectInvariantBreach({ rule: "model-shape", message });
+}
+
+/**
+ * Throws ProjectInvariantBreach unless the model invariants no user action can
+ * break hold: Task ids and each Task's predecessors strictly ascending (so
+ * unique), and `nextTaskId` above every Task id.
+ */
+function assertModelShape(project: Project): void {
+  let lastId: TaskId | undefined;
+  for (const task of project.tasks) {
+    if (lastId !== undefined && task.id <= lastId) {
+      throw modelShapeBreach(`Task ids must be strictly ascending: Task ${task.id} follows Task ${lastId}.`);
+    }
+    lastId = task.id;
+  }
+  for (const task of project.tasks) {
+    const unsorted = task.predecessors.findIndex((id, i) => i > 0 && id <= task.predecessors[i - 1]);
+    if (unsorted !== -1) {
+      throw modelShapeBreach(
+        `The predecessors of Task ${task.id} must be strictly ascending: ${task.predecessors[unsorted]} follows ${task.predecessors[unsorted - 1]}.`,
+      );
+    }
+  }
+  if (lastId !== undefined && project.nextTaskId <= lastId) {
+    throw modelShapeBreach(
+      `nextTaskId must be above every Task id: it is ${project.nextTaskId}, and Task ${lastId} exists.`,
+    );
   }
 }
 

@@ -75,6 +75,17 @@ function predecessorsOf(project: Project, taskId: TaskId): TaskId[] | undefined 
   return project.tasks.find((task) => task.id === taskId)?.predecessors;
 }
 
+/** A to-do Task literal, built by hand so invalid values can be held. */
+function task(id: TaskId, name: string, predecessors: TaskId[] = [], extra: Partial<Task> = {}): Task {
+  return { id, name, predecessors, status: "to-do", ...extra };
+}
+
+/** A hand-built project literal with `nextTaskId` above every id. */
+function projectOf(tasks: Task[], extra: Partial<Project> = {}): Project {
+  const nextTaskId = Math.max(0, ...tasks.map((t) => t.id)) + 1;
+  return { start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId, tasks, ...extra };
+}
+
 describe("createEmptyProject", () => {
   it("has no Tasks, starts ids at 1 and counts calendar days", () => {
     expect(createEmptyProject()).toEqual({
@@ -427,17 +438,6 @@ describe("setProjectName", () => {
 });
 
 describe("validateProject", () => {
-  /** A to-do Task literal, built by hand so invalid values can be held. */
-  function task(id: TaskId, name: string, predecessors: TaskId[] = [], extra: Partial<Task> = {}): Task {
-    return { id, name, predecessors, status: "to-do", ...extra };
-  }
-
-  /** A hand-built project literal with `nextTaskId` above every id. */
-  function projectOf(tasks: Task[], extra: Partial<Project> = {}): Project {
-    const nextTaskId = Math.max(0, ...tasks.map((t) => t.id)) + 1;
-    return { start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId, tasks, ...extra };
-  }
-
   function expectValidationError(project: Project, rule: ValidationErrorRule, message: string): void {
     const error = validateProject(project);
     expect(error).toEqual({ rule, message });
@@ -596,5 +596,54 @@ describe("ProjectInvariantBreach", () => {
     expect(breach.name).toBe("ProjectInvariantBreach");
     expect(breach.message).toBe(fault.message);
     expect(breach.fault).toEqual(fault);
+  });
+});
+
+describe("the guardian", () => {
+  // A ⇄ B is a cycle no edit can build; C is unrelated to it. An edit that
+  // checked only the rule it knows it can break would accept every edit on C.
+  const cyclic = projectOf([task(1, "A", [2]), task(2, "B", [1]), task(3, "C")]);
+  const cycleMessage = "The project contains the cycle 1: A → 2: B → 1: A.";
+
+  it.each([
+    ["setDuration", (project: Project) => setDuration(project, 3, "5")],
+    ["renameTask", (project: Project) => renameTask(project, 3, "Ship")],
+    ["setProjectName", (project: Project) => setProjectName(project, "Website")],
+    ["setDayCountingMode", (project: Project) => setDayCountingMode(project, "weekdays")],
+    ["addPredecessor", (project: Project) => addPredecessor(project, 3, 1)],
+  ])("rejects %s when the resulting project holds a cycle, not only the rule the edit can break", (_name, apply) => {
+    const result = apply(deepFreeze(structuredClone(cyclic)));
+
+    expectRejected(result, "cycle");
+    if (!result.ok) expect(result.error.message).toBe(cycleMessage);
+  });
+
+  it.each([
+    [
+      "duplicate Task ids",
+      projectOf([task(1, "A"), task(1, "B")]),
+      "Task ids must be strictly ascending: Task 1 follows Task 1.",
+    ],
+    [
+      "unsorted predecessors",
+      projectOf([task(1, "A"), task(2, "B"), task(3, "C", [2, 1])]),
+      "The predecessors of Task 3 must be strictly ascending: 1 follows 2.",
+    ],
+  ])("throws ProjectInvariantBreach when createTask meets %s", (_name, project, message) => {
+    expect(() => createTask(project, "New")).toThrow(
+      expect.objectContaining({ name: "ProjectInvariantBreach", fault: { rule: "model-shape", message } }),
+    );
+  });
+
+  it("throws ProjectInvariantBreach when nextTaskId is not above every Task id", () => {
+    // Not createTask: it would mint the duplicate id 2 and report that first.
+    const project = projectOf([task(1, "A"), task(2, "B")], { nextTaskId: 2 });
+
+    expect(() => renameTask(project, 1, "Design")).toThrow(
+      expect.objectContaining({
+        name: "ProjectInvariantBreach",
+        fault: { rule: "model-shape", message: "nextTaskId must be above every Task id: it is 2, and Task 2 exists." },
+      }),
+    );
   });
 });

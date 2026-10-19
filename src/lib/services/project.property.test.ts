@@ -85,7 +85,9 @@ function apply(project: Project, step: Step): EditResult {
 }
 
 describe("edit sequences", () => {
-  it("never accept a Validation Error and leave the input unchanged when they reject", () => {
+  // Every edit ends in the guardian, which throws ProjectInvariantBreach on a
+  // broken model shape, so a sequence that breaks the shape fails here too.
+  it("never accept a Validation Error, never throw, and leave the input unchanged when they reject", () => {
     fc.assert(
       // `size: "max"`: fast-check's default size would keep sequences near 10
       // edits, too short to build the Tasks a cycle attempt needs.
