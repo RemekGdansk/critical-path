@@ -1,8 +1,8 @@
-import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { Handle, Position } from "@xyflow/react";
 import { TriangleAlertIcon } from "lucide-react";
 import { memo } from "react";
 
-import { formatDuration, type TaskNodeType } from "@/lib/services/diagram-layout";
+import type { TaskNodeProps } from "@/components/planner/diagram/flow-elements";
 import { cn } from "@/lib/utils";
 
 // Handles only anchor edges: never connectable, and not drawn.
@@ -14,31 +14,30 @@ import { cn } from "@/lib/utils";
 // drawn here too; a selected node keeps its own border instead.
 // A Task missing its Duration (a Validation Warning) gets a --warning border and
 // a "No Duration" line; selected, it keeps the line, so it still reads as warned.
-function TaskNodeComponent({ data, selected }: NodeProps<TaskNodeType>) {
+// The Duration text comes ready from the domain node; nothing is formatted here.
+function TaskNodeComponent({ data: { node }, selected }: TaskNodeProps) {
   return (
     <div
-      title={data.name}
+      title={node.name}
       className={cn(
         "bg-card text-card-foreground flex h-full w-full flex-col justify-center rounded-md border px-3 text-sm shadow-xs transition-colors",
         "in-focus-visible:outline-ring/50 in-focus-visible:outline-3 in-focus-visible:outline-offset-2",
         selected
           ? "border-primary ring-primary/30 ring-2"
-          : data.durationMissing
+          : node.durationMissing
             ? "border-warning"
             : "hover:border-ring",
       )}
     >
       <Handle type="target" position={Position.Left} isConnectable={false} className="opacity-0" />
-      <span className="truncate">{data.name}</span>
-      {data.durationMissing ? (
+      <span className="truncate">{node.name}</span>
+      {node.durationMissing ? (
         <span className="text-warning flex items-center gap-1 text-xs">
           <TriangleAlertIcon aria-hidden="true" className="size-3 shrink-0" />
           No Duration
         </span>
       ) : (
-        data.duration !== undefined && (
-          <span className="text-muted-foreground text-xs">{formatDuration(data.duration, data.dayCountingMode)}</span>
-        )
+        node.durationText !== undefined && <span className="text-muted-foreground text-xs">{node.durationText}</span>
       )}
       <Handle type="source" position={Position.Right} isConnectable={false} className="opacity-0" />
     </div>

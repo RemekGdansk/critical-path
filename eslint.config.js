@@ -92,6 +92,27 @@ const plannerLiteralValuesConfig = defineConfig({
   },
 });
 
+// The diagram anti-corruption layer as a lint gate: each third-party diagram library is importable only from its adapter.
+// A later block's no-restricted-imports replaces an earlier one's, so each adapter block forbids the other library again.
+const diagramLibraryMessage =
+  "Third-party diagram libraries stay in their adapters: @dagrejs/* in src/lib/adapters/, @xyflow/* in src/components/planner/diagram/ (PROJECT_RULES.md → Conventions).";
+const dagreImports = { group: ["@dagrejs/*"], message: diagramLibraryMessage };
+const xyflowImports = { group: ["@xyflow/*"], message: diagramLibraryMessage };
+const diagramLibrariesConfig = defineConfig(
+  {
+    files: ["src/**/*.{js,jsx,ts,tsx,astro}"],
+    rules: { "no-restricted-imports": ["error", { patterns: [dagreImports, xyflowImports] }] },
+  },
+  {
+    files: ["src/lib/adapters/**/*.{js,jsx,ts,tsx,astro}"],
+    rules: { "no-restricted-imports": ["error", { patterns: [xyflowImports] }] },
+  },
+  {
+    files: ["src/components/planner/diagram/**/*.{js,jsx,ts,tsx,astro}"],
+    rules: { "no-restricted-imports": ["error", { patterns: [dagreImports] }] },
+  },
+);
+
 const astroConfig = defineConfig({
   files: ["**/*.astro"],
   languageOptions: {
@@ -121,6 +142,7 @@ export default defineConfig(
   eslintPluginAstro.configs["flat/jsx-a11y-recommended"],
   astroConfig,
   plannerLiteralValuesConfig,
+  diagramLibrariesConfig,
   scriptsConfig,
   eslintPluginPrettier,
 );

@@ -1,7 +1,6 @@
-import { ReactFlowProvider } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Diagram } from "@/components/planner/Diagram";
+import { Diagram } from "@/components/planner/diagram/Diagram";
 import { ForecastSummary } from "@/components/planner/ForecastSummary";
 import { NewTaskForm } from "@/components/planner/NewTaskForm";
 import { ProjectControls } from "@/components/planner/ProjectControls";
@@ -176,64 +175,61 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
   );
 
   return (
-    // useReactFlow() in Diagram throws without a provider above it.
-    <ReactFlowProvider>
-      <div className="flex h-full flex-col">
-        {/* Wraps instead of overlapping when the three groups do not fit one line; the forecast stays right-aligned. */}
-        <header className="flex flex-wrap items-start gap-x-6 gap-y-3 border-b px-4 py-3">
-          <NewTaskForm ref={newTaskInputRef} createTask={createTask} />
-          {/* Keyed by the replacement count, so the name draft starts over from an imported name. */}
-          <ProjectControls
-            key={replacements}
-            name={project.name}
-            setProjectName={setProjectName}
-            replaceProject={handleReplaceProject}
-            dayCountingMode={project.dayCountingMode}
-            setDayCountingMode={setDayCountingMode}
-          />
-          <div className="ml-auto">
-            <ForecastSummary forecast={projectForecast} tasks={project.tasks} startDate={project.start.date} />
-          </div>
-        </header>
-        <div className="flex min-h-0 flex-1">
-          <div className="min-w-0 flex-1">
-            <Diagram
-              project={project}
-              fitKey={replacements}
-              selection={selection}
-              onSelect={handleSelect}
-              onEdit={handleEdit}
-            />
-          </div>
-          <aside
-            aria-label={selection === "start" ? "START" : "Selected Task"}
-            className="border-sidebar-border bg-sidebar text-sidebar-foreground w-80 shrink-0 overflow-y-auto border-l p-4"
-          >
-            {selection === "start" ? (
-              <StartPanel
-                project={project}
-                today={today}
-                setStartDate={setStartDate}
-                focusRequest={focusRequest?.target === "start" ? focusRequest.id : undefined}
-              />
-            ) : project.tasks.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No Tasks yet. Type a name in New Task above and press Enter.
-              </p>
-            ) : selectedTask === undefined ? (
-              <p className="text-muted-foreground text-sm">Select START or a Task on the diagram to edit it.</p>
-            ) : (
-              <TaskPanel
-                key={selectedTask.id}
-                task={selectedTask}
-                project={project}
-                actions={{ renameTask, deleteTask: handleDeleteTask, addPredecessor, removePredecessor, setDuration }}
-                focusRequest={focusRequest?.target === selectedTask.id ? focusRequest.id : undefined}
-              />
-            )}
-          </aside>
+    <div className="flex h-full flex-col">
+      {/* Wraps instead of overlapping when the three groups do not fit one line; the forecast stays right-aligned. */}
+      <header className="flex flex-wrap items-start gap-x-6 gap-y-3 border-b px-4 py-3">
+        <NewTaskForm ref={newTaskInputRef} createTask={createTask} />
+        {/* Keyed by the replacement count, so the name draft starts over from an imported name. */}
+        <ProjectControls
+          key={replacements}
+          name={project.name}
+          setProjectName={setProjectName}
+          replaceProject={handleReplaceProject}
+          dayCountingMode={project.dayCountingMode}
+          setDayCountingMode={setDayCountingMode}
+        />
+        <div className="ml-auto">
+          <ForecastSummary forecast={projectForecast} tasks={project.tasks} startDate={project.start.date} />
         </div>
+      </header>
+      <div className="flex min-h-0 flex-1">
+        <div className="min-w-0 flex-1">
+          <Diagram
+            project={project}
+            fitKey={replacements}
+            selection={selection}
+            onSelect={handleSelect}
+            onEdit={handleEdit}
+          />
+        </div>
+        <aside
+          aria-label={selection === "start" ? "START" : "Selected Task"}
+          className="border-sidebar-border bg-sidebar text-sidebar-foreground w-80 shrink-0 overflow-y-auto border-l p-4"
+        >
+          {selection === "start" ? (
+            <StartPanel
+              project={project}
+              today={today}
+              setStartDate={setStartDate}
+              focusRequest={focusRequest?.target === "start" ? focusRequest.id : undefined}
+            />
+          ) : project.tasks.length === 0 ? (
+            <p className="text-muted-foreground text-sm">
+              No Tasks yet. Type a name in New Task above and press Enter.
+            </p>
+          ) : selectedTask === undefined ? (
+            <p className="text-muted-foreground text-sm">Select START or a Task on the diagram to edit it.</p>
+          ) : (
+            <TaskPanel
+              key={selectedTask.id}
+              task={selectedTask}
+              project={project}
+              actions={{ renameTask, deleteTask: handleDeleteTask, addPredecessor, removePredecessor, setDuration }}
+              focusRequest={focusRequest?.target === selectedTask.id ? focusRequest.id : undefined}
+            />
+          )}
+        </aside>
       </div>
-    </ReactFlowProvider>
+    </div>
   );
 }
