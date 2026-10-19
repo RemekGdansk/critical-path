@@ -1,4 +1,4 @@
-# Critical Path
+# Critical Path [![CI](https://github.com/RemekGdansk/critical-path/actions/workflows/ci.yml/badge.svg)](https://github.com/RemekGdansk/critical-path/actions/workflows/ci.yml)
 
 A single-user, browser-only project planner built around the critical path. There is no login, no database and no server logic: project data never leaves the device, and the app is meant to keep working offline.
 
