@@ -455,12 +455,12 @@ No data migration. The file format and version (`"0.1"`) are unchanged, and ever
 
 #### Automated
 
-- [x] 5.1 The ceiling tests pass
-- [x] 5.2 The cap literal lives in one module
-- [x] 5.3 Full gate passes
-- [x] 5.4 E2E passes
-- [x] 5.5 Mutation testing on the guardian's lines is reviewed
+- [x] 5.1 The ceiling tests pass — c6fccf6
+- [x] 5.2 The cap literal lives in one module — c6fccf6
+- [x] 5.3 Full gate passes — c6fccf6
+- [x] 5.4 E2E passes — c6fccf6
+- [x] 5.5 Mutation testing on the guardian's lines is reviewed — c6fccf6
 
 #### Manual
 
-- [x] 5.6 The test-plan and glossary wording reads correctly and uses the glossary's own terms
+- [x] 5.6 The test-plan and glossary wording reads correctly and uses the glossary's own terms — c6fccf6
