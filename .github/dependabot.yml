@@ -1,26 +1,35 @@
 version: 2
 
 updates:
-  # Grouped so a quiet week produces one PR, not six. Every PR still has to pass
-  # `ci` and `Workers Builds: critical-path`, both required on main — lint,
-  # astro check, `npm test`, a real Cloudflare build and `npm run check:csp`
-  # on the built pages are the review every dependency bump gets. The last
-  # one fails a bump (Astro above all) that moves or drops the CSP meta.
+  # One group per kind of update, so a week produces one npm PR, not two or
+  # three. Every npm PR touches package-lock.json, and main requires branches
+  # to be up to date, so each extra PR meant another branch update and CI run
+  # after the first one merged. Security updates arrive off-schedule, so they
+  # get their own group instead of one PR per advisory.
+  # Every PR still has to pass `ci` and `Workers Builds: critical-path`, both
+  # required on main — lint, astro check, `npm test`, a real Cloudflare build
+  # and `npm run check:csp` on the built pages are the review every dependency
+  # bump gets. The last one fails a bump (Astro above all) that moves or drops
+  # the CSP meta.
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
     groups:
-      production-dependencies:
-        dependency-type: production
-      development-dependencies:
-        dependency-type: development
+      npm-dependencies:
+        applies-to: version-updates
+        patterns:
+          - "*"
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
     ignore:
       # TypeScript 7 cannot install: @astrojs/check declares
       # `typescript@"^5.0.0 || ^6.0.0"`, so `npm ci` fails at resolution before
       # any code runs (PR #7). A grouped PR is all-or-nothing, so one impossible
-      # upgrade blocks every other dev-dependency bump, and Dependabot reopens
+      # upgrade blocks every other dependency bump, and Dependabot reopens
       # the same red PR every week until red stops meaning anything.
       # Remove this once @astrojs/check widens its peer range.
       - dependency-name: typescript
