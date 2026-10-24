@@ -6,6 +6,10 @@ updates:
   # to be up to date, so each extra PR meant another branch update and CI run
   # after the first one merged. Security updates arrive off-schedule, so they
   # get their own group instead of one PR per advisory.
+  # Major version updates stay out of the group and arrive one PR each. They
+  # are never auto-merged (.github/workflows/dependabot-auto-merge.yml), so in
+  # the group a single major would hold back every minor and patch bump for
+  # the week; on their own, only weeks with a major cost an extra PR.
   # Every PR still has to pass `ci` and `Workers Builds: critical-path`, both
   # required on main — lint, astro check, `npm test`, a real Cloudflare build
   # and `npm run check:csp` on the built pages are the review every dependency
@@ -21,6 +25,9 @@ updates:
         applies-to: version-updates
         patterns:
           - "*"
+        update-types:
+          - minor
+          - patch
       npm-security:
         applies-to: security-updates
         patterns:
@@ -28,9 +35,8 @@ updates:
     ignore:
       # TypeScript 7 cannot install: @astrojs/check declares
       # `typescript@"^5.0.0 || ^6.0.0"`, so `npm ci` fails at resolution before
-      # any code runs (PR #7). A grouped PR is all-or-nothing, so one impossible
-      # upgrade blocks every other dependency bump, and Dependabot reopens
-      # the same red PR every week until red stops meaning anything.
+      # any code runs (PR #7). Without this, Dependabot keeps a PR open that can
+      # never go green, and a permanently red PR teaches everyone to ignore red.
       # Remove this once @astrojs/check widens its peer range.
       - dependency-name: typescript
         update-types:
