@@ -61,8 +61,6 @@ Vitest runs pure domain logic, static renders and jsdom state and view tests. Te
 
 Stryker runs selective mutation testing on risk-critical modules: `npm run test:mutation -- --mutate "path/to/file.ts:start-end"`. It is not a CI gate. Run it only on code touched by the current change or by a risk in @context/foundation/test-plan.md, and do not chase a 100% score. The report is written to `reports/mutation/mutation.html`. Review survived mutants one by one, and add an assertion only when a mutant would be a user-visible or business-relevant bug.
 
-**Known false result:** with Vitest 5, `@stryker-mutator/vitest-runner` 10.0.0 runs no test in any mutant run, so every mutant is reported Survived (a score near 0%). The runner joins suite and test names with a space, but Vitest 5 matches its test name filter against names joined with `" > "`, so every test file is skipped. Upstream: stryker-js issue #6210 (fix PRs #6214, #6247). Until a fixed runner is released and bumped here, a near-zero score is this bug, not weak tests; to measure, temporarily change `nameParts.join(' ')` to `nameParts.join(' > ')` in `node_modules/@stryker-mutator/vitest-runner/dist/src/test-helpers.js` and `stryker-setup.js`, then reinstall.
-
 ## Markdown
 
 - Do not insert line breaks. Readers can always use word-wrap in an editor.
