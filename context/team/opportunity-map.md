@@ -12,7 +12,7 @@
 | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ---------------------------------------------------------------- | -------------------------------------- | ----------------------------------- |
 | Roadmap slices that could run in parallel ran one at a time                       | git worktrees (Claude Code can start an agent in its own worktree); the roadmap's "Parallel with" field | Runbook: worktree and `npm ci` per slice, separate dev port, shared-file rules | One S-05 + S-08 trial in two worktrees, noting what collided     | Local                                  | Wait; runbook if the trial pays off |
 | Weekly Dependabot PRs need merge, branch update and a CI re-run one after another | One npm group (plus `applies-to: security-updates`) and auto-merge (`gh pr merge --auto`)               | GitHub's `dependabot/fetch-metadata` auto-merge workflow (adopted, not built)  | `dependabot.yml` change, then count PRs and clicks for 2–3 weeks | Read-only; supply chain if auto-merged | Config change, no build             |
-| Stryker reports ~0% until `node_modules` is patched by hand                       | Upstream fix: `@stryker-mutator/vitest-runner` 10.1.1 (2026-10-23)                                      | None                                                                           | Bump to 10.1.1 + one verification run                            | Local                                  | No build                            |
+| Stryker reports ~0% until `node_modules` is patched by hand                       | Upstream fix: `@stryker-mutator/vitest-runner` 10.1.1 (2026-10-23)                                      | None                                                                           | Bump to 10.1.1 + one verification run                            | Local                                  | No build; done 2026-10-24 (#72)     |
 
 ## Recommended First Candidate
 
@@ -40,7 +40,7 @@ Wait. If the trial saves time, write a runbook in context/ (and maybe a rule in 
 
 Existing responses to apply first, independent of validation:
 
-1. **Stryker:** bump `@stryker-mutator/core` and `@stryker-mutator/vitest-runner` to 10.1.1 (the `^10.0.0` range already allows it; only the lockfile holds 10.0.0), run `npm ci` (the local `vitest` 5.0.3 no longer matches `^5.0.5`), confirm one mutation run reports a non-zero score, then remove the "Known false result" paragraph from PROJECT_RULES.md.
+1. **Stryker (done 2026-10-24, #72; a mutation run on `duration.ts` killed 13 of 13 mutants):** bump `@stryker-mutator/core` and `@stryker-mutator/vitest-runner` to 10.1.1 (the `^10.0.0` range already allows it; only the lockfile holds 10.0.0), run `npm ci` (the local `vitest` 5.0.3 no longer matches `^5.0.5`), confirm one mutation run reports a non-zero score, then remove the "Known false result" paragraph from PROJECT_RULES.md.
 2. **Dependabot:** merge the `production-dependencies` and `development-dependencies` groups into one and turn on auto-merge for Dependabot PRs. Keep `strict: true` on main. Accept that a single group is all-or-nothing, as the TypeScript `ignore` comment in `.github/dependabot.yml` already explains.
 
 ## Why This Candidate
