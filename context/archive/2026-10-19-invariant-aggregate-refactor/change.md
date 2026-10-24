@@ -1,10 +1,10 @@
 ---
 change_id: invariant-aggregate-refactor
 title: Invariant aggregate refactor
-status: impl_reviewed
+status: archived
 created: 2026-10-19
-updated: 2026-10-19
-archived_at: null
+updated: 2026-10-24
+archived_at: 2026-10-24T18:56:12Z
 ---
 
 ## Notes

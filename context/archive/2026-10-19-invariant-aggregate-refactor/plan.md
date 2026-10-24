@@ -410,59 +410,59 @@ No data migration. The file format and version (`"0.1"`) are unchanged, and ever
 
 #### Automated
 
-- [x] 1.1 The property test passes on the unchanged production code — 2e47fac
-- [x] 1.2 Full gate passes — 2e47fac
+- [x] 1.1 The property test passes on the unchanged production code — 89f19c1
+- [x] 1.2 Full gate passes — 89f19c1
 
 #### Manual
 
-- [x] 1.3 Temporarily breaking one edit makes the property test fail with a shrunk sequence — 2e47fac
+- [x] 1.3 Temporarily breaking one edit makes the property test fail with a shrunk sequence — 89f19c1
 
 ### Phase 2: One rule list
 
 #### Automated
 
-- [x] 2.1 Existing validateProject and import tests pass unchanged — b1a7816
-- [x] 2.2 The property test still passes — b1a7816
-- [x] 2.3 Full gate passes — b1a7816
+- [x] 2.1 Existing validateProject and import tests pass unchanged — 89f19c1
+- [x] 2.2 The property test still passes — 89f19c1
+- [x] 2.3 Full gate passes — 89f19c1
 
 ### Phase 3: accept becomes the guardian
 
 #### Automated
 
-- [x] 3.1 Domain and hook tests pass with the forged-project and breach tests added — 0b06ea3
-- [x] 3.2 No checkName, isPositiveWholeDays or isIsoDate call remains inside an edit function — 0b06ea3
-- [x] 3.3 Full gate passes — 0b06ea3
-- [x] 3.4 E2E passes, including the unchanged import alert text — 0b06ea3
+- [x] 3.1 Domain and hook tests pass with the forged-project and breach tests added — 89f19c1
+- [x] 3.2 No checkName, isPositiveWholeDays or isIsoDate call remains inside an edit function — 89f19c1
+- [x] 3.3 Full gate passes — 89f19c1
+- [x] 3.4 E2E passes, including the unchanged import alert text — 89f19c1
 
 #### Manual
 
-- [x] 3.5 One edit on the 100-Task project is measured and recorded in change.md Notes — 0b06ea3
-- [x] 3.6 A rejected edit in each panel shows the same message as before the change — 0b06ea3
+- [x] 3.5 One edit on the 100-Task project is measured and recorded in change.md Notes — 89f19c1
+- [x] 3.6 A rejected edit in each panel shows the same message as before the change — 89f19c1
 
 ### Phase 4: Seal the entry points
 
 #### Automated
 
-- [x] 4.1 Type check passes, including the @ts-expect-error lines — 913852a
-- [x] 4.2 Lint passes, and a temporary as CheckedProject in a view and in the hook makes lint fail — 913852a
-- [x] 4.3 Full gate passes — 913852a
-- [x] 4.4 E2E passes — 913852a
+- [x] 4.1 Type check passes, including the @ts-expect-error lines — 89f19c1
+- [x] 4.2 Lint passes, and a temporary as CheckedProject in a view and in the hook makes lint fail — 89f19c1
+- [x] 4.3 Full gate passes — 89f19c1
+- [x] 4.4 E2E passes — 89f19c1
 
 #### Manual
 
-- [x] 4.5 The kitchen sink shows every fixture as before, including the render-crash fallback — 913852a
-- [x] 4.6 ?fixture=perf100 still loads the 100-Task project — 913852a
+- [x] 4.5 The kitchen sink shows every fixture as before, including the render-crash fallback — 89f19c1
+- [x] 4.6 ?fixture=perf100 still loads the 100-Task project — 89f19c1
 
 ### Phase 5: Id ceiling and docs
 
 #### Automated
 
-- [x] 5.1 The ceiling tests pass — c6fccf6
-- [x] 5.2 The cap literal lives in one module — c6fccf6
-- [x] 5.3 Full gate passes — c6fccf6
-- [x] 5.4 E2E passes — c6fccf6
-- [x] 5.5 Mutation testing on the guardian's lines is reviewed — c6fccf6
+- [x] 5.1 The ceiling tests pass — 89f19c1
+- [x] 5.2 The cap literal lives in one module — 89f19c1
+- [x] 5.3 Full gate passes — 89f19c1
+- [x] 5.4 E2E passes — 89f19c1
+- [x] 5.5 Mutation testing on the guardian's lines is reviewed — 89f19c1
 
 #### Manual
 
-- [x] 5.6 The test-plan and glossary wording reads correctly and uses the glossary's own terms — c6fccf6
+- [x] 5.6 The test-plan and glossary wording reads correctly and uses the glossary's own terms — 89f19c1
