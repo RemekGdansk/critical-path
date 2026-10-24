@@ -314,53 +314,53 @@ None: layout is never stored (`prd.md:211`), so the Project file and golden file
 
 #### Automated
 
-- [x] 1.1 No file imports durationUnit or formatDuration from diagram-layout — e7d1722
-- [x] 1.2 Full gate passes — e7d1722
-- [x] 1.3 E2E passes unchanged — e7d1722
+- [x] 1.1 No file imports durationUnit or formatDuration from diagram-layout — 3b309b7
+- [x] 1.2 Full gate passes — 3b309b7
+- [x] 1.3 E2E passes unchanged — 3b309b7
 
 #### Manual
 
-- [x] 1.4 Kitchen sink Task nodes and Duration label read as before in both modes — e7d1722
+- [x] 1.4 Kitchen sink Task nodes and Duration label read as before in both modes — 3b309b7
 
 ### Phase 2: Domain model, layout port and dagre adapter (test-first)
 
 #### Automated
 
-- [x] 2.1 diagram.ts and diagram.test.ts import no third-party package but vitest — c7b057f
-- [x] 2.2 Parity test passes before the rewrite, then new tests and unchanged diagram-layout.test.ts pass — c7b057f
-- [x] 2.3 Full gate passes — c7b057f
-- [x] 2.4 E2E passes unchanged — c7b057f
-- [x] 2.5 Selective mutation run on diagram.ts reviewed — c7b057f
+- [x] 2.1 diagram.ts and diagram.test.ts import no third-party package but vitest — 3b309b7
+- [x] 2.2 Parity test passes before the rewrite, then new tests and unchanged diagram-layout.test.ts pass — 3b309b7
+- [x] 2.3 Full gate passes — 3b309b7
+- [x] 2.4 E2E passes unchanged — 3b309b7
+- [x] 2.5 Selective mutation run on diagram.ts reviewed — 3b309b7
 
 #### Manual
 
-- [x] 2.6 Kitchen sink layout identical to before — c7b057f
+- [x] 2.6 Kitchen sink layout identical to before — 3b309b7
 
 ### Phase 3: React Flow adapter directory
 
 #### Automated
 
-- [x] 3.1 @xyflow/react only under diagram/ and in global.css — 7b1d479
-- [x] 3.2 @dagrejs/dagre only in layout-engine.ts and its test — 7b1d479
-- [x] 3.3 No reference to diagram-layout remains — 7b1d479
-- [x] 3.4 Built CSS byte-identical to Phase 2 — 7b1d479
-- [x] 3.5 Full gate passes — 7b1d479
-- [x] 3.6 E2E passes unchanged — 7b1d479
+- [x] 3.1 @xyflow/react only under diagram/ and in global.css — 3b309b7
+- [x] 3.2 @dagrejs/dagre only in layout-engine.ts and its test — 3b309b7
+- [x] 3.3 No reference to diagram-layout remains — 3b309b7
+- [x] 3.4 Built CSS byte-identical to Phase 2 — 3b309b7
+- [x] 3.5 Full gate passes — 3b309b7
+- [x] 3.6 E2E passes unchanged — 3b309b7
 
 #### Manual
 
-- [x] 3.7 Kitchen sink Diagram correct in every state — 7b1d479
-- [x] 3.8 Keyboard selection works and FINISH is skipped — 7b1d479
-- [x] 3.9 Preview build loads with no CSP violation — 7b1d479
+- [x] 3.7 Kitchen sink Diagram correct in every state — 3b309b7
+- [x] 3.8 Keyboard selection works and FINISH is skipped — 3b309b7
+- [x] 3.9 Preview build loads with no CSP violation — 3b309b7
 
 ### Phase 4: Fence and records
 
 #### Automated
 
-- [x] 4.1 Lint fails on deliberate leaks and passes after revert — 639b48c
-- [x] 4.2 Full gate passes — 639b48c
-- [x] 4.3 E2E passes unchanged — 639b48c
+- [x] 4.1 Lint fails on deliberate leaks and passes after revert — 3b309b7
+- [x] 4.2 Full gate passes — 3b309b7
+- [x] 4.3 E2E passes unchanged — 3b309b7
 
 #### Manual
 
-- [x] 4.4 PROJECT_RULES.md and glossary read correctly after prettier — 639b48c
+- [x] 4.4 PROJECT_RULES.md and glossary read correctly after prettier — 3b309b7

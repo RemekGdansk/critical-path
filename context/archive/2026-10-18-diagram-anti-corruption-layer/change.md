@@ -1,10 +1,10 @@
 ---
 change_id: diagram-anti-corruption-layer
 title: Diagram anti corruption layer
-status: impl_reviewed
+status: archived
 created: 2026-10-18
-updated: 2026-10-19
-archived_at: null
+updated: 2026-10-24
+archived_at: 2026-10-24T18:44:17Z
 ---
 
 ## Notes
