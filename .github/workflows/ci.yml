@@ -39,3 +39,108 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Proves a clean machine installs the pinned AI toolkit from GitHub Packages
+  # with the CI secret, and that no committed file carries a registry token.
+  # A separate job, not a step in `ci`: `ci` is the required check that
+  # Dependabot auto-merge and Workers Builds rely on, and Dependabot PRs and
+  # fork PRs get no Actions secrets, so this job would always fail there.
+  ai-toolkit:
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'pull_request' &&
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository)
+    permissions:
+      contents: read
+    steps:
+      # Same pins as `ci`. No stored git credentials: nothing here pushes.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # registry-url + scope make setup-node write a runner-only npmrc outside
+      # the checkout that reads NODE_AUTH_TOKEN, so the token never touches the
+      # repo's .npmrc. No cache and no `npm ci`: the install runs through npx
+      # alone, and caching is switched off explicitly rather than left to the
+      # packageManager-field default.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://npm.pkg.github.com
+          scope: "@remekgdansk"
+          package-manager-cache: false
+      # This file is tracked too, so the patterns are written to never match
+      # their own text: where a token needs "=" or an alphanumeric, the pattern
+      # has "(" or "[". `-l` prints file names only, so a leaked token is never
+      # echoed into the log.
+      - name: Token hygiene
+        run: |
+          if ! printf '%s\n' '@remekgdansk:registry=https://npm.pkg.github.com' | cmp -s - .npmrc; then
+            echo "::error file=.npmrc::.npmrc must hold exactly the @remekgdansk scope line; registry auth belongs in CI secrets or the user-level ~/.npmrc"
+            exit 1
+          fi
+          status=0
+          git grep -lE '_auth(Token)?=|ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{22,}' || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo "::error::the tracked files listed above contain a registry auth line or a GitHub token; remove it and revoke the token"
+            exit 1
+          elif [ "$status" -ne 1 ]; then
+            echo "::error::git grep failed with exit code $status"
+            exit 1
+          fi
+      - name: Secret present
+        env:
+          GH_PKG_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+        run: |
+          if [ -z "$GH_PKG_TOKEN" ]; then
+            echo "::error::GH_PKG_TOKEN is not set. Create a classic personal access token with only the read:packages scope and add it as the Actions secret GH_PKG_TOKEN (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+      - name: Install
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+        run: npm run ai-toolkit -- install
+      # Reads what install wrote, not its exit code: the manifest must name the
+      # version pinned in package.json, and every file it lists must be on disk
+      # with the recorded hash.
+      - name: Assert
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const crypto = require("node:crypto");
+            const fail = (message) => { console.log(`::error::${message}`); process.exit(1); };
+            const name = "@remekgdansk/ai-toolkit-example";
+            const script = JSON.parse(fs.readFileSync("package.json", "utf8")).scripts["ai-toolkit"] ?? "";
+            const pinned = script.match(/@remekgdansk\/ai-toolkit-example@(\d+\.\d+\.\d+\S*)/)?.[1];
+            if (!pinned) fail(`no pinned ${name}@<version> in the ai-toolkit script: ${script}`);
+            const manifestPath = ".claude/.ai-toolkit-example-manifest.json";
+            if (!fs.existsSync(manifestPath)) fail(`${manifestPath} was not written`);
+            const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+            if (manifest.package !== name || manifest.version !== pinned) {
+              fail(`manifest names ${manifest.package}@${manifest.version}, expected ${name}@${pinned}`);
+            }
+            const skill = ".claude/skills/ai-toolkit-example/skills/repo-refresh/SKILL.md";
+            if (!fs.statSync(skill, { throwIfNoEntry: false })?.isFile()) fail(`${skill} is missing`);
+            for (const file of manifest.files) {
+              if (!fs.existsSync(file.path)) fail(`${file.path} is listed in the manifest but missing`);
+              const hash = crypto.createHash("sha256").update(fs.readFileSync(file.path)).digest("hex");
+              if (hash !== file.sha256) fail(`${file.path} does not match its manifest hash`);
+            }
+            console.log(`manifest names ${name}@${pinned}; ${manifest.files.length} files present with matching hashes`);
+          '
+      # A second install must succeed and change nothing. .claude/ is gitignored,
+      # so on a fresh checkout everything under it was written by install.
+      - name: Idempotence
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GH_PKG_TOKEN }}
+        run: |
+          set -euo pipefail
+          find .claude -type f -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/before.sha256"
+          npm run ai-toolkit -- install
+          find .claude -type f -print0 | sort -z | xargs -0 sha256sum > "$RUNNER_TEMP/after.sha256"
+          if ! diff "$RUNNER_TEMP/before.sha256" "$RUNNER_TEMP/after.sha256"; then
+            echo "::error::the second install changed the manifest or the installed files"
+            exit 1
+          fi
+          echo "second install left $(wc -l < "$RUNNER_TEMP/after.sha256") files unchanged"
