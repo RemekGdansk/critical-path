@@ -1,0 +1,41 @@
+# Deletes the branches of merged Dependabot PRs. "Automatically delete head
+# branches" fires for a merge made by a person, but not reliably for the
+# auto-merge in dependabot-auto-merge.yml: that merge is made with GITHUB_TOKEN,
+# which starts no workflows, so no event-driven job (pull_request closed, push)
+# can follow it either. A schedule is not an event of that merge, so it runs.
+#
+# A branch is deleted only when it has a merged PR and no open one. Branches
+# with an open PR, or with a closed-unmerged PR that Dependabot may reopen,
+# are left alone.
+name: Dependabot branch cleanup
+
+on:
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  delete-branches:
+    runs-on: ubuntu-latest
+    if: github.repository == 'RemekGdansk/critical-path'
+    steps:
+      # No `|| true` on the delete: a branch listed a moment ago that fails to
+      # delete is a real problem (token, protection rule) and should fail the job.
+      - run: |
+          gh api --paginate "repos/$REPO/git/matching-refs/heads/dependabot/" --jq '.[].ref' |
+            while read -r ref; do
+              branch="${ref#refs/heads/}"
+              open="$(gh pr list --repo "$REPO" --head "$branch" --state open --json number --jq length)"
+              merged="$(gh pr list --repo "$REPO" --head "$branch" --state merged --json number --jq length)"
+              if [ "$open" -eq 0 ] && [ "$merged" -gt 0 ]; then
+                echo "Deleting $branch"
+                gh api -X DELETE "repos/$REPO/git/refs/heads/$branch"
+              fi
+            done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
