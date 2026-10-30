@@ -200,6 +200,8 @@ Deploy manually once before automating. A config error found here costs one comm
 
 The `ci` job, Workers Builds and Dependabot need neither token, because the toolkit is not a dependency. Rotate the CI token before it expires, or `ai-toolkit` turns red on every PR: create a new classic `read:packages` PAT, then run `gh secret set GH_PKG_TOKEN --repo RemekGdansk/critical-path`, which reads the value from the prompt. To rotate the local token, run `npm login --scope=@remekgdansk --auth-type=legacy --registry=https://npm.pkg.github.com` (enter the username in lowercase).
 
+The `ai-toolkit` job runs on human PRs and on pushes to `main` that trigger workflows. Dependabot PRs merged by `dependabot-auto-merge.yml` with `GITHUB_TOKEN` start no `push` run, so an expired `GH_PKG_TOKEN` first shows up on the next human PR.
+
 ## Approval boundary
 
 **Agent may**: `wrangler deploy`, `wrangler deploy --dry-run`, `wrangler deployments list|status`, `wrangler versions list`, `wrangler rollback --message "…"`.
