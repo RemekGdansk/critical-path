@@ -189,6 +189,17 @@ Deploy manually once before automating. A config error found here costs one comm
 
 **There are no request logs.** This is an assets-only Worker with no entrypoint script, so requests served from `dist/` execute no user code and `wrangler tail` has nothing to stream. Build and deploy logs live in the Cloudflare dashboard under the Worker's Builds tab; request-level analytics come from the dashboard or the GraphQL Analytics API. Both are also readable by the agent through the read-only MCP (see _MCP access_ below).
 
+## AI toolkit registry token
+
+`npm run ai-toolkit -- install` fetches `@remekgdansk/ai-toolkit-example` from GitHub Packages, which requires a token even for a public package. The committed `.npmrc` only points the `@remekgdansk` scope at `https://npm.pkg.github.com` and must never carry a token line.
+
+| Where                          | Credential                                                       | Expires        |
+| ------------------------------ | ---------------------------------------------------------------- | -------------- |
+| Author's machine               | Classic PAT, `read:packages` only, in user-level `~/.npmrc`      | **2027-10-30** |
+| `ai-toolkit` CI job (`ci.yml`) | Classic PAT, `read:packages` only, Actions secret `GH_PKG_TOKEN` | **2027-10-30** |
+
+The `ci` job, Workers Builds and Dependabot need neither token, because the toolkit is not a dependency. Rotate the CI token before it expires, or `ai-toolkit` turns red on every PR: create a new classic `read:packages` PAT, then run `gh secret set GH_PKG_TOKEN --repo RemekGdansk/critical-path`, which reads the value from the prompt. To rotate the local token, run `npm login --scope=@remekgdansk --auth-type=legacy --registry=https://npm.pkg.github.com` (enter the username in lowercase).
+
 ## Approval boundary
 
 **Agent may**: `wrangler deploy`, `wrangler deploy --dry-run`, `wrangler deployments list|status`, `wrangler versions list`, `wrangler rollback --message "…"`.
