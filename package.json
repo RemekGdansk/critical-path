@@ -8,7 +8,7 @@
     "check:csp": "node scripts/check-built-csp.ts",
     "preview": "astro preview",
     "astro": "astro",
-    "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.2.0",
+    "ai-toolkit": "npx --yes @remekgdansk/ai-toolkit-example@0.2.1",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
