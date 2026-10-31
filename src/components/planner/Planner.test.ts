@@ -217,8 +217,9 @@ describe("Planner: an unreadable START date keeps the previous one", () => {
 /**
  * A (id 1) depends on B (id 2) and B on A, START 2999-01-01. Built by hand, not
  * through the edit functions, which would reject the cycle: it stands for a
- * project that makes a render throw (`forecast()` throws "The project contains
- * a cycle." for it), the way a too-long imported chain does in the browser.
+ * project that makes a render throw (`forecast()` and `projectDiagram()` throw
+ * "The project contains a cycle." for it), the way a too-long imported chain
+ * does in the browser.
  * Cast, not `toCheckedProject`: the guardian would refuse the cycle it exists to hold.
  */
 function cyclicProject(name: string | undefined): CheckedProject {

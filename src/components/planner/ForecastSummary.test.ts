@@ -127,6 +127,9 @@ describe("ForecastSummary", () => {
     expect(text).toContain("Critical-path time 11 days · Total-work time 14 days");
     expect(text.indexOf("Resource-Constrained Project Finish Date")).toBeLessThan(text.indexOf("Critical-path time"));
     expect(markup).toMatch(/<span aria-hidden="true" class="[^"]*\bbg-critical-path\b[^"]*"><\/span>/);
+    // Each time is bound to its own label, as each Project Finish Date is.
+    expect(markup).toMatch(/Critical-path time<\/dt><dd[^>]*>11 days<\/dd>/);
+    expect(markup).toMatch(/Total-work time<\/dt><dd[^>]*>14 days<\/dd>/);
   });
 
   it("counts both times in weekdays in weekdays mode", () => {
@@ -138,14 +141,16 @@ describe("ForecastSummary", () => {
     expect(text).not.toContain("14 days");
   });
 
-  it("reads a time past the largest safe integer as too large to count", () => {
-    // A → B, each 9007199254740991 days: both the chain and the sum pass the largest safe integer.
+  it("reads a time past the largest safe integer as too large to count, with no legend swatch", () => {
+    // A → B, each 9007199254740991 days: both the chain and the sum pass the largest safe integer,
+    // so the diagram highlights nothing and the swatch would explain a colour that is not drawn.
     const max = String(Number.MAX_SAFE_INTEGER);
     const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), 1, max));
     const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, max));
-    const text = textOf(renderedMarkup(withDependencies(withB, [1, 2])));
+    const markup = renderedMarkup(withDependencies(withB, [1, 2]));
 
-    expect(text).toContain("Critical-path time Too large to count · Total-work time Too large to count");
+    expect(textOf(markup)).toContain("Critical-path time Too large to count · Total-work time Too large to count");
+    expect(markup).not.toContain("bg-critical-path");
   });
 
   it("shows neither time while a Validation Warning withholds the forecast", () => {

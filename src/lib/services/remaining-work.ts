@@ -12,6 +12,11 @@ export type RemainingWorkTime = { kind: "days"; days: number } | { kind: "too-la
 /** `predecessorId->taskId`: one dependency between two Tasks. */
 export type TaskLinkId = `${TaskId}->${TaskId}`;
 
+/** The one way a dependency's TaskLinkId is spelled, predecessor first. */
+export function taskLinkId(predecessorId: TaskId, taskId: TaskId): TaskLinkId {
+  return `${predecessorId}->${taskId}`;
+}
+
 export type RemainingWork =
   | { kind: "withheld" }
   | {
@@ -117,7 +122,7 @@ export function remainingWork(project: Pick<Project, "tasks">): RemainingWork {
       if (!criticalTaskIds.has(task.id)) continue;
       for (const predecessorId of task.predecessors) {
         if (criticalTaskIds.has(predecessorId) && scheduledById.get(predecessorId)?.finishDay === startDay)
-          criticalLinks.add(`${predecessorId}->${task.id}`);
+          criticalLinks.add(taskLinkId(predecessorId, task.id));
       }
     }
   }

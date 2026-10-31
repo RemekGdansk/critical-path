@@ -61,6 +61,7 @@ Domain first: one function, `remainingWork`, computes the earliest start and fin
   - S-08 owns `ProjectControls.tsx`, `RenderCrashFallback.tsx` and a small "exported" marker in state.
   - `Planner.tsx` and `useProject.ts` get no S-05 edit. If one turns out to be needed, keep it to a few lines and say so in the phase's commit message.
   - Shared files that both changes may touch get additive edits only: `Planner.test.ts` (extend the one existing test named in Phase 3), the kitchen sink files (add one cell) and `context/foundation/test-plan.md` (change only the Risk #6 sentence). No reformatting or reordering of the surrounding content, so a merge stays trivial.
+  - Addendum (impl review 2026-10-31, round 1 F3, corrected in round 2 F1): two files got wider edits than this. (1) `context/foundation/roadmap.md` has three edits. It moved S-05 to `in-progress`, and prettier re-padded every row of the "At a glance" table, because `in-progress` is its longest status value. It bumped the `updated:` frontmatter. It added an S-07 Unknown on highlighting through Done Tasks (round 1 F4). (2) The ", on the critical path" suffix changed the accessible name in three more `Planner.test.ts` tests ("renders the Task nodes…", "names the rule for a rejected Duration…", "recomputes both Project Finish Dates… Weekdays") and in the fixture comment, not only in the test named in Phase 3. If either file conflicts with S-08 at merge, keep both sides' values: both Status values, the later `updated:` date and both Unknowns in the roadmap, and in `Planner.test.ts` S-08's lines with the S-05 suffix added. Then run `npx prettier --write context/foundation/roadmap.md` and `npm test`.
 - **No layout shift on the node.** The critical border must not change the 180×52 Task box. Use the border colour plus a ring (the selected style already combines border and ring), not a wider border. A selected critical node keeps the selection style, as a selected warned node does.
 
 ## Phase 1: Remaining-work schedule
@@ -213,6 +214,7 @@ The domain Diagram marks critical Tasks and edges; a new `--critical-path` token
   - `Critical-path time <value> · Total-work time <value>`, with each value from `formatDuration(days, forecast.dayCountingMode)`, or "Too large to count" for a too-large time.
   - A decorative swatch (`aria-hidden`, `bg-critical-path`) before "Critical-path time".
 - The labels are muted like the date labels and the values are `tabular-nums`. The line lives inside the existing `role="status"` region.
+- Addendum (impl review 2026-10-31, round 1 F5 and F7): the line is an inline `<dl>`, one `<dt>`/`<dd>` pair per time, like the Project Finish Dates, with the swatch and the "·" separator `aria-hidden` inside the `<dt>`s. The swatch shows only when the critical-path time is a day count: a too-large time highlights nothing, so there is nothing for the legend to explain.
 - Static-render tests from a real `forecast()` result cover:
   - the line in calendar days;
   - weekday units in weekdays mode;

@@ -24,26 +24,36 @@ function RemainingWorkTimeValue({ time, mode }: { time: RemainingWorkTime; mode:
 
 /**
  * The critical-path time and the total-work time of the remaining work, on one
- * line. The swatch is the diagram's legend: it is the colour the critical path
- * is drawn in.
+ * line, as label and value pairs like the Project Finish Dates above them. The
+ * swatch is the diagram's legend: it is the colour the critical path is drawn
+ * in. A critical-path time too large to count highlights nothing on the
+ * diagram, so it has no swatch either.
  */
 function RemainingWorkTimes({ forecast }: { forecast: Extract<Forecast, { kind: "forecast" }> }) {
   const mode = forecast.dayCountingMode;
   return (
-    <p className="flex flex-wrap items-center justify-end gap-x-1.5">
-      <span aria-hidden="true" className="bg-critical-path size-2.5 shrink-0 rounded-sm" />
-      <span className="text-muted-foreground">Critical-path time</span>
-      <span className="font-medium tabular-nums">
-        <RemainingWorkTimeValue time={forecast.criticalPathTime} mode={mode} />
-      </span>
-      <span aria-hidden="true" className="text-muted-foreground">
-        ·
-      </span>
-      <span className="text-muted-foreground">Total-work time</span>
-      <span className="font-medium tabular-nums">
-        <RemainingWorkTimeValue time={forecast.totalWorkTime} mode={mode} />
-      </span>
-    </p>
+    <dl className="flex flex-wrap items-center justify-end gap-x-1.5">
+      <div className="flex items-center gap-x-1.5">
+        <dt className="text-muted-foreground flex items-center gap-x-1.5">
+          {forecast.criticalPathTime.kind === "days" && (
+            <span aria-hidden="true" className="bg-critical-path size-2.5 shrink-0 rounded-sm" />
+          )}
+          Critical-path time
+        </dt>
+        <dd className="font-medium tabular-nums">
+          <RemainingWorkTimeValue time={forecast.criticalPathTime} mode={mode} />
+        </dd>
+      </div>
+      <div className="flex items-center gap-x-1.5">
+        <dt className="text-muted-foreground flex items-center gap-x-1.5">
+          <span aria-hidden="true">·</span>
+          Total-work time
+        </dt>
+        <dd className="font-medium tabular-nums">
+          <RemainingWorkTimeValue time={forecast.totalWorkTime} mode={mode} />
+        </dd>
+      </div>
+    </dl>
   );
 }
 
@@ -92,9 +102,9 @@ function WithheldWarning({
 }
 
 /**
- * Both Project Finish Dates, or why they are withheld, at the right of the
- * header: always visible whatever is selected, and announced politely on
- * every change.
+ * Both Project Finish Dates and the remaining-work times, or why they are
+ * withheld, at the right of the header: always visible whatever is selected,
+ * and announced politely on every change.
  */
 export function ForecastSummary({ forecast, tasks, startDate }: ForecastSummaryProps) {
   return (

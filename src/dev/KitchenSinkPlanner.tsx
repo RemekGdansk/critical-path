@@ -113,9 +113,9 @@ function criticalPathProject(): CheckedProject {
  * "Cyclic plan": A (1) depends on B (2) and B on A. Unlike every other fixture,
  * it is built by hand and deliberately bypasses the edit functions, which would
  * reject the cycle: no project they can build crashes the render at fixture
- * size. `forecast()` throws "The project contains a cycle." on it, so the
- * Planner shows its render crash fallback, as after the long imported chain of
- * observability audit A1.
+ * size. `forecast()` and `projectDiagram()` throw "The project contains a
+ * cycle." on it, so the Planner shows its render crash fallback, as after the
+ * long imported chain of observability audit A1.
  */
 function renderCrashProject(): CheckedProject {
   // A cast, not toCheckedProject: the guardian would refuse the cycle this fixture exists to hold.

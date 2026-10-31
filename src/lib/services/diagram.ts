@@ -6,7 +6,7 @@
 // imports no third-party package: positions come through the LayoutEngine
 // port, and drawing the Diagram is the view's concern.
 import { formatDuration } from "@/lib/services/duration";
-import { remainingWork, type RemainingWork } from "@/lib/services/remaining-work";
+import { remainingWork, type RemainingWork, taskLinkId } from "@/lib/services/remaining-work";
 import { validationWarnings } from "@/lib/services/validation-warnings";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
@@ -157,7 +157,7 @@ function criticalPath(schedule: RemainingWork): CriticalPath {
   const { criticalTaskIds, criticalLinks } = schedule;
   return {
     isTaskCritical: (taskId) => criticalTaskIds.has(taskId),
-    isLinkCritical: (predecessorId, taskId) => criticalLinks.has(`${predecessorId}->${taskId}`),
+    isLinkCritical: (predecessorId, taskId) => criticalLinks.has(taskLinkId(predecessorId, taskId)),
   };
 }
 
