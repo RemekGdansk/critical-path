@@ -321,9 +321,9 @@ None: no file-format or stored-data change.
 
 #### Automated
 
-- [ ] 1.1 Hook tests pass: `npx vitest run src/hooks/useProject.test.ts`
-- [ ] 1.2 Type check passes: `npx astro check`
-- [ ] 1.3 Lint passes: `npm run lint`
+- [x] 1.1 Hook tests pass: `npx vitest run src/hooks/useProject.test.ts`
+- [x] 1.2 Type check passes: `npx astro check`
+- [x] 1.3 Lint passes: `npm run lint`
 
 ### Phase 2: ConfirmDialog, New project and Import confirmation
 
