@@ -308,13 +308,13 @@ None: the exported file format and the project model are unchanged.
 
 #### Automated
 
-- [ ] 1.1 `npx vitest run src/lib/services/remaining-work.test.ts src/lib/services/forecast.test.ts` passes
-- [ ] 1.2 `startDay + duration` appears in exactly one non-test line, in `remaining-work.ts`
-- [ ] 1.3 `npm run lint && npx astro check && npm test` pass
+- [x] 1.1 `npx vitest run src/lib/services/remaining-work.test.ts src/lib/services/forecast.test.ts` passes
+- [x] 1.2 `startDay + duration` appears in exactly one non-test line, in `remaining-work.ts`
+- [x] 1.3 `npm run lint && npx astro check && npm test` pass
 
 #### Manual
 
-- [ ] 1.4 Optional selective mutation run on `remaining-work.ts`, user-visible survivors covered
+- [x] 1.4 Optional selective mutation run on `remaining-work.ts`, user-visible survivors covered
 
 ### Phase 2: Critical path on the diagram
 

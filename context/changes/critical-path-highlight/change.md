@@ -1,7 +1,7 @@
 ---
 change_id: critical-path-highlight
 title: Critical path highlight
-status: planned
+status: implementing
 created: 2026-10-31
 updated: 2026-10-31
 archived_at: null

@@ -82,6 +82,10 @@ interface PrdExample {
   baseDateReason: "start-date" | "start-date-unset" | "start-date-in-past";
   resourceUnconstrainedProjectFinishDate: string;
   resourceConstrainedProjectFinishDate: string;
+  /** Days of the longest chain of remaining work, derived by hand. */
+  criticalPathTime: number;
+  /** Days of all remaining work one after another, derived by hand. */
+  totalWorkTime: number;
   /** The weekend date the base date moved from in weekdays mode; absent when it did not move. */
   movedFromWeekend?: string;
 }
@@ -97,6 +101,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date",
     resourceUnconstrainedProjectFinishDate: "2026-09-09",
     resourceConstrainedProjectFinishDate: "2026-09-09",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "Business Logic / US-04 AC: a START date in the past is replaced by today",
@@ -106,6 +112,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date-in-past",
     resourceUnconstrainedProjectFinishDate: "2026-09-13",
     resourceConstrainedProjectFinishDate: "2026-09-13",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "Business Logic: a START date equal to today is kept",
@@ -115,6 +123,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date",
     resourceUnconstrainedProjectFinishDate: "2026-09-13",
     resourceConstrainedProjectFinishDate: "2026-09-13",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "Business Logic: the START date is today if not set",
@@ -124,6 +134,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date-unset",
     resourceUnconstrainedProjectFinishDate: "2026-10-09",
     resourceConstrainedProjectFinishDate: "2026-10-09",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "US-04 Given / Business Logic: A Done on 3 Sep, today 3 Sep → 6 Sep",
@@ -133,6 +145,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date-in-past",
     resourceUnconstrainedProjectFinishDate: "2026-09-06",
     resourceConstrainedProjectFinishDate: "2026-09-06",
+    criticalPathTime: 3,
+    totalWorkTime: 3,
   },
   {
     rule: "US-04 AC / Business Logic: A Done on 8 Sep, today 8 Sep → 11 Sep",
@@ -142,6 +156,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date-in-past",
     resourceUnconstrainedProjectFinishDate: "2026-09-11",
     resourceConstrainedProjectFinishDate: "2026-09-11",
+    criticalPathTime: 3,
+    totalWorkTime: 3,
   },
   {
     rule: "US-04 AC / Business Logic: A Done on 3 Sep, today 5 Sep, B not Done → 8 Sep",
@@ -151,6 +167,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date-in-past",
     resourceUnconstrainedProjectFinishDate: "2026-09-08",
     resourceConstrainedProjectFinishDate: "2026-09-08",
+    criticalPathTime: 3,
+    totalWorkTime: 3,
   },
   {
     rule: "Business Logic: a Done Task needs no Duration, so the forecast is not withheld",
@@ -160,6 +178,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date-in-past",
     resourceUnconstrainedProjectFinishDate: "2026-09-06",
     resourceConstrainedProjectFinishDate: "2026-09-06",
+    criticalPathTime: 3,
+    totalWorkTime: 3,
   },
   {
     // Differs from the Done row for the same day (6 Sep), so treating In Progress as Done fails here.
@@ -170,6 +190,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date-in-past",
     resourceUnconstrainedProjectFinishDate: "2026-09-11",
     resourceConstrainedProjectFinishDate: "2026-09-11",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   // FR-017 / Business Logic, weekdays mode. October 2026: Fri 16, Sat 17, Sun 18, Mon 19.
   {
@@ -180,6 +202,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date",
     resourceUnconstrainedProjectFinishDate: "2026-10-29",
     resourceConstrainedProjectFinishDate: "2026-10-29",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "FR-017: the same project in calendar days → 27 Oct",
@@ -189,6 +213,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date",
     resourceUnconstrainedProjectFinishDate: "2026-10-27",
     resourceConstrainedProjectFinishDate: "2026-10-27",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "FR-017: in weekdays mode, independent A (5) and B (3) from Mon 19 Oct → 26 Oct and 29 Oct",
@@ -198,6 +224,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date",
     resourceUnconstrainedProjectFinishDate: "2026-10-26",
     resourceConstrainedProjectFinishDate: "2026-10-29",
+    criticalPathTime: 5,
+    totalWorkTime: 8,
   },
   {
     rule: "FR-017: in weekdays mode, one weekday from Fri 16 Oct is Mon 19 Oct",
@@ -207,6 +235,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date",
     resourceUnconstrainedProjectFinishDate: "2026-10-19",
     resourceConstrainedProjectFinishDate: "2026-10-19",
+    criticalPathTime: 1,
+    totalWorkTime: 1,
   },
   {
     rule: "Business Logic: in weekdays mode, a START date on Saturday moves to Monday",
@@ -217,6 +247,8 @@ const prdExamples: PrdExample[] = [
     movedFromWeekend: "2026-10-17",
     resourceUnconstrainedProjectFinishDate: "2026-10-29",
     resourceConstrainedProjectFinishDate: "2026-10-29",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "Business Logic: in calendar days, a START date on Saturday is kept",
@@ -226,6 +258,8 @@ const prdExamples: PrdExample[] = [
     baseDateReason: "start-date",
     resourceUnconstrainedProjectFinishDate: "2026-10-25",
     resourceConstrainedProjectFinishDate: "2026-10-25",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "Business Logic: in weekdays mode, a START date on Sunday moves to Monday",
@@ -236,6 +270,8 @@ const prdExamples: PrdExample[] = [
     movedFromWeekend: "2026-10-18",
     resourceUnconstrainedProjectFinishDate: "2026-10-29",
     resourceConstrainedProjectFinishDate: "2026-10-29",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "Business Logic: in weekdays mode, an unset START date with today on Saturday moves to Monday",
@@ -246,6 +282,8 @@ const prdExamples: PrdExample[] = [
     movedFromWeekend: "2026-10-17",
     resourceUnconstrainedProjectFinishDate: "2026-10-29",
     resourceConstrainedProjectFinishDate: "2026-10-29",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
   {
     rule: "Business Logic: in weekdays mode, a past START date with today on Sunday moves to Monday",
@@ -256,6 +294,8 @@ const prdExamples: PrdExample[] = [
     movedFromWeekend: "2026-10-18",
     resourceUnconstrainedProjectFinishDate: "2026-10-29",
     resourceConstrainedProjectFinishDate: "2026-10-29",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
   },
 ];
 
@@ -271,6 +311,8 @@ describe("forecast", () => {
         movedFromWeekend,
         resourceUnconstrainedProjectFinishDate,
         resourceConstrainedProjectFinishDate,
+        criticalPathTime,
+        totalWorkTime,
       }) => {
         // Strict, so a row without movedFromWeekend proves the forecast carries none.
         expect(forecast(project, today)).toStrictEqual({
@@ -281,6 +323,8 @@ describe("forecast", () => {
           ...(movedFromWeekend === undefined ? {} : { movedFromWeekend }),
           resourceUnconstrainedProjectFinishDate: { kind: "date", date: resourceUnconstrainedProjectFinishDate },
           resourceConstrainedProjectFinishDate: { kind: "date", date: resourceConstrainedProjectFinishDate },
+          criticalPathTime: { kind: "days", days: criticalPathTime },
+          totalWorkTime: { kind: "days", days: totalWorkTime },
         });
       },
     );
@@ -296,8 +340,13 @@ describe("forecast", () => {
         warnings: [{ rule: "duration-missing", taskId: 4, message: "D has no Duration." }],
       });
 
-      const estimated = accepted(setDuration(withD, 4, "4"));
-      expect(finishDates(forecast(estimated, "2026-08-20"))).toEqual(["2026-09-12", "2026-09-15"]);
+      // A (5) → D (4) → C (2) is now the longest chain, 11 days against 10 through B; all four Tasks take 14.
+      const estimated = forecast(accepted(setDuration(withD, 4, "4")), "2026-08-20");
+      expect(finishDates(estimated)).toEqual(["2026-09-12", "2026-09-15"]);
+      expect(estimated).toMatchObject({
+        criticalPathTime: { kind: "days", days: 11 },
+        totalWorkTime: { kind: "days", days: 14 },
+      });
     });
   });
 
