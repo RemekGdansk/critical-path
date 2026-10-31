@@ -1,10 +1,10 @@
 // risk: roadmap S-08 / FR-016, browser side — an Import over a project with unexported changes must
-// ask first, in the built app's real modal <dialog> under the CSP's connect-src 'none': Cancel keeps
-// the project and returns focus to Import, "Discard and import" replaces it. ConfirmDialog is native
+// ask first, in the built app's real modal <dialog> under the CSP's connect-src 'none': Escape and
+// Cancel keep the project and return focus to Import, "Discard and import" replaces it. ConfirmDialog is native
 // <dialog>, not Radix, because Radix's scroll lock injects a <style> the CSP blocks; a regression to
 // it would show here as a console error.
-// The decision and the dialog are unit-tested in src/hooks/useProject.test.ts and
-// src/components/planner/Planner.test.ts.
+// The decision and the dialog are unit-tested in src/hooks/useProject.test.ts,
+// src/components/planner/Planner.test.ts and src/components/planner/RenderCrashFallback.test.ts.
 // seed: e2e/seed.spec.ts
 import { expect, test, type Page } from "@playwright/test";
 
@@ -46,7 +46,7 @@ async function importFile(page: Page) {
 }
 
 test.describe("unexported changes in the built app", () => {
-  test("Import over an unexported edit asks first: Cancel keeps the project, Discard and import replaces it", async ({
+  test("Import over an unexported edit asks first: Escape and Cancel keep the project, Discard and import replaces it", async ({
     page,
   }) => {
     // Attached before the page loads, so nothing logged on the way in is missed.
@@ -64,7 +64,17 @@ test.describe("unexported changes in the built app", () => {
     await expect(confirmation).toBeVisible();
     await expect(confirmation).toContainText("imported.json");
 
-    // Cancel changes nothing and hands focus back to the button that started the import.
+    // Escape, the browser's own cancel (which may close the dialog itself right after the file
+    // picker), changes nothing and hands focus back to Import.
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(keepMe).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Imported,/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Import" })).toBeFocused();
+
+    // Cancel does the same.
+    await importFile(page);
+    await expect(confirmation).toContainText("imported.json");
     await confirmation.getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(keepMe).toBeVisible();

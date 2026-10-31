@@ -6,7 +6,8 @@
 // FR-016); Go back then asks nothing, since the crashed project is the imported file, the baseline.
 // Audit fix 2 (an import bound on Task count and chain depth) will turn this import into a rejection:
 // when it lands, this case must be rewritten to reach a render throw another way, not deleted.
-// The fallback itself is unit-tested in src/components/planner/Planner.test.ts, going back in
+// The fallback itself is unit-tested in src/components/planner/Planner.test.ts, its Go back
+// confirmation in src/components/planner/RenderCrashFallback.test.ts, going back in
 // src/hooks/useProject.test.ts.
 // seed: e2e/seed.spec.ts
 import { readFile } from "node:fs/promises";

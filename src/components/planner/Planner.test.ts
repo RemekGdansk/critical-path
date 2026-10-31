@@ -5,6 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, type 
 
 import { installFlowJsdomShim, restoreFlowJsdomShim } from "@/components/planner/diagram/flow-jsdom-shim";
 import { Planner } from "@/components/planner/Planner";
+import { type Download, stubDialog, stubDownloads } from "@/components/planner/test-stubs";
 import { serializeProject } from "@/lib/services/project-file";
 import {
   type CheckedProject,
@@ -225,52 +226,6 @@ function cyclicProject(name: string | undefined): CheckedProject {
   } as CheckedProject;
 }
 
-interface Download {
-  fileName: string;
-  blob: Blob;
-}
-
-/**
- * Captures downloads into `downloads`. Browser APIs only, never the domain:
- * jsdom has no object URLs and would navigate on an anchor click, so the
- * download is captured instead. Call it in `beforeEach` and the returned
- * restore in `afterEach`.
- */
-function stubDownloads(downloads: Download[]): () => void {
-  downloads.length = 0;
-  const urlKeys = ["createObjectURL", "revokeObjectURL"] as const;
-  const blobs = new Map<string, Blob>();
-  const urlOriginals = urlKeys.map((key) => Object.getOwnPropertyDescriptor(URL, key));
-  Object.defineProperty(URL, "createObjectURL", {
-    configurable: true,
-    value: (blob: Blob) => {
-      const url = `blob:test/${blobs.size + 1}`;
-      blobs.set(url, blob);
-      return url;
-    },
-  });
-  Object.defineProperty(URL, "revokeObjectURL", {
-    configurable: true,
-    value: () => {
-      // Nothing to release: the test URLs hold no resource.
-    },
-  });
-  const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
-    this: HTMLAnchorElement,
-  ) {
-    const blob = blobs.get(this.href);
-    if (blob !== undefined) downloads.push({ fileName: this.download, blob });
-  });
-  return () => {
-    anchorClick.mockRestore();
-    urlKeys.forEach((key, index) => {
-      const original = urlOriginals[index];
-      if (original) Object.defineProperty(URL, key, original);
-      else Reflect.deleteProperty(URL, key);
-    });
-  };
-}
-
 describe("Planner: a render crash keeps the project exportable", () => {
   const downloads: Download[] = [];
   let restoreDownloads: () => void;
@@ -347,35 +302,16 @@ describe("Planner: a render crash keeps the project exportable", () => {
 });
 
 describe("Planner: unexported changes are confirmed before they are replaced", () => {
-  // jsdom implements no showModal: these stand in for the browser, setting the
-  // `open` attribute that makes the dialog visible to role queries.
-  const dialogKeys = ["showModal", "close"] as const;
-  let dialogOriginals: (PropertyDescriptor | undefined)[] = [];
   const downloads: Download[] = [];
   let restoreDownloads: () => void;
+  let restoreDialog: () => void;
 
   beforeAll(() => {
-    dialogOriginals = dialogKeys.map((key) => Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, key));
-    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
-      configurable: true,
-      value(this: HTMLDialogElement) {
-        this.setAttribute("open", "");
-      },
-    });
-    Object.defineProperty(HTMLDialogElement.prototype, "close", {
-      configurable: true,
-      value(this: HTMLDialogElement) {
-        this.removeAttribute("open");
-      },
-    });
+    restoreDialog = stubDialog();
   });
 
   afterAll(() => {
-    dialogKeys.forEach((key, index) => {
-      const original = dialogOriginals[index];
-      if (original) Object.defineProperty(HTMLDialogElement.prototype, key, original);
-      else Reflect.deleteProperty(HTMLDialogElement.prototype, key);
-    });
+    restoreDialog();
   });
 
   beforeEach(() => {
@@ -507,6 +443,20 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
     fireEvent.click(newProjectButton());
 
     await expectEmptyProject();
+  });
+
+  it("keeps asking after an Export the project name stopped, since nothing was written", async () => {
+    renderPlanner();
+    await screen.findByRole("button", { name: "A, 5 days" });
+    commitDuration("7");
+    await screen.findByRole("button", { name: "A, 7 days" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+
+    expect(downloads).toHaveLength(0);
+    expect(screen.getByRole("alert").textContent).toContain("Name the project to export it.");
+    fireEvent.click(newProjectButton());
+    expect(screen.getByRole("dialog", { name: TITLE })).toBeDefined();
   });
 
   it("asks before Import replaces an edit, naming the file, and Cancel keeps the project and focuses Import", async () => {
