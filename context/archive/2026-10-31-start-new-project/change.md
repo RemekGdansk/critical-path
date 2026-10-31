@@ -1,10 +1,10 @@
 ---
 change_id: start-new-project
 title: Start new project
-status: impl_reviewed
+status: archived
 created: 2026-10-31
 updated: 2026-10-31
-archived_at: null
+archived_at: 2026-10-31T14:29:39Z
 ---
 
 ## Notes

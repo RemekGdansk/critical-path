@@ -321,46 +321,46 @@ None: no file-format or stored-data change.
 
 #### Automated
 
-- [x] 1.1 Hook tests pass: `npx vitest run src/hooks/useProject.test.ts` — 2d02434
-- [x] 1.2 Type check passes: `npx astro check` — 2d02434
-- [x] 1.3 Lint passes: `npm run lint` — 2d02434
+- [x] 1.1 Hook tests pass: `npx vitest run src/hooks/useProject.test.ts` — 6cfa6d1
+- [x] 1.2 Type check passes: `npx astro check` — 6cfa6d1
+- [x] 1.3 Lint passes: `npm run lint` — 6cfa6d1
 
 ### Phase 2: ConfirmDialog, New project and Import confirmation
 
 #### Automated
 
-- [x] 2.1 View and hook tests pass: `npx vitest run src/hooks/useProject.test.ts src/components/planner/Planner.test.ts` — 9ce43a9
-- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 9ce43a9
-- [x] 2.3 E2E passes, including the updated render-crash test: `npm run test:e2e` — 9ce43a9
+- [x] 2.1 View and hook tests pass: `npx vitest run src/hooks/useProject.test.ts src/components/planner/Planner.test.ts` — 6cfa6d1
+- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 6cfa6d1
+- [x] 2.3 E2E passes, including the updated render-crash test: `npm run test:e2e` — 6cfa6d1
 
 #### Manual
 
-- [x] 2.4 In `npm run build && npm run preview`: after an edit, New project and Import show a centred modal over a dimmed backdrop in light mode; the console shows no CSP violation. — 9ce43a9
-- [x] 2.5 Keyboard: Tab stays inside the open dialog; Escape cancels and focus returns to the button that opened it; Cancel is focused on open. — 9ce43a9
-- [x] 2.6 In the kitchen sink (`npm run dev`, `/kitchen-sink`): New project on an untouched fixture replaces without asking; after an edit it asks. — 9ce43a9
+- [x] 2.4 In `npm run build && npm run preview`: after an edit, New project and Import show a centred modal over a dimmed backdrop in light mode; the console shows no CSP violation. — 6cfa6d1
+- [x] 2.5 Keyboard: Tab stays inside the open dialog; Escape cancels and focus returns to the button that opened it; Cancel is focused on open. — 6cfa6d1
+- [x] 2.6 In the kitchen sink (`npm run dev`, `/kitchen-sink`): New project on an untouched fixture replaces without asking; after an edit it asks. — 6cfa6d1
 
 ### Phase 3: Go back confirmation on the crash fallback
 
 #### Automated
 
-- [x] 3.1 View tests pass: `npx vitest run src/components/planner/RenderCrashFallback.test.ts src/components/planner/Planner.test.ts` — 4d85e31
-- [x] 3.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 4d85e31
-- [x] 3.3 E2E still passes: `npm run test:e2e` — 4d85e31
+- [x] 3.1 View tests pass: `npx vitest run src/components/planner/RenderCrashFallback.test.ts src/components/planner/Planner.test.ts` — 6cfa6d1
+- [x] 3.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 6cfa6d1
+- [x] 3.3 E2E still passes: `npm run test:e2e` — 6cfa6d1
 
 #### Manual
 
-- [x] 3.4 In the kitchen sink's render-crash state, the fallback looks as before; if Go back is offered, clicking it with an unexported crashed project opens the dialog above the fallback. — 4d85e31
+- [x] 3.4 In the kitchen sink's render-crash state, the fallback looks as before; if Go back is offered, clicking it with an unexported crashed project opens the dialog above the fallback. — 6cfa6d1
 
 ### Phase 4: Built-app E2E and docs
 
 #### Automated
 
-- [x] 4.1 New E2E passes: `npx playwright test e2e/unexported-changes.spec.ts` — 871431d
-- [x] 4.2 Whole E2E suite passes: `npm run test:e2e` — 871431d
-- [x] 4.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 871431d
-- [x] 4.4 File format unchanged: `git diff --exit-code main -- src/lib/services/project-file.ts src/lib/services/golden/` prints nothing — 871431d
-- [x] 4.5 S-05's area untouched: `git diff --exit-code main -- src/lib/services/forecast.ts src/components/planner/diagram/ src/components/planner/ForecastSummary.tsx` prints nothing — 871431d
+- [x] 4.1 New E2E passes: `npx playwright test e2e/unexported-changes.spec.ts` — 6cfa6d1
+- [x] 4.2 Whole E2E suite passes: `npm run test:e2e` — 6cfa6d1
+- [x] 4.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 6cfa6d1
+- [x] 4.4 File format unchanged: `git diff --exit-code main -- src/lib/services/project-file.ts src/lib/services/golden/` prints nothing — 6cfa6d1
+- [x] 4.5 S-05's area untouched: `git diff --exit-code main -- src/lib/services/forecast.ts src/components/planner/diagram/ src/components/planner/ForecastSummary.tsx` prints nothing — 6cfa6d1
 
 #### Manual
 
-- [x] 4.6 The PRD's FR-016 flow on `npm run preview`: build a project, click New project, confirm the prompt, see an empty project; export a project, click New project, see no prompt. — 871431d
+- [x] 4.6 The PRD's FR-016 flow on `npm run preview`: build a project, click New project, confirm the prompt, see an empty project; export a project, click New project, see no prompt. — 6cfa6d1
