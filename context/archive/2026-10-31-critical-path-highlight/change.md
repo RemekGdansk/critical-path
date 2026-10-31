@@ -1,10 +1,10 @@
 ---
 change_id: critical-path-highlight
 title: Critical path highlight
-status: impl_reviewed
+status: archived
 created: 2026-10-31
 updated: 2026-10-31
-archived_at: null
+archived_at: 2026-10-31T15:04:46Z
 ---
 
 ## Notes
