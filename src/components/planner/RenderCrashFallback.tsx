@@ -1,6 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { downloadTextFile } from "@/lib/download";
 import { projectFileName, serializeProject } from "@/lib/services/project-file";
 import { validateProject } from "@/lib/services/project";
@@ -17,6 +19,10 @@ interface RenderCrashFallbackProps {
   /** The project before the last accepted edit or replacement, if any. */
   previousProject: Project | undefined;
   onGoBack: () => void;
+  /** Asked when Go back is clicked, never while rendering. */
+  hasUnexportedChanges: () => boolean;
+  /** Called with the exported project once its download has started. */
+  onExported: (project: Project) => void;
 }
 
 function describeError(error: unknown): string {
@@ -43,10 +49,24 @@ function inspectCrashedProject(
  * Shown in place of the planner after a render throw. The project is still in
  * memory, so it stays one click from a file and, when there is one, the
  * previous project one click from the planner. Renders nothing that derives
- * from the project beyond its serialization and `inspectCrashedProject`.
+ * from the project beyond its serialization and `inspectCrashedProject`; the
+ * unexported-changes check runs only when Go back is clicked. Go back acts at
+ * once when the project it stopped on has no unexported changes, and otherwise
+ * only after the user confirms discarding them; Cancel or Escape changes
+ * nothing and returns focus to Go back. Export makes the exported project the
+ * export baseline.
  */
-export function RenderCrashFallback({ error, project, previousProject, onGoBack }: RenderCrashFallbackProps) {
+export function RenderCrashFallback({
+  error,
+  project,
+  previousProject,
+  onGoBack,
+  hasUnexportedChanges,
+  onExported,
+}: RenderCrashFallbackProps) {
   const exportRef = useRef<HTMLButtonElement>(null);
+  const goBackRef = useRef<HTMLButtonElement>(null);
+  const [confirming, setConfirming] = useState(false);
   // On mount, so a keyboard user lands on the action that keeps the project.
   useEffect(() => {
     exportRef.current?.focus();
@@ -57,6 +77,33 @@ export function RenderCrashFallback({ error, project, previousProject, onGoBack 
   function handleExport() {
     const fileName = project.name === undefined ? RECOVERED_FILE_NAME : projectFileName(project.name);
     downloadTextFile(fileName, serializeProject(project), "application/json");
+    onExported(project);
+  }
+
+  function handleGoBack() {
+    if (hasUnexportedChanges()) {
+      setConfirming(true);
+      return;
+    }
+    onGoBack();
+  }
+
+  // The modal dialog makes everything outside it inert, so it is unmounted
+  // synchronously before focus moves out of it.
+  function closeDialog() {
+    flushSync(() => {
+      setConfirming(false);
+    });
+  }
+
+  function handleConfirm() {
+    closeDialog();
+    onGoBack();
+  }
+
+  function handleCancel() {
+    closeDialog();
+    goBackRef.current?.focus();
   }
 
   return (
@@ -83,12 +130,20 @@ export function RenderCrashFallback({ error, project, previousProject, onGoBack 
             Export the project as it was
           </Button>
           {previousProject !== undefined && (
-            <Button type="button" variant="outline" onClick={onGoBack}>
+            <Button ref={goBackRef} type="button" variant="outline" onClick={handleGoBack}>
               Go back to the project before the last change
             </Button>
           )}
         </div>
       </div>
+      <ConfirmDialog
+        open={confirming}
+        title="Discard unexported changes?"
+        description="The project the planner stopped on has changes that were not exported. Going back discards them. Export it first to keep them."
+        confirmLabel="Discard and go back"
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }

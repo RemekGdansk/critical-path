@@ -329,27 +329,27 @@ None: no file-format or stored-data change.
 
 #### Automated
 
-- [x] 2.1 View and hook tests pass: `npx vitest run src/hooks/useProject.test.ts src/components/planner/Planner.test.ts`
-- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [x] 2.3 E2E passes, including the updated render-crash test: `npm run test:e2e`
+- [x] 2.1 View and hook tests pass: `npx vitest run src/hooks/useProject.test.ts src/components/planner/Planner.test.ts` — 9ce43a9
+- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 9ce43a9
+- [x] 2.3 E2E passes, including the updated render-crash test: `npm run test:e2e` — 9ce43a9
 
 #### Manual
 
-- [x] 2.4 In `npm run build && npm run preview`: after an edit, New project and Import show a centred modal over a dimmed backdrop in light mode; the console shows no CSP violation.
-- [x] 2.5 Keyboard: Tab stays inside the open dialog; Escape cancels and focus returns to the button that opened it; Cancel is focused on open.
-- [x] 2.6 In the kitchen sink (`npm run dev`, `/kitchen-sink`): New project on an untouched fixture replaces without asking; after an edit it asks.
+- [x] 2.4 In `npm run build && npm run preview`: after an edit, New project and Import show a centred modal over a dimmed backdrop in light mode; the console shows no CSP violation. — 9ce43a9
+- [x] 2.5 Keyboard: Tab stays inside the open dialog; Escape cancels and focus returns to the button that opened it; Cancel is focused on open. — 9ce43a9
+- [x] 2.6 In the kitchen sink (`npm run dev`, `/kitchen-sink`): New project on an untouched fixture replaces without asking; after an edit it asks. — 9ce43a9
 
 ### Phase 3: Go back confirmation on the crash fallback
 
 #### Automated
 
-- [ ] 3.1 View tests pass: `npx vitest run src/components/planner/RenderCrashFallback.test.ts src/components/planner/Planner.test.ts`
-- [ ] 3.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [ ] 3.3 E2E still passes: `npm run test:e2e`
+- [x] 3.1 View tests pass: `npx vitest run src/components/planner/RenderCrashFallback.test.ts src/components/planner/Planner.test.ts`
+- [x] 3.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 3.3 E2E still passes: `npm run test:e2e`
 
 #### Manual
 
-- [ ] 3.4 In the kitchen sink's render-crash state, the fallback looks as before; if Go back is offered, clicking it with an unexported crashed project opens the dialog above the fallback.
+- [x] 3.4 In the kitchen sink's render-crash state, the fallback looks as before; if Go back is offered, clicking it with an unexported crashed project opens the dialog above the fallback.
 
 ### Phase 4: Built-app E2E and docs
 

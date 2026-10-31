@@ -62,7 +62,7 @@ function logRenderCrash(project: Project, error: unknown, componentStack: string
  */
 export function Planner({ initialProject: givenProject, initialSelection }: PlannerProps = {}) {
   const state = useProject(givenProject ?? initialProject, initialSelection);
-  const { project, previousProject, restorePreviousProject } = state;
+  const { project, previousProject, restorePreviousProject, hasUnexportedChanges, markExported } = state;
   const [goBacks, setGoBacks] = useState(0);
   const handleGoBack = useCallback(() => {
     restorePreviousProject();
@@ -85,6 +85,8 @@ export function Planner({ initialProject: givenProject, initialSelection }: Plan
           project={project}
           previousProject={previousProject}
           onGoBack={handleGoBack}
+          hasUnexportedChanges={hasUnexportedChanges}
+          onExported={markExported}
         />
       )}
     >
