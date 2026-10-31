@@ -321,23 +321,23 @@ None: no file-format or stored-data change.
 
 #### Automated
 
-- [x] 1.1 Hook tests pass: `npx vitest run src/hooks/useProject.test.ts`
-- [x] 1.2 Type check passes: `npx astro check`
-- [x] 1.3 Lint passes: `npm run lint`
+- [x] 1.1 Hook tests pass: `npx vitest run src/hooks/useProject.test.ts` — 2d02434
+- [x] 1.2 Type check passes: `npx astro check` — 2d02434
+- [x] 1.3 Lint passes: `npm run lint` — 2d02434
 
 ### Phase 2: ConfirmDialog, New project and Import confirmation
 
 #### Automated
 
-- [ ] 2.1 View and hook tests pass: `npx vitest run src/hooks/useProject.test.ts src/components/planner/Planner.test.ts`
-- [ ] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [ ] 2.3 E2E passes, including the updated render-crash test: `npm run test:e2e`
+- [x] 2.1 View and hook tests pass: `npx vitest run src/hooks/useProject.test.ts src/components/planner/Planner.test.ts`
+- [x] 2.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 2.3 E2E passes, including the updated render-crash test: `npm run test:e2e`
 
 #### Manual
 
-- [ ] 2.4 In `npm run build && npm run preview`: after an edit, New project and Import show a centred modal over a dimmed backdrop in light mode; the console shows no CSP violation.
-- [ ] 2.5 Keyboard: Tab stays inside the open dialog; Escape cancels and focus returns to the button that opened it; Cancel is focused on open.
-- [ ] 2.6 In the kitchen sink (`npm run dev`, `/kitchen-sink`): New project on an untouched fixture replaces without asking; after an edit it asks.
+- [x] 2.4 In `npm run build && npm run preview`: after an edit, New project and Import show a centred modal over a dimmed backdrop in light mode; the console shows no CSP violation.
+- [x] 2.5 Keyboard: Tab stays inside the open dialog; Escape cancels and focus returns to the button that opened it; Cancel is focused on open.
+- [x] 2.6 In the kitchen sink (`npm run dev`, `/kitchen-sink`): New project on an untouched fixture replaces without asking; after an edit it asks.
 
 ### Phase 3: Go back confirmation on the crash fallback
 

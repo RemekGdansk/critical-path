@@ -12,6 +12,7 @@ import {
   createTask,
   type EditResult,
   setDuration,
+  setProjectName,
   setStartDate,
   validateProject,
 } from "@/lib/services/project";
@@ -224,47 +225,66 @@ function cyclicProject(name: string | undefined): CheckedProject {
   } as CheckedProject;
 }
 
-describe("Planner: a render crash keeps the project exportable", () => {
-  // Browser APIs only, never the domain: jsdom has no object URLs and would
-  // navigate on an anchor click, so the download is captured instead.
-  const downloads: { fileName: string; blob: Blob }[] = [];
+interface Download {
+  fileName: string;
+  blob: Blob;
+}
+
+/**
+ * Captures downloads into `downloads`. Browser APIs only, never the domain:
+ * jsdom has no object URLs and would navigate on an anchor click, so the
+ * download is captured instead. Call it in `beforeEach` and the returned
+ * restore in `afterEach`.
+ */
+function stubDownloads(downloads: Download[]): () => void {
+  downloads.length = 0;
   const urlKeys = ["createObjectURL", "revokeObjectURL"] as const;
-  let urlOriginals: (PropertyDescriptor | undefined)[] = [];
+  const blobs = new Map<string, Blob>();
+  const urlOriginals = urlKeys.map((key) => Object.getOwnPropertyDescriptor(URL, key));
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: (blob: Blob) => {
+      const url = `blob:test/${blobs.size + 1}`;
+      blobs.set(url, blob);
+      return url;
+    },
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: () => {
+      // Nothing to release: the test URLs hold no resource.
+    },
+  });
+  const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    const blob = blobs.get(this.href);
+    if (blob !== undefined) downloads.push({ fileName: this.download, blob });
+  });
+  return () => {
+    anchorClick.mockRestore();
+    urlKeys.forEach((key, index) => {
+      const original = urlOriginals[index];
+      if (original) Object.defineProperty(URL, key, original);
+      else Reflect.deleteProperty(URL, key);
+    });
+  };
+}
+
+describe("Planner: a render crash keeps the project exportable", () => {
+  const downloads: Download[] = [];
+  let restoreDownloads: () => void;
   let consoleError: MockInstance<typeof console.error>;
 
   beforeEach(() => {
-    downloads.length = 0;
-    const blobs = new Map<string, Blob>();
-    urlOriginals = urlKeys.map((key) => Object.getOwnPropertyDescriptor(URL, key));
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: (blob: Blob) => {
-        const url = `blob:test/${blobs.size + 1}`;
-        blobs.set(url, blob);
-        return url;
-      },
-    });
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: () => {
-        // Nothing to release: the test URLs hold no resource.
-      },
-    });
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
-      const blob = blobs.get(this.href);
-      if (blob !== undefined) downloads.push({ fileName: this.download, blob });
-    });
+    restoreDownloads = stubDownloads(downloads);
     // Silenced: React and the planner both report the crash on the console.
     consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    urlKeys.forEach((key, index) => {
-      const original = urlOriginals[index];
-      if (original) Object.defineProperty(URL, key, original);
-      else Reflect.deleteProperty(URL, key);
-    });
+    restoreDownloads();
   });
 
   function renderCrashing(project: CheckedProject): void {
@@ -323,5 +343,216 @@ describe("Planner: a render crash keeps the project exportable", () => {
     fireEvent.click(within(alert).getByRole("button", { name: "Export the project as it was" }));
     expect(downloads).toHaveLength(1);
     expect(await downloads[0].blob.text()).toBe(serializeProject(project));
+  });
+});
+
+describe("Planner: unexported changes are confirmed before they are replaced", () => {
+  // jsdom implements no showModal: these stand in for the browser, setting the
+  // `open` attribute that makes the dialog visible to role queries.
+  const dialogKeys = ["showModal", "close"] as const;
+  let dialogOriginals: (PropertyDescriptor | undefined)[] = [];
+  const downloads: Download[] = [];
+  let restoreDownloads: () => void;
+
+  beforeAll(() => {
+    dialogOriginals = dialogKeys.map((key) => Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, key));
+    Object.defineProperty(HTMLDialogElement.prototype, "showModal", {
+      configurable: true,
+      value(this: HTMLDialogElement) {
+        this.setAttribute("open", "");
+      },
+    });
+    Object.defineProperty(HTMLDialogElement.prototype, "close", {
+      configurable: true,
+      value(this: HTMLDialogElement) {
+        this.removeAttribute("open");
+      },
+    });
+  });
+
+  afterAll(() => {
+    dialogKeys.forEach((key, index) => {
+      const original = dialogOriginals[index];
+      if (original) Object.defineProperty(HTMLDialogElement.prototype, key, original);
+      else Reflect.deleteProperty(HTMLDialogElement.prototype, key);
+    });
+  });
+
+  beforeEach(() => {
+    restoreDownloads = stubDownloads(downloads);
+  });
+
+  afterEach(() => {
+    restoreDownloads();
+  });
+
+  const TITLE = "Discard unexported changes?";
+
+  /** One Task "Imported" (2 days), named "Imported plan": the file a test imports. */
+  function importedFile(): File {
+    const project = accepted(
+      setProjectName(
+        accepted(setDuration(accepted(createTask(createEmptyProject(), "Imported")), 1, "2")),
+        "Imported plan",
+      ),
+    );
+    return new File([serializeProject(project)], "imported-plan.json", { type: "application/json" });
+  }
+
+  /** The hidden input the Import button opens, given `file` as the user's pick. */
+  function pickFile(file: File): void {
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (input === null) throw new Error("Expected the Import file input");
+    fireEvent.change(input, { target: { files: [file] } });
+  }
+
+  /** One accepted edit: the project name, committed on blur. */
+  async function renderEdited(): Promise<void> {
+    renderPlanner();
+    await screen.findByRole("button", { name: "A, 5 days" });
+    const name = screen.getByLabelText("Project name");
+    fireEvent.change(name, { target: { value: "Kept plan" } });
+    fireEvent.blur(name);
+  }
+
+  function newProjectButton(): HTMLElement {
+    return screen.getByRole("button", { name: "New project" });
+  }
+
+  function newTaskInput(): HTMLElement {
+    return screen.getByRole("textbox", { name: "New Task" });
+  }
+
+  /** The edited fixture, selection and name, exactly as before the dialog opened. */
+  async function expectEditedProjectKept(): Promise<void> {
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(await screen.findByRole("button", { name: "A, 5 days" })).toBeDefined();
+    expect(screen.getByRole("button", { name: "B, 3 days" })).toBeDefined();
+    expect(screen.getByLabelText<HTMLInputElement>("Task name").value).toBe("A");
+    expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("Kept plan");
+  }
+
+  async function expectEmptyProject(): Promise<void> {
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(await screen.findByText(/^No Tasks yet/)).toBeDefined();
+    expect(screen.queryByRole("button", { name: "A, 5 days" })).toBeNull();
+    expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("");
+    expect(document.activeElement).toBe(newTaskInput());
+  }
+
+  async function expectImportedProject(): Promise<void> {
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(await screen.findByRole("button", { name: "Imported, 2 days" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "A, 5 days" })).toBeNull();
+    expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("Imported plan");
+    expect(document.activeElement).toBe(newTaskInput());
+  }
+
+  it("starts a new project at once when nothing changed since the planner opened", async () => {
+    renderPlanner();
+    await screen.findByRole("button", { name: "A, 5 days" });
+
+    fireEvent.click(newProjectButton());
+
+    await expectEmptyProject();
+  });
+
+  it("asks before New project discards an edit, and Cancel keeps everything and focuses New project", async () => {
+    await renderEdited();
+
+    fireEvent.click(newProjectButton());
+
+    const dialog = screen.getByRole("dialog", { name: TITLE });
+    expect(dialog.textContent).toContain(
+      "The current project has changes that were not exported. Starting a new project discards them.",
+    );
+    expect(dialog.textContent).not.toMatch(/invalid|conflict|blocked/i);
+    expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await expectEditedProjectKept();
+    expect(document.activeElement).toBe(newProjectButton());
+  });
+
+  it("treats Escape (the dialog's cancel event) as Cancel and keeps the dialog's closing to React", async () => {
+    await renderEdited();
+    fireEvent.click(newProjectButton());
+
+    const notPrevented = fireEvent(
+      screen.getByRole("dialog", { name: TITLE }),
+      new Event("cancel", { cancelable: true }),
+    );
+
+    expect(notPrevented).toBe(false);
+    await expectEditedProjectKept();
+    expect(document.activeElement).toBe(newProjectButton());
+  });
+
+  it("empties the project once discarding is confirmed", async () => {
+    await renderEdited();
+    fireEvent.click(newProjectButton());
+
+    fireEvent.click(screen.getByRole("button", { name: "Discard and start a new project" }));
+
+    await expectEmptyProject();
+  });
+
+  it("starts a new project without asking once the edited project was exported", async () => {
+    await renderEdited();
+    fireEvent.click(screen.getByRole("button", { name: "Export" }));
+    expect(downloads).toHaveLength(1);
+    expect(downloads[0].fileName).toBe("Kept plan.json");
+
+    fireEvent.click(newProjectButton());
+
+    await expectEmptyProject();
+  });
+
+  it("asks before Import replaces an edit, naming the file, and Cancel keeps the project and focuses Import", async () => {
+    await renderEdited();
+
+    pickFile(importedFile());
+
+    const dialog = await screen.findByRole("dialog", { name: TITLE });
+    expect(dialog.textContent).toContain(
+      "The current project has changes that were not exported. Importing imported-plan.json replaces the project and discards them.",
+    );
+    expect(dialog.textContent).not.toMatch(/invalid|conflict|blocked/i);
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await expectEditedProjectKept();
+    expect(screen.queryByRole("button", { name: "Imported, 2 days" })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Import" }));
+  });
+
+  it("imports the file once discarding is confirmed", async () => {
+    await renderEdited();
+    pickFile(importedFile());
+
+    fireEvent.click(await screen.findByRole("button", { name: "Discard and import" }));
+
+    await expectImportedProject();
+  });
+
+  it("shows a file's Validation Error and never asks, even over an edit", async () => {
+    await renderEdited();
+
+    pickFile(new File([serializeProject(cyclicProject("Cyclic plan"))], "cyclic.json", { type: "application/json" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toContain("cyclic.json was not imported.");
+    expect(screen.queryByRole("dialog")).toBeNull();
+    await expectEditedProjectKept();
+  });
+
+  it("imports a valid file at once when nothing changed since the planner opened", async () => {
+    renderPlanner();
+    await screen.findByRole("button", { name: "A, 5 days" });
+
+    pickFile(importedFile());
+
+    await expectImportedProject();
   });
 });

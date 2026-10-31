@@ -114,6 +114,8 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
     setProjectName,
     replaceProject,
     replacements,
+    hasUnexportedChanges,
+    markExported,
   } = state;
 
   // Read on every render, so any edit after midnight picks up the new day.
@@ -187,6 +189,8 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
           replaceProject={handleReplaceProject}
           dayCountingMode={project.dayCountingMode}
           setDayCountingMode={setDayCountingMode}
+          hasUnexportedChanges={hasUnexportedChanges}
+          markExported={markExported}
         />
         <div className="ml-auto">
           <ForecastSummary forecast={projectForecast} tasks={project.tasks} startDate={project.start.date} />

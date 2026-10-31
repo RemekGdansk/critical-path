@@ -1,13 +1,21 @@
 import { useId, useRef, useState, type ChangeEvent, type KeyboardEvent, type SubmitEvent } from "react";
+import { flushSync } from "react-dom";
 
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
 import { downloadTextFile } from "@/lib/download";
 import { parseProjectFile, projectFileName, serializeProject } from "@/lib/services/project-file";
-import { DAY_COUNTING_MODES, isDayCountingMode, PROJECT_NAME_MAX_LENGTH } from "@/lib/services/project";
+import {
+  type CheckedProject,
+  createEmptyProject,
+  DAY_COUNTING_MODES,
+  isDayCountingMode,
+  PROJECT_NAME_MAX_LENGTH,
+} from "@/lib/services/project";
 import type { DayCountingMode } from "@/types";
 
 /** 5 MB, far above any real project: a 100-Task file is about 15–100 KB. */
@@ -27,14 +35,28 @@ interface ProjectControlsProps {
   /** The committed mode: the select follows the project, so an import shows the imported mode. */
   dayCountingMode: DayCountingMode;
   setDayCountingMode: ProjectActions["setDayCountingMode"];
+  /** Asked before New project or an accepted Import replaces the project. */
+  hasUnexportedChanges: ProjectActions["hasUnexportedChanges"];
+  /** Called with the exported project once its download has started. */
+  markExported: ProjectActions["markExported"];
 }
 
+/** The replacement waiting for the user to confirm discarding unexported changes. */
+type PendingReplacement = { kind: "new" } | { kind: "import"; fileName: string; project: CheckedProject } | null;
+
+const UNEXPORTED_TITLE = "Discard unexported changes?";
+
 /**
- * The project name, Export, Import and Day counting, in the header. Mount it with
- * `key={replacements}` so the name draft starts over from an imported name.
- * The name draft commits on Enter or blur, and Escape restores the committed
- * name. Export commits the draft first and exports the project that commit
- * returns, so typing a name and clicking Export downloads in one click.
+ * The project name, New project, Export, Import and Day counting, in the header.
+ * Mount it with `key={replacements}` so the name draft starts over from an
+ * imported name. The name draft commits on Enter or blur, and Escape restores
+ * the committed name. Export commits the draft first and exports the project
+ * that commit returns, so typing a name and clicking Export downloads in one
+ * click; the exported project becomes the export baseline. New project and an
+ * Import that `parseProjectFile` accepted replace the project at once when it
+ * has no unexported changes, and otherwise only after the user confirms
+ * discarding them; Cancel or Escape changes nothing and returns focus to the
+ * button that started the action. A rejected file never asks.
  */
 export function ProjectControls({
   name,
@@ -42,12 +64,17 @@ export function ProjectControls({
   replaceProject,
   dayCountingMode,
   setDayCountingMode,
+  hasUnexportedChanges,
+  markExported,
 }: ProjectControlsProps) {
   const [draft, setDraft] = useState(name ?? "");
   const [nameError, setNameError] = useState<string | undefined>(undefined);
   const [fileError, setFileError] = useState<string | undefined>(undefined);
   const nameRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const newProjectRef = useRef<HTMLButtonElement>(null);
+  const importRef = useRef<HTMLButtonElement>(null);
+  const [pending, setPending] = useState<PendingReplacement>(null);
   const nameId = useId();
   const nameErrorId = useId();
   const modeId = useId();
@@ -98,6 +125,44 @@ export function ProjectControls({
     setNameError(undefined);
     setFileError(undefined);
     downloadTextFile(projectFileName(exported.name), serializeProject(exported), "application/json");
+    markExported(exported);
+  }
+
+  // The modal dialog makes everything outside it inert, so it is unmounted
+  // synchronously before focus moves out of it (to New Task on a replacement).
+  function closeDialog() {
+    flushSync(() => {
+      setPending(null);
+    });
+  }
+
+  function replaceWith(project: CheckedProject) {
+    setNameError(undefined);
+    setFileError(undefined);
+    replaceProject(project);
+  }
+
+  // Reads the hook's latest commit, so a name committed by this click's blur counts.
+  function handleNewProject() {
+    if (hasUnexportedChanges()) {
+      setPending({ kind: "new" });
+      return;
+    }
+    replaceWith(createEmptyProject());
+  }
+
+  function handleConfirm() {
+    const confirmed = pending;
+    if (confirmed === null) return;
+    closeDialog();
+    replaceWith(confirmed.kind === "new" ? createEmptyProject() : confirmed.project);
+  }
+
+  // Focus goes back explicitly: the Import button may not hold focus after the file picker.
+  function handleCancel() {
+    const returnTo = pending?.kind === "import" ? importRef : newProjectRef;
+    closeDialog();
+    returnTo.current?.focus();
   }
 
   async function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
@@ -129,9 +194,11 @@ export function ProjectControls({
       setFileError(`${file.name} was not imported. ${result.error.message}`);
       return;
     }
-    setNameError(undefined);
-    setFileError(undefined);
-    replaceProject(result.project);
+    if (hasUnexportedChanges()) {
+      setPending({ kind: "import", fileName: file.name, project: result.project });
+      return;
+    }
+    replaceWith(result.project);
   }
 
   return (
@@ -163,10 +230,14 @@ export function ProjectControls({
             )}
           </div>
         </form>
+        <Button ref={newProjectRef} type="button" variant="outline" onClick={handleNewProject}>
+          New project
+        </Button>
         <Button type="button" variant="outline" onClick={handleExport}>
           Export
         </Button>
         <Button
+          ref={importRef}
           type="button"
           variant="outline"
           onClick={() => {
@@ -210,6 +281,18 @@ export function ProjectControls({
           {fileError}
         </p>
       )}
+      <ConfirmDialog
+        open={pending !== null}
+        title={UNEXPORTED_TITLE}
+        description={
+          pending?.kind === "import"
+            ? `The current project has changes that were not exported. Importing ${pending.fileName} replaces the project and discards them.`
+            : "The current project has changes that were not exported. Starting a new project discards them."
+        }
+        confirmLabel={pending?.kind === "import" ? "Discard and import" : "Discard and start a new project"}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 }
