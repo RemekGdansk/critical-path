@@ -334,12 +334,12 @@ None: the exported file format and the project model are unchanged.
 
 #### Automated
 
-- [x] 3.1 `npx vitest run src/components/planner/ForecastSummary.test.ts src/components/planner/Planner.test.ts` passes
-- [x] 3.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass
-- [x] 3.6 No diff against `main` in `Planner.tsx`, `useProject.ts`, `ProjectControls.tsx`, `RenderCrashFallback.tsx`, `project-file.ts` or the golden files
+- [x] 3.1 `npx vitest run src/components/planner/ForecastSummary.test.ts src/components/planner/Planner.test.ts` passes — c8c26c1
+- [x] 3.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass — c8c26c1
+- [x] 3.6 No diff against `main` in `Planner.tsx`, `useProject.ts`, `ProjectControls.tsx`, `RenderCrashFallback.tsx`, `project-file.ts` or the golden files — c8c26c1
 
 #### Manual
 
-- [x] 3.3 Preview build: times line under the dates, swatch matches the diagram, cleared Duration removes line and highlight, restored Duration brings both back
-- [x] 3.4 Weekdays mode shows weekday units in the times line
-- [x] 3.5 At 1024 wide the header wraps cleanly and the diagram stays usable
+- [x] 3.3 Preview build: times line under the dates, swatch matches the diagram, cleared Duration removes line and highlight, restored Duration brings both back — c8c26c1
+- [x] 3.4 Weekdays mode shows weekday units in the times line — c8c26c1
+- [x] 3.5 At 1024 wide the header wraps cleanly and the diagram stays usable — c8c26c1
