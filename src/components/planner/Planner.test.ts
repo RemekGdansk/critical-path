@@ -355,7 +355,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
   /** One accepted edit: the project name, committed on blur. */
   async function renderEdited(): Promise<void> {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
     const name = screen.getByLabelText("Project name");
     fireEvent.change(name, { target: { value: "Kept plan" } });
     fireEvent.blur(name);
@@ -372,7 +372,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
   /** The edited fixture, selection and name, exactly as before the dialog opened. */
   async function expectEditedProjectKept(): Promise<void> {
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(await screen.findByRole("button", { name: "A, 5 days" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 5 days, on the critical path" })).toBeDefined();
     expect(screen.getByRole("button", { name: "B, 3 days" })).toBeDefined();
     expect(screen.getByLabelText<HTMLInputElement>("Task name").value).toBe("A");
     expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("Kept plan");
@@ -381,22 +381,22 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
   async function expectEmptyProject(): Promise<void> {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(await screen.findByText(/^No Tasks yet/)).toBeDefined();
-    expect(screen.queryByRole("button", { name: "A, 5 days" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "A, 5 days, on the critical path" })).toBeNull();
     expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("");
     expect(document.activeElement).toBe(newTaskInput());
   }
 
   async function expectImportedProject(): Promise<void> {
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(await screen.findByRole("button", { name: "Imported, 2 days" })).toBeDefined();
-    expect(screen.queryByRole("button", { name: "A, 5 days" })).toBeNull();
+    expect(await screen.findByRole("button", { name: "Imported, 2 days, on the critical path" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "A, 5 days, on the critical path" })).toBeNull();
     expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("Imported plan");
     expect(document.activeElement).toBe(newTaskInput());
   }
 
   it("starts a new project at once when nothing changed since the planner opened", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     fireEvent.click(newProjectButton());
 
@@ -457,9 +457,9 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
 
   it("keeps asking after an Export the project name stopped, since nothing was written", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
     commitDuration("7");
-    await screen.findByRole("button", { name: "A, 7 days" });
+    await screen.findByRole("button", { name: "A, 7 days, on the critical path" });
 
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
 
@@ -483,7 +483,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
     await expectEditedProjectKept();
-    expect(screen.queryByRole("button", { name: "Imported, 2 days" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Imported, 2 days, on the critical path" })).toBeNull();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Import" }));
   });
 
@@ -509,7 +509,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
 
   it("imports a valid file at once when nothing changed since the planner opened", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     pickFile(importedFile());
 
