@@ -248,8 +248,9 @@ function projectEdges(project: Pick<Project, "tasks">, critical: CriticalPath): 
  * date with withStartDate. The critical path depends only on the Tasks, never
  * on the START date or today, which shift every remaining Task alike.
  *
- * Throws "The project contains a cycle." on a cycle, as remainingWork does; a
- * `CheckedProject` never holds one.
+ * Throws "The project contains a cycle." on a cycle, as remainingWork does,
+ * unless the schedule is withheld for a Validation Warning; a `CheckedProject`
+ * never holds a cycle.
  */
 export function projectDiagram(project: Pick<Project, "tasks" | "dayCountingMode">): Diagram {
   const critical = criticalPath(remainingWork(project));

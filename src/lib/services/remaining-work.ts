@@ -64,7 +64,8 @@ function remainingWorkTime(days: number): RemainingWorkTime {
  * is critical, since the day comparisons are no longer exact.
  *
  * Throws "The project contains a cycle." on a cycle, as `topologicalOrder`
- * does; a `CheckedProject` never holds one.
+ * does, unless the schedule is withheld for a Validation Warning, which is
+ * decided first; a `CheckedProject` never holds a cycle.
  */
 export function remainingWork(project: Pick<Project, "tasks">): RemainingWork {
   if (validationWarnings(project).length > 0) return { kind: "withheld" };
