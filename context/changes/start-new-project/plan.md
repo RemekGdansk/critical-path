@@ -343,24 +343,24 @@ None: no file-format or stored-data change.
 
 #### Automated
 
-- [x] 3.1 View tests pass: `npx vitest run src/components/planner/RenderCrashFallback.test.ts src/components/planner/Planner.test.ts`
-- [x] 3.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [x] 3.3 E2E still passes: `npm run test:e2e`
+- [x] 3.1 View tests pass: `npx vitest run src/components/planner/RenderCrashFallback.test.ts src/components/planner/Planner.test.ts` — 4d85e31
+- [x] 3.2 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 4d85e31
+- [x] 3.3 E2E still passes: `npm run test:e2e` — 4d85e31
 
 #### Manual
 
-- [x] 3.4 In the kitchen sink's render-crash state, the fallback looks as before; if Go back is offered, clicking it with an unexported crashed project opens the dialog above the fallback.
+- [x] 3.4 In the kitchen sink's render-crash state, the fallback looks as before; if Go back is offered, clicking it with an unexported crashed project opens the dialog above the fallback. — 4d85e31
 
 ### Phase 4: Built-app E2E and docs
 
 #### Automated
 
-- [ ] 4.1 New E2E passes: `npx playwright test e2e/unexported-changes.spec.ts`
-- [ ] 4.2 Whole E2E suite passes: `npm run test:e2e`
-- [ ] 4.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [ ] 4.4 File format unchanged: `git diff --exit-code main -- src/lib/services/project-file.ts src/lib/services/golden/` prints nothing
-- [ ] 4.5 S-05's area untouched: `git diff --exit-code main -- src/lib/services/forecast.ts src/components/planner/diagram/ src/components/planner/ForecastSummary.tsx` prints nothing
+- [x] 4.1 New E2E passes: `npx playwright test e2e/unexported-changes.spec.ts`
+- [x] 4.2 Whole E2E suite passes: `npm run test:e2e`
+- [x] 4.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 4.4 File format unchanged: `git diff --exit-code main -- src/lib/services/project-file.ts src/lib/services/golden/` prints nothing
+- [x] 4.5 S-05's area untouched: `git diff --exit-code main -- src/lib/services/forecast.ts src/components/planner/diagram/ src/components/planner/ForecastSummary.tsx` prints nothing
 
 #### Manual
 
-- [ ] 4.6 The PRD's FR-016 flow on `npm run preview`: build a project, click New project, confirm the prompt, see an empty project; export a project, click New project, see no prompt.
+- [x] 4.6 The PRD's FR-016 flow on `npm run preview`: build a project, click New project, confirm the prompt, see an empty project; export a project, click New project, see no prompt.
