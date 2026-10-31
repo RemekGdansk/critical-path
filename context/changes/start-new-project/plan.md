@@ -355,12 +355,12 @@ None: no file-format or stored-data change.
 
 #### Automated
 
-- [x] 4.1 New E2E passes: `npx playwright test e2e/unexported-changes.spec.ts`
-- [x] 4.2 Whole E2E suite passes: `npm run test:e2e`
-- [x] 4.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
-- [x] 4.4 File format unchanged: `git diff --exit-code main -- src/lib/services/project-file.ts src/lib/services/golden/` prints nothing
-- [x] 4.5 S-05's area untouched: `git diff --exit-code main -- src/lib/services/forecast.ts src/components/planner/diagram/ src/components/planner/ForecastSummary.tsx` prints nothing
+- [x] 4.1 New E2E passes: `npx playwright test e2e/unexported-changes.spec.ts` — 871431d
+- [x] 4.2 Whole E2E suite passes: `npm run test:e2e` — 871431d
+- [x] 4.3 Full gate passes: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 871431d
+- [x] 4.4 File format unchanged: `git diff --exit-code main -- src/lib/services/project-file.ts src/lib/services/golden/` prints nothing — 871431d
+- [x] 4.5 S-05's area untouched: `git diff --exit-code main -- src/lib/services/forecast.ts src/components/planner/diagram/ src/components/planner/ForecastSummary.tsx` prints nothing — 871431d
 
 #### Manual
 
-- [x] 4.6 The PRD's FR-016 flow on `npm run preview`: build a project, click New project, confirm the prompt, see an empty project; export a project, click New project, see no prompt.
+- [x] 4.6 The PRD's FR-016 flow on `npm run preview`: build a project, click New project, confirm the prompt, see an empty project; export a project, click New project, see no prompt. — 871431d
