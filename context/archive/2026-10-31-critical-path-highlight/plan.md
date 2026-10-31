@@ -311,38 +311,38 @@ None: the exported file format and the project model are unchanged.
 
 #### Automated
 
-- [x] 1.1 `npx vitest run src/lib/services/remaining-work.test.ts src/lib/services/forecast.test.ts` passes — 9692b0f
-- [x] 1.2 `startDay + duration` appears in exactly one non-test line, in `remaining-work.ts` — 9692b0f
-- [x] 1.3 `npm run lint && npx astro check && npm test` pass — 9692b0f
+- [x] 1.1 `npx vitest run src/lib/services/remaining-work.test.ts src/lib/services/forecast.test.ts` passes — 7868b64
+- [x] 1.2 `startDay + duration` appears in exactly one non-test line, in `remaining-work.ts` — 7868b64
+- [x] 1.3 `npm run lint && npx astro check && npm test` pass — 7868b64
 
 #### Manual
 
-- [x] 1.4 Optional selective mutation run on `remaining-work.ts`, user-visible survivors covered — 9692b0f
+- [x] 1.4 Optional selective mutation run on `remaining-work.ts`, user-visible survivors covered — 7868b64
 
 ### Phase 2: Critical path on the diagram
 
 #### Automated
 
-- [x] 2.1 `npx vitest run src/lib/services/diagram.test.ts src/components/planner/diagram/flow-elements.test.ts` passes — 8ca685a
-- [x] 2.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass — 8ca685a
-- [x] 2.3 Built CSS defines `--critical-path` in both modes and contains the border, ring and edge rules — 8ca685a
+- [x] 2.1 `npx vitest run src/lib/services/diagram.test.ts src/components/planner/diagram/flow-elements.test.ts` passes — 7868b64
+- [x] 2.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass — 7868b64
+- [x] 2.3 Built CSS defines `--critical-path` in both modes and contains the border, ring and edge rules — 7868b64
 
 #### Manual
 
-- [x] 2.4 Kitchen sink `critical-path` cell at 1440 and 1024: both equal branches highlighted START to FINISH, shorter branch and A→C link grey, arrowheads coloured and normal size — 8ca685a
-- [x] 2.5 Selected critical Task reads as selected; warned cell shows no highlight; critical colour distinct from warning and selection — 8ca685a
-- [x] 2.6 `tokens.md` records both values and ratios at or above 3:1 — 8ca685a
+- [x] 2.4 Kitchen sink `critical-path` cell at 1440 and 1024: both equal branches highlighted START to FINISH, shorter branch and A→C link grey, arrowheads coloured and normal size — 7868b64
+- [x] 2.5 Selected critical Task reads as selected; warned cell shows no highlight; critical colour distinct from warning and selection — 7868b64
+- [x] 2.6 `tokens.md` records both values and ratios at or above 3:1 — 7868b64
 
 ### Phase 3: Remaining-work times in the header
 
 #### Automated
 
-- [x] 3.1 `npx vitest run src/components/planner/ForecastSummary.test.ts src/components/planner/Planner.test.ts` passes — c8c26c1
-- [x] 3.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass — c8c26c1
-- [x] 3.6 No diff against `main` in `Planner.tsx`, `useProject.ts`, `ProjectControls.tsx`, `RenderCrashFallback.tsx`, `project-file.ts` or the golden files — c8c26c1
+- [x] 3.1 `npx vitest run src/components/planner/ForecastSummary.test.ts src/components/planner/Planner.test.ts` passes — 7868b64
+- [x] 3.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass — 7868b64
+- [x] 3.6 No diff against `main` in `Planner.tsx`, `useProject.ts`, `ProjectControls.tsx`, `RenderCrashFallback.tsx`, `project-file.ts` or the golden files — 7868b64
 
 #### Manual
 
-- [x] 3.3 Preview build: times line under the dates, swatch matches the diagram, cleared Duration removes line and highlight, restored Duration brings both back — c8c26c1
-- [x] 3.4 Weekdays mode shows weekday units in the times line — c8c26c1
-- [x] 3.5 At 1024 wide the header wraps cleanly and the diagram stays usable — c8c26c1
+- [x] 3.3 Preview build: times line under the dates, swatch matches the diagram, cleared Duration removes line and highlight, restored Duration brings both back — 7868b64
+- [x] 3.4 Weekdays mode shows weekday units in the times line — 7868b64
+- [x] 3.5 At 1024 wide the header wraps cleanly and the diagram stays usable — 7868b64

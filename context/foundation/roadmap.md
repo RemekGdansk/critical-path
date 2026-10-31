@@ -39,17 +39,17 @@ Early-stage project planning needs near-zero-friction task capture, with details
 
 ## At a glance
 
-| ID   | Change ID                   | Outcome (user can …)                                                                        | Prerequisites | PRD refs                              | Status      |
-| ---- | --------------------------- | ------------------------------------------------------------------------------------------- | ------------- | ------------------------------------- | ----------- |
-| F-01 | domain-test-gate            | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic            | done        |
-| S-01 | capture-task-graph          | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008        | done        |
-| S-02 | reject-invalid-dependencies | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                 | done        |
-| S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | done        |
-| S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | done        |
-| S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | in-progress |
-| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | done        |
-| S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | proposed    |
-| S-08 | start-new-project           | user can start a new empty project, confirming first if changes were not exported           | S-03          | FR-016                                | done        |
+| ID   | Change ID                   | Outcome (user can …)                                                                        | Prerequisites | PRD refs                              | Status   |
+| ---- | --------------------------- | ------------------------------------------------------------------------------------------- | ------------- | ------------------------------------- | -------- |
+| F-01 | domain-test-gate            | (foundation) automated checks of domain rules run in the pre-merge and deploy quality gates | —             | Guardrails, Business Logic            | done     |
+| S-01 | capture-task-graph          | user can capture Tasks and predecessors and see them on an auto-arranged diagram            | F-01          | FR-001, FR-002, FR-003, FR-008        | done     |
+| S-02 | reject-invalid-dependencies | user is stopped from creating a cycle or breaking START/FINISH rules, with an explanation   | S-01          | US-01, FR-003, FR-019                 | done     |
+| S-03 | project-file-round-trip     | user can export the project to a named file and import it back identically elsewhere        | S-02          | US-03, FR-007, FR-013, FR-014         | done     |
+| S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | done     |
+| S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | done     |
+| S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | done     |
+| S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | proposed |
+| S-08 | start-new-project           | user can start a new empty project, confirming first if changes were not exported           | S-03          | FR-016                                | done     |
 
 ## Streams
 
@@ -149,7 +149,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
 - **Blockers:** —
 - **Unknowns:** —
 - **Risk:** Separate from S-04 so the forecast lands first; multiple equal-length critical paths must all be highlighted.
-- **Status:** in-progress
+- **Status:** done
 
 ### S-06: Weekdays day-counting mode
 
@@ -234,3 +234,4 @@ None open. The PRD's `## Open Questions` has none; the one cross-cutting decisio
 - **S-03: user can set the project name, export the project to a human-readable plain-text file named after it (being asked for a name if none is set), and import that file in another browser to get exactly the same project; a file containing a Validation Error is rejected with a clear error, and a file with only Validation Warnings imports and shows them.** — Archived 2026-10-11 → `context/archive/2026-10-11-project-file-round-trip/`. Lesson: —.
 - **S-06: user can choose per project whether Durations count calendar days or weekdays (Mon–Fri) only; all finish dates recalculate, a weekend base date moves to the following Monday, and the choice round-trips through the exported file.** — Archived 2026-10-13 → `context/archive/2026-10-13-weekdays-day-counting/`. Lesson: —.
 - **S-08: user can start a new, empty project, and is asked to confirm first when the current project has changes that were not exported; the same confirmation applies before Import replaces the current project.** — Archived 2026-10-31 → `context/archive/2026-10-31-start-new-project/`. Lesson: —.
+- **S-05: user can see the critical path(s) of remaining (not-Done) work highlighted on the diagram, and the critical-path time and total-work time of remaining work whenever the project has no Validation Warnings.** — Archived 2026-10-31 → `context/archive/2026-10-31-critical-path-highlight/`. Lesson: —.
