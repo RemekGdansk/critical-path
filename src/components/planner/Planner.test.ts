@@ -39,7 +39,7 @@ function accepted(result: EditResult): CheckedProject {
 
 const A_ID = 1;
 
-/** START 2999-01-01 (far ahead of any real today), A (id 1, 5 days) and B (id 2, 3 days), independent. */
+/** START 2999-01-01 (far ahead of any real today), A (id 1, 5 days) and B (id 2, 3 days), independent: A alone is the critical path. */
 function fixture(): CheckedProject {
   const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), A_ID, "5"));
   const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, "3"));
@@ -81,17 +81,19 @@ describe("Planner: the forecast follows the committed project", () => {
   it("renders the Task nodes on the diagram by their accessible names", async () => {
     renderPlanner();
 
-    expect(await screen.findByRole("button", { name: "A, 5 days" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 5 days, on the critical path" })).toBeDefined();
     expect(await screen.findByRole("button", { name: "B, 3 days" })).toBeDefined();
   });
 
   it("withholds both Project Finish Dates while A lacks a Duration, then shows new ones once it has one", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     const dated = textOf(forecastRegion());
     expect(dated).toContain("Resource-Unconstrained Project Finish Date 2999-01-06");
     expect(dated).toContain("Resource-Constrained Project Finish Date 2999-01-09");
+    // A (5) alone is the longest chain; all work is A (5) + B (3) = 8.
+    expect(dated).toContain("Critical-path time 5 days · Total-work time 8 days");
 
     commitDuration("");
 
@@ -101,7 +103,10 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(textOf(withheld)).not.toContain("Project Finish Date");
     // Over the whole markup, so a date in an attribute such as `dateTime` counts too.
     expect(withheld.outerHTML).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(textOf(withheld)).not.toContain("Critical-path time");
+    expect(textOf(withheld)).not.toContain("Total-work time");
     expect(await screen.findByRole("button", { name: "A, no Duration (Validation Warning)" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /on the critical path/ })).toBeNull();
 
     commitDuration("7");
 
@@ -111,19 +116,23 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(restored).not.toContain("2999-01-06");
     expect(restored).not.toContain("2999-01-09");
     expect(restored).not.toContain("Forecast not possible");
-    expect(await screen.findByRole("button", { name: "A, 7 days" })).toBeDefined();
+    // A (7) alone is the longest chain; all work is A (7) + B (3) = 10.
+    expect(restored).toContain("Critical-path time 7 days · Total-work time 10 days");
+    expect(restored).not.toContain("5 days");
+    expect(restored).not.toContain("8 days");
+    expect(await screen.findByRole("button", { name: "A, 7 days, on the critical path" })).toBeDefined();
   });
 
   it("names the rule for a rejected Duration and keeps every committed view on the previous project", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     commitDuration("0");
 
     const alert = screen.getByRole("alert");
     expect(within(alert).getByText("A Duration must be a positive whole number of days.")).toBeDefined();
     expect(alert.textContent).not.toMatch(/invalid|conflict|blocked/i);
-    expect(await screen.findByRole("button", { name: "A, 5 days" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 5 days, on the critical path" })).toBeDefined();
     const forecast = textOf(forecastRegion());
     expect(forecast).toContain("Resource-Unconstrained Project Finish Date 2999-01-06");
     expect(forecast).toContain("Resource-Constrained Project Finish Date 2999-01-09");
@@ -131,7 +140,7 @@ describe("Planner: the forecast follows the committed project", () => {
 
   it("recomputes both Project Finish Dates and shows weekday units once Day counting is switched to Weekdays", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     fireEvent.change(screen.getByLabelText("Day counting"), { target: { value: "weekdays" } });
 
@@ -141,7 +150,7 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(weekdays).toContain("Resource-Constrained Project Finish Date 2999-01-11");
     expect(weekdays).not.toContain("2999-01-06");
     expect(weekdays).not.toContain("2999-01-09");
-    expect(await screen.findByRole("button", { name: "A, 5 weekdays" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 5 weekdays, on the critical path" })).toBeDefined();
     expect(screen.getByLabelText("Duration (weekdays)")).toBeDefined();
   });
 });
@@ -208,8 +217,9 @@ describe("Planner: an unreadable START date keeps the previous one", () => {
 /**
  * A (id 1) depends on B (id 2) and B on A, START 2999-01-01. Built by hand, not
  * through the edit functions, which would reject the cycle: it stands for a
- * project that makes a render throw (`forecast()` throws "The project contains
- * a cycle." for it), the way a too-long imported chain does in the browser.
+ * project that makes a render throw (`forecast()` and `projectDiagram()` throw
+ * "The project contains a cycle." for it), the way a too-long imported chain
+ * does in the browser.
  * Cast, not `toCheckedProject`: the guardian would refuse the cycle it exists to hold.
  */
 function cyclicProject(name: string | undefined): CheckedProject {
@@ -345,7 +355,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
   /** One accepted edit: the project name, committed on blur. */
   async function renderEdited(): Promise<void> {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: /^A, 5 days/ });
     const name = screen.getByLabelText("Project name");
     fireEvent.change(name, { target: { value: "Kept plan" } });
     fireEvent.blur(name);
@@ -362,7 +372,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
   /** The edited fixture, selection and name, exactly as before the dialog opened. */
   async function expectEditedProjectKept(): Promise<void> {
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(await screen.findByRole("button", { name: "A, 5 days" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: /^A, 5 days/ })).toBeDefined();
     expect(screen.getByRole("button", { name: "B, 3 days" })).toBeDefined();
     expect(screen.getByLabelText<HTMLInputElement>("Task name").value).toBe("A");
     expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("Kept plan");
@@ -371,22 +381,22 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
   async function expectEmptyProject(): Promise<void> {
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(await screen.findByText(/^No Tasks yet/)).toBeDefined();
-    expect(screen.queryByRole("button", { name: "A, 5 days" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^A, / })).toBeNull();
     expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("");
     expect(document.activeElement).toBe(newTaskInput());
   }
 
   async function expectImportedProject(): Promise<void> {
     expect(screen.queryByRole("dialog")).toBeNull();
-    expect(await screen.findByRole("button", { name: "Imported, 2 days" })).toBeDefined();
-    expect(screen.queryByRole("button", { name: "A, 5 days" })).toBeNull();
+    expect(await screen.findByRole("button", { name: /^Imported, 2 days/ })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /^A, / })).toBeNull();
     expect(screen.getByLabelText<HTMLInputElement>("Project name").value).toBe("Imported plan");
     expect(document.activeElement).toBe(newTaskInput());
   }
 
   it("starts a new project at once when nothing changed since the planner opened", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: /^A, 5 days/ });
 
     fireEvent.click(newProjectButton());
 
@@ -447,9 +457,9 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
 
   it("keeps asking after an Export the project name stopped, since nothing was written", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: /^A, 5 days/ });
     commitDuration("7");
-    await screen.findByRole("button", { name: "A, 7 days" });
+    await screen.findByRole("button", { name: /^A, 7 days/ });
 
     fireEvent.click(screen.getByRole("button", { name: "Export" }));
 
@@ -473,7 +483,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
     fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
 
     await expectEditedProjectKept();
-    expect(screen.queryByRole("button", { name: "Imported, 2 days" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Imported, / })).toBeNull();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Import" }));
   });
 
@@ -499,7 +509,7 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
 
   it("imports a valid file at once when nothing changed since the planner opened", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: /^A, 5 days/ });
 
     pickFile(importedFile());
 

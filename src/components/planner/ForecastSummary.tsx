@@ -1,9 +1,11 @@
 import { TriangleAlertIcon } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDuration } from "@/lib/services/duration";
 import { type Forecast, type ForecastDate, weekendMoveNote } from "@/lib/services/forecast";
 import { taskLabel } from "@/lib/services/project";
-import type { Task } from "@/types";
+import type { RemainingWorkTime } from "@/lib/services/remaining-work";
+import type { DayCountingMode, Task } from "@/types";
 
 interface ForecastSummaryProps {
   forecast: Forecast;
@@ -14,6 +16,45 @@ interface ForecastSummaryProps {
 
 function ForecastDateValue({ value }: { value: ForecastDate }) {
   return value.kind === "date" ? <time dateTime={value.date}>{value.date}</time> : <>Beyond year 9999</>;
+}
+
+function RemainingWorkTimeValue({ time, mode }: { time: RemainingWorkTime; mode: DayCountingMode }) {
+  return <>{time.kind === "days" ? formatDuration(time.days, mode) : "Too large to count"}</>;
+}
+
+/**
+ * The critical-path time and the total-work time of the remaining work, on one
+ * line, as label and value pairs like the Project Finish Dates above them. The
+ * swatch is the diagram's legend: it is the colour the critical path is drawn
+ * in. A critical-path time too large to count highlights nothing on the
+ * diagram, so it has no swatch either.
+ */
+function RemainingWorkTimes({ forecast }: { forecast: Extract<Forecast, { kind: "forecast" }> }) {
+  const mode = forecast.dayCountingMode;
+  return (
+    <dl className="flex flex-wrap items-center justify-end gap-x-1.5">
+      <div className="flex items-center gap-x-1.5">
+        <dt className="text-muted-foreground flex items-center gap-x-1.5">
+          {forecast.criticalPathTime.kind === "days" && (
+            <span aria-hidden="true" className="bg-critical-path size-2.5 shrink-0 rounded-sm" />
+          )}
+          Critical-path time
+        </dt>
+        <dd className="font-medium tabular-nums">
+          <RemainingWorkTimeValue time={forecast.criticalPathTime} mode={mode} />
+        </dd>
+      </div>
+      <div className="flex items-center gap-x-1.5">
+        <dt className="text-muted-foreground flex items-center gap-x-1.5">
+          <span aria-hidden="true">·</span>
+          Total-work time
+        </dt>
+        <dd className="font-medium tabular-nums">
+          <RemainingWorkTimeValue time={forecast.totalWorkTime} mode={mode} />
+        </dd>
+      </div>
+    </dl>
+  );
 }
 
 /**
@@ -61,9 +102,9 @@ function WithheldWarning({
 }
 
 /**
- * Both Project Finish Dates, or why they are withheld, at the right of the
- * header: always visible whatever is selected, and announced politely on
- * every change.
+ * Both Project Finish Dates and the remaining-work times, or why they are
+ * withheld, at the right of the header: always visible whatever is selected,
+ * and announced politely on every change.
  */
 export function ForecastSummary({ forecast, tasks, startDate }: ForecastSummaryProps) {
   return (
@@ -83,9 +124,10 @@ export function ForecastSummary({ forecast, tasks, startDate }: ForecastSummaryP
 }
 
 /**
- * Both Project Finish Dates, then why the forecast starts where it does. The
- * notes name the real today: in weekdays mode that is the weekend day the base
- * date moved from, and the weekend sentence names the Monday it moved to.
+ * Both Project Finish Dates and the remaining-work times, then why the
+ * forecast starts where it does. The notes name the real today: in weekdays
+ * mode that is the weekend day the base date moved from, and the weekend
+ * sentence names the Monday it moved to.
  */
 function ForecastDates({
   forecast,
@@ -112,6 +154,7 @@ function ForecastDates({
           </dd>
         </div>
       </dl>
+      <RemainingWorkTimes forecast={forecast} />
       {forecast.baseDateReason === "start-date-in-past" && startDate !== undefined && (
         <p className="text-muted-foreground text-xs">
           START date {startDate} is in the past: forecasting from today, {today}.

@@ -79,7 +79,10 @@ describe("projectDiagram", () => {
       [FINISH_NODE_ID, "finish"],
     ]);
     // With no Task, START itself has no successor, so it feeds FINISH.
-    expect(edges).toEqual([{ id: "start->finish", source: "start", target: "finish", kind: "feeds-finish" }]);
+    // With no Task there is no critical path, so the one edge is never critical.
+    expect(edges).toEqual([
+      { id: "start->finish", source: "start", target: "finish", kind: "feeds-finish", critical: false },
+    ]);
   });
 
   it("hangs a lone Task off START and feeds it to FINISH", () => {
@@ -197,7 +200,11 @@ describe("projectDiagram", () => {
     const project = accepted(setDuration(accepted(setDuration(projectWith("A", "B"), 1, "5")), 2, "1"));
     const { nodes } = projectDiagram({ ...project, dayCountingMode: "weekdays" });
 
-    expect(nodeById(nodes, "1")).toMatchObject({ durationText: "5 weekdays", accessibleName: "A, 5 weekdays" });
+    // A (5) and B (1) are independent: A alone is the longest chain.
+    expect(nodeById(nodes, "1")).toMatchObject({
+      durationText: "5 weekdays",
+      accessibleName: "A, 5 weekdays, on the critical path",
+    });
     expect(nodeById(nodes, "2")).toMatchObject({ durationText: "1 weekday", accessibleName: "B, 1 weekday" });
   });
 
@@ -206,6 +213,112 @@ describe("projectDiagram", () => {
     const before = structuredClone(project);
     projectDiagram(project);
     expect(project).toEqual(before);
+  });
+});
+
+/** A project with one Task per [name, Duration] pair, ids 1..n; an empty Duration leaves it unset. */
+function projectWithDurations(...tasks: [string, string][]): CheckedProject {
+  return tasks.reduce((current, [name, duration]) => {
+    const created = accepted(createTask(current, name));
+    return accepted(setDuration(created, created.nextTaskId - 1, duration));
+  }, createEmptyProject());
+}
+
+/** Each edge as `[id, critical]`, in the order the Diagram lists them. */
+function edgeCriticality(project: Project): [string, boolean][] {
+  return projectDiagram(project).edges.map((edge) => [edge.id, edge.critical]);
+}
+
+/** Each Task node as `[id, critical]`, in the order the Diagram lists them. */
+function taskCriticality(project: Project): [string, boolean][] {
+  return projectDiagram(project).nodes.flatMap((node) => (node.kind === "task" ? [[node.id, node.critical]] : []));
+}
+
+// Expected flags are derived by hand: a Task starts when its last predecessor
+// finishes, and the longest chains of remaining work are critical.
+describe("critical path", () => {
+  it("marks the critical Tasks, the START and FINISH edges of the longest chain, and only the links on it", () => {
+    // A (3) → B (1) → C (3) plus A → C: A 0–3, B 3–4, C 4–7. A → C joins two
+    // critical Tasks, but C starts on day 4, after B, not when A finishes.
+    const project = withDependencies(projectWithDurations(["A", "3"], ["B", "1"], ["C", "3"]), [1, 2], [2, 3], [1, 3]);
+    expect(taskCriticality(project)).toEqual([
+      ["1", true],
+      ["2", true],
+      ["3", true],
+    ]);
+    expect(edgeCriticality(project)).toEqual([
+      ["start->1", true],
+      ["1->2", true],
+      ["1->3", false],
+      ["2->3", true],
+      ["3->finish", true],
+    ]);
+  });
+
+  it("marks both of two equal-length branches end to end, and leaves a shorter branch out", () => {
+    // A (2) → B (3) and C (4) → D (1): both 5 days. E (1) alone: 1 day.
+    const project = withDependencies(
+      projectWithDurations(["A", "2"], ["B", "3"], ["C", "4"], ["D", "1"], ["E", "1"]),
+      [1, 2],
+      [3, 4],
+    );
+    expect(taskCriticality(project)).toEqual([
+      ["1", true],
+      ["2", true],
+      ["3", true],
+      ["4", true],
+      ["5", false],
+    ]);
+    expect(edgeCriticality(project)).toEqual([
+      ["start->1", true],
+      ["1->2", true],
+      ["start->3", true],
+      ["3->4", true],
+      ["start->5", false],
+      ["2->finish", true],
+      ["4->finish", true],
+      ["5->finish", false],
+    ]);
+  });
+
+  it("marks nothing while a Validation Warning exists", () => {
+    // A (5) → B without a Duration: the schedule is withheld, so no longest chain is known.
+    const project = withDependencies(projectWithDurations(["A", "5"], ["B", ""], ["C", "3"]), [1, 2]);
+    const { nodes, edges } = projectDiagram(project);
+    for (const node of nodes) if (node.kind === "task") expect(node.critical).toBe(false);
+    for (const edge of edges) expect(edge.critical).toBe(false);
+    expect(nodeById(nodes, "1").accessibleName).toBe("A, 5 days");
+    expect(nodeById(nodes, "2").accessibleName).toBe("B, no Duration (Validation Warning)");
+  });
+
+  it("ends a critical Task's accessible name with ', on the critical path', and leaves the others as they are", () => {
+    // A (5) → B (3): 8 days; C (1) alone.
+    const project = withDependencies(projectWithDurations(["A", "5"], ["B", "3"], ["C", "1"]), [1, 2]);
+    const { nodes } = projectDiagram(project);
+    expect(nodeById(nodes, "1").accessibleName).toBe("A, 5 days, on the critical path");
+    expect(nodeById(nodes, "2").accessibleName).toBe("B, 3 days, on the critical path");
+    expect(nodeById(nodes, "3").accessibleName).toBe("C, 1 day");
+  });
+
+  it("never marks a Done Task or an edge from it", () => {
+    // Built by hand: no edit sets Done yet (S-07). A (5) Done → B (3): only B remains.
+    const project: Project = {
+      ...createEmptyProject(),
+      nextTaskId: 3,
+      tasks: [
+        { id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03", duration: 5 },
+        { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
+      ],
+    };
+    expect(taskCriticality(project)).toEqual([
+      ["1", false],
+      ["2", true],
+    ]);
+    expect(edgeCriticality(project)).toEqual([
+      ["start->1", false],
+      ["1->2", false],
+      ["2->finish", true],
+    ]);
   });
 });
 

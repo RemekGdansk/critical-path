@@ -36,12 +36,17 @@ async function addTaskWithDuration(page: Page, name: string, days: number) {
   await expect(page.getByRole("button", { name: `${name}, ${days} days` })).toBeVisible();
 }
 
-/** Both Project Finish Dates, each bound to its own label, and the note naming the day they count from. */
+/**
+ * Both Project Finish Dates, each bound to its own label, the remaining-work times (Alpha 3 and
+ * Beta 2 in parallel: critical-path time 3 days, total-work time 5 days, whatever today is), and
+ * the note naming the day they count from.
+ */
 async function expectForecastFromToday(page: Page, today: string, unconstrained: string, constrained: string) {
   await expect(page.getByRole("status").filter({ hasText: "Project Finish Date" })).toHaveText(
     new RegExp(
       `Resource-Unconstrained Project Finish Date\\s*${unconstrained}\\s*` +
         `Resource-Constrained Project Finish Date\\s*${constrained}\\s*` +
+        `Critical-path time\\s*3 days\\s*·\\s*Total-work time\\s*5 days\\s*` +
         `START date ${START_DATE} is in the past: forecasting from today, ${today}\\.`,
     ),
   );

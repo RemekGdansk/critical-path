@@ -150,7 +150,7 @@ export function successorsOf(project: Project, taskId: TaskId): TaskId[] {
  * it. The result is deterministic: Tasks without predecessors come in creation
  * order, every other Task as soon as its last predecessor is placed.
  */
-export function topologicalOrder(project: Project): TaskId[] {
+export function topologicalOrder(project: Pick<Project, "tasks">): TaskId[] {
   const taskIds = new Set(project.tasks.map((task) => task.id));
   const remainingPredecessors = new Map<TaskId, number>();
   const successors = new Map<TaskId, TaskId[]>();

@@ -76,12 +76,46 @@ function weekdaysWeekendStartProject(): CheckedProject {
 }
 
 /**
+ * "Launch plan", for the critical path: Design (3) → Build (1) → Ship (3) and
+ * Research (4) → Prototype (3) are two equal 7-day chains, both critical end to
+ * end. Design → Ship joins two critical Tasks but is not on a longest chain
+ * (Ship starts on day 4, after Build), and Design → Write docs (2) is a shorter
+ * branch: neither is highlighted.
+ */
+function criticalPathProject(): CheckedProject {
+  const [design, build, ship, research, prototype, writeDocs] = [1, 2, 3, 4, 5, 6] as const;
+  let project = accepted(setProjectName(createEmptyProject(), "Launch plan"));
+  for (const name of ["Design", "Build", "Ship", "Research", "Prototype", "Write docs"])
+    project = accepted(createTask(project, name));
+  for (const [taskId, predecessorId] of [
+    [build, design],
+    [ship, build],
+    [ship, design],
+    [prototype, research],
+    [writeDocs, design],
+  ] as const) {
+    project = accepted(addPredecessor(project, taskId, predecessorId));
+  }
+  for (const [taskId, days] of [
+    [design, "3"],
+    [build, "1"],
+    [ship, "3"],
+    [research, "4"],
+    [prototype, "3"],
+    [writeDocs, "2"],
+  ] as const) {
+    project = accepted(setDuration(project, taskId, days));
+  }
+  return project;
+}
+
+/**
  * "Cyclic plan": A (1) depends on B (2) and B on A. Unlike every other fixture,
  * it is built by hand and deliberately bypasses the edit functions, which would
  * reject the cycle: no project they can build crashes the render at fixture
- * size. `forecast()` throws "The project contains a cycle." on it, so the
- * Planner shows its render crash fallback, as after the long imported chain of
- * observability audit A1.
+ * size. `forecast()` and `projectDiagram()` throw "The project contains a
+ * cycle." on it, so the Planner shows its render crash fallback, as after the
+ * long imported chain of observability audit A1.
  */
 function renderCrashProject(): CheckedProject {
   // A cast, not toCheckedProject: the guardian would refuse the cycle this fixture exists to hold.
@@ -105,6 +139,8 @@ const FIXTURES = {
   "only-task": { project: onlyTaskProject, initialSelection: DESIGN },
   /** Test has no Duration and is selected: warned node, withheld strip. */
   "validation-warning": { project: warnedProject, initialSelection: TEST },
+  /** Two equal critical chains, a shorter branch and a non-critical link between critical Tasks; Build (critical) selected. */
+  "critical-path": { project: criticalPathProject, initialSelection: 2 },
   /** START selected with a past START date: the forecasting-from-today notes. */
   "start-selected": { project: pastStartProject, initialSelection: "start" },
   /** START selected on a weekdays project whose START date is a Saturday: the weekend notes and weekday units. */

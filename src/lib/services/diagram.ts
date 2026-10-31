@@ -1,10 +1,12 @@
 // The one place that knows how a project becomes a Diagram: START and FINISH
 // always exist, every Task is a node, every predecessor is a dependency edge, a
 // Task without predecessors hangs off START and a Task without successors feeds
-// FINISH. It also decides what each node shows and is called, and that FINISH
-// has nothing to edit. It imports no third-party package: positions come
-// through the LayoutEngine port, and drawing the Diagram is the view's concern.
+// FINISH. It also decides what each node shows and is called, which Tasks and
+// edges are on the critical path, and that FINISH has nothing to edit. It
+// imports no third-party package: positions come through the LayoutEngine
+// port, and drawing the Diagram is the view's concern.
 import { formatDuration } from "@/lib/services/duration";
+import { remainingWork, type RemainingWork, taskLinkId } from "@/lib/services/remaining-work";
 import { validationWarnings } from "@/lib/services/validation-warnings";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
@@ -50,6 +52,8 @@ export interface TaskDiagramNode extends DiagramNodeBase {
   durationText?: string;
   /** The Task's duration-missing Validation Warning, from validationWarnings. */
   durationMissing: boolean;
+  /** On some longest chain of remaining work, from remainingWork; never while a Validation Warning exists. */
+  critical: boolean;
 }
 
 export interface FinishDiagramNode extends DiagramNodeBase {
@@ -66,6 +70,11 @@ export interface DiagramEdge {
   source: DiagramNodeId;
   target: DiagramNodeId;
   kind: DiagramEdgeKind;
+  /**
+   * On some longest chain of remaining work: a dependency whose link is
+   * critical, or a START or FINISH edge whose Task is critical.
+   */
+  critical: boolean;
 }
 
 export interface Diagram {
@@ -111,10 +120,20 @@ export function startAccessibleName(date: string | undefined): string {
   return `START, ${date ?? "today"}`;
 }
 
-/** The Task's name, then its Duration, or that it has none as a Validation Warning. */
-export function taskAccessibleName(task: Task, durationMissing: boolean, mode: DayCountingMode): string {
+/**
+ * The Task's name, then its Duration, or that it has none as a Validation
+ * Warning, then whether it is on the critical path. A warned Task is never
+ * critical: the schedule is withheld while any Validation Warning exists.
+ */
+export function taskAccessibleName(
+  task: Task,
+  durationMissing: boolean,
+  mode: DayCountingMode,
+  critical: boolean,
+): string {
   if (durationMissing) return `${task.name}, no Duration (Validation Warning)`;
-  return task.duration === undefined ? task.name : `${task.name}, ${formatDuration(task.duration, mode)}`;
+  const name = task.duration === undefined ? task.name : `${task.name}, ${formatDuration(task.duration, mode)}`;
+  return critical ? `${name}, on the critical path` : name;
 }
 
 /** The only way the START date and its accessible name enter the Diagram. */
@@ -123,12 +142,27 @@ export function withStartDate(node: StartDiagramNode, date: string | undefined):
   return { ...rest, ...(date === undefined ? {} : { date }), accessibleName: startAccessibleName(date) };
 }
 
-function edge(source: DiagramNodeId, target: DiagramNodeId, kind: DiagramEdgeKind): DiagramEdge {
-  return { id: `${source}->${target}`, source, target, kind };
+function edge(source: DiagramNodeId, target: DiagramNodeId, kind: DiagramEdgeKind, critical: boolean): DiagramEdge {
+  return { id: `${source}->${target}`, source, target, kind, critical };
+}
+
+/** The critical Tasks and links of the schedule; while it is withheld, nothing is critical. */
+interface CriticalPath {
+  isTaskCritical: (taskId: TaskId) => boolean;
+  isLinkCritical: (predecessorId: TaskId, taskId: TaskId) => boolean;
+}
+
+function criticalPath(schedule: RemainingWork): CriticalPath {
+  if (schedule.kind === "withheld") return { isTaskCritical: () => false, isLinkCritical: () => false };
+  const { criticalTaskIds, criticalLinks } = schedule;
+  return {
+    isTaskCritical: (taskId) => criticalTaskIds.has(taskId),
+    isLinkCritical: (predecessorId, taskId) => criticalLinks.has(taskLinkId(predecessorId, taskId)),
+  };
 }
 
 /** Nodes in a stable order: START, Tasks in creation order, FINISH. */
-function projectNodes(project: Pick<Project, "tasks" | "dayCountingMode">): DiagramNode[] {
+function projectNodes(project: Pick<Project, "tasks" | "dayCountingMode">, critical: CriticalPath): DiagramNode[] {
   const warned = new Set(validationWarnings(project).map((warning) => warning.taskId));
   return [
     {
@@ -140,6 +174,7 @@ function projectNodes(project: Pick<Project, "tasks" | "dayCountingMode">): Diag
     },
     ...project.tasks.map((task): TaskDiagramNode => {
       const durationMissing = warned.has(task.id);
+      const isCritical = critical.isTaskCritical(task.id);
       return {
         kind: "task",
         id: taskNodeId(task.id),
@@ -150,7 +185,8 @@ function projectNodes(project: Pick<Project, "tasks" | "dayCountingMode">): Diag
           ? {}
           : { durationText: formatDuration(task.duration, project.dayCountingMode) }),
         durationMissing,
-        accessibleName: taskAccessibleName(task, durationMissing, project.dayCountingMode),
+        critical: isCritical,
+        accessibleName: taskAccessibleName(task, durationMissing, project.dayCountingMode, isCritical),
         editable: true,
       };
     }),
@@ -169,10 +205,13 @@ function projectNodes(project: Pick<Project, "tasks" | "dayCountingMode">): Diag
  * Dependency edges plus the derived START and FINISH edges, in O(tasks +
  * predecessors): Task by Task, the START edge or the dependency edges into it,
  * then the FINISH edges. A layout engine's result can depend on this order.
+ * A START or FINISH edge is critical when its Task is; a dependency edge only
+ * when its link is, since two critical Tasks do not make the link between them
+ * critical.
  */
-function projectEdges(project: Pick<Project, "tasks">): DiagramEdge[] {
-  // With no Task, START itself has no successor, so it feeds FINISH.
-  if (project.tasks.length === 0) return [edge(START_NODE_ID, FINISH_NODE_ID, "feeds-finish")];
+function projectEdges(project: Pick<Project, "tasks">, critical: CriticalPath): DiagramEdge[] {
+  // With no Task, START itself has no successor, so it feeds FINISH. No Task, no critical path.
+  if (project.tasks.length === 0) return [edge(START_NODE_ID, FINISH_NODE_ID, "feeds-finish", false)];
 
   // The edit functions never leave a predecessor id without its Task; skipping
   // one anyway keeps a stray id from becoming an edge to a node that does not exist.
@@ -182,14 +221,23 @@ function projectEdges(project: Pick<Project, "tasks">): DiagramEdge[] {
 
   for (const task of project.tasks) {
     const predecessors = task.predecessors.filter((id) => taskIds.has(id));
-    if (predecessors.length === 0) edges.push(edge(START_NODE_ID, taskNodeId(task.id), "hangs-off-start"));
+    if (predecessors.length === 0)
+      edges.push(edge(START_NODE_ID, taskNodeId(task.id), "hangs-off-start", critical.isTaskCritical(task.id)));
     for (const predecessorId of predecessors) {
-      edges.push(edge(taskNodeId(predecessorId), taskNodeId(task.id), "dependency"));
+      edges.push(
+        edge(
+          taskNodeId(predecessorId),
+          taskNodeId(task.id),
+          "dependency",
+          critical.isLinkCritical(predecessorId, task.id),
+        ),
+      );
       hasSuccessor.add(predecessorId);
     }
   }
   for (const task of project.tasks) {
-    if (!hasSuccessor.has(task.id)) edges.push(edge(taskNodeId(task.id), FINISH_NODE_ID, "feeds-finish"));
+    if (!hasSuccessor.has(task.id))
+      edges.push(edge(taskNodeId(task.id), FINISH_NODE_ID, "feeds-finish", critical.isTaskCritical(task.id)));
   }
   return edges;
 }
@@ -197,10 +245,16 @@ function projectEdges(project: Pick<Project, "tasks">): DiagramEdge[] {
 /**
  * The project as a Diagram, not yet positioned. START carries no date, so a
  * layout memoized on the result never re-runs for a START date edit; add the
- * date with withStartDate.
+ * date with withStartDate. The critical path depends only on the Tasks, never
+ * on the START date or today, which shift every remaining Task alike.
+ *
+ * Throws "The project contains a cycle." on a cycle, as remainingWork does,
+ * unless the schedule is withheld for a Validation Warning; a `CheckedProject`
+ * never holds a cycle.
  */
 export function projectDiagram(project: Pick<Project, "tasks" | "dayCountingMode">): Diagram {
-  return { nodes: projectNodes(project), edges: projectEdges(project) };
+  const critical = criticalPath(remainingWork(project));
+  return { nodes: projectNodes(project, critical), edges: projectEdges(project, critical) };
 }
 
 /** Positions every node through the engine, and refuses a result that misses one. */

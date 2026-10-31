@@ -20,13 +20,14 @@ import {
   withStartDate,
 } from "@/lib/services/diagram";
 import {
+  addPredecessor,
   type CheckedProject,
   createEmptyProject,
   createTask,
   type EditResult,
   setDuration,
 } from "@/lib/services/project";
-import type { Project } from "@/types";
+import type { Project, TaskId } from "@/types";
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
@@ -37,6 +38,30 @@ function accepted(result: EditResult): CheckedProject {
 /** A project with one Task per name, ids 1..n in order. */
 function projectWith(...names: string[]): CheckedProject {
   return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
+}
+
+/** A project with one Task per [name, Duration] pair, ids 1..n, and `predecessorId → taskId` for each pair. */
+function scheduledProject(tasks: [string, string][], ...pairs: [TaskId, TaskId][]): CheckedProject {
+  const withTasks = tasks.reduce((current, [name, duration]) => {
+    const created = accepted(createTask(current, name));
+    return accepted(setDuration(created, created.nextTaskId - 1, duration));
+  }, createEmptyProject());
+  return pairs.reduce(
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    withTasks,
+  );
+}
+
+/** A (5) → B (3): 8 days, so START → A → B → FINISH is critical; C (1) alone is not. */
+function chainAndLoneTask(): CheckedProject {
+  return scheduledProject(
+    [
+      ["A", "5"],
+      ["B", "3"],
+      ["C", "1"],
+    ],
+    [1, 2],
+  );
 }
 
 /** A fake engine that puts node i at column i of one row, so positions are known without a real layout. */
@@ -113,6 +138,12 @@ describe("toFlowNodes", () => {
     });
   });
 
+  it("announces a critical Task as on the critical path", () => {
+    const nodes = toFlowNodes(laidOut(chainAndLoneTask()));
+    expect(flowNodeById(nodes, "1")).toMatchObject({ ariaLabel: "A, 5 days, on the critical path" });
+    expect(flowNodeById(nodes, "3")).toMatchObject({ ariaLabel: "C, 1 day" });
+  });
+
   it("sets no selection: the Diagram applies it", () => {
     for (const node of toFlowNodes(laidOut(projectWith("A")))) expect(node).not.toHaveProperty("selected");
   });
@@ -123,6 +154,36 @@ describe("toFlowEdges", () => {
     expect(toFlowEdges(laidOut(createEmptyProject()))).toEqual([
       { id: "start->finish", source: "start", target: "finish", markerEnd: { type: MarkerType.ArrowClosed } },
     ]);
+  });
+
+  it("draws a critical edge with the critical-path class and an arrowhead in the token's colour, at its usual size", () => {
+    const edges = toFlowEdges(laidOut(chainAndLoneTask()));
+    const criticalMarker = { type: MarkerType.ArrowClosed, color: "var(--critical-path)", width: 6.25, height: 6.25 };
+    expect(edges).toEqual([
+      { id: "start->1", source: "start", target: "1", className: "critical-path", markerEnd: criticalMarker },
+      { id: "1->2", source: "1", target: "2", className: "critical-path", markerEnd: criticalMarker },
+      { id: "start->3", source: "start", target: "3", markerEnd: { type: MarkerType.ArrowClosed } },
+      { id: "2->finish", source: "2", target: "finish", className: "critical-path", markerEnd: criticalMarker },
+      { id: "3->finish", source: "3", target: "finish", markerEnd: { type: MarkerType.ArrowClosed } },
+    ]);
+  });
+
+  it("keeps a non-critical edge as it was, with no class and the default arrowhead", () => {
+    // B has no Duration: a Validation Warning withholds the schedule, so no edge is critical.
+    const warned = scheduledProject(
+      [
+        ["A", "5"],
+        ["B", ""],
+      ],
+      [1, 2],
+    );
+    for (const edge of toFlowEdges(laidOut(warned)))
+      expect(edge).toEqual({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        markerEnd: { type: MarkerType.ArrowClosed },
+      });
   });
 
   it("keeps the Diagram's edge ids, ends and order", () => {
