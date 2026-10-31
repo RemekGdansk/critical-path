@@ -2,9 +2,12 @@
 // side — a project that makes the first render throw must leave a fallback that still exports it and
 // can go back to the project open before, never a blank page that loses both. A1's real path, an
 // imported long chain that overflows the layout's stack in the built app, is the trigger here.
+// The import goes over the unexported "Keep me" project, so it is confirmed first (roadmap S-08 /
+// FR-016); Go back then asks nothing, since the crashed project is the imported file, the baseline.
 // Audit fix 2 (an import bound on Task count and chain depth) will turn this import into a rejection:
 // when it lands, this case must be rewritten to reach a render throw another way, not deleted.
-// The fallback itself is unit-tested in src/components/planner/Planner.test.ts, going back in
+// The fallback itself is unit-tested in src/components/planner/Planner.test.ts, its Go back
+// confirmation in src/components/planner/RenderCrashFallback.test.ts, going back in
 // src/hooks/useProject.test.ts.
 // seed: e2e/seed.spec.ts
 import { readFile } from "node:fs/promises";
@@ -64,6 +67,11 @@ test.describe("render crash recovery in the built app", () => {
       await fileChooser
     ).setFiles({ name: "long-chain.json", mimeType: "application/json", buffer: Buffer.from(longChainFile()) });
 
+    // "Keep me" was never exported, so the import asks before it replaces the project.
+    const confirmation = page.getByRole("dialog", { name: "Discard unexported changes?" });
+    await expect(confirmation).toContainText("long-chain.json");
+    await confirmation.getByRole("button", { name: "Discard and import" }).click();
+
     // The fallback names the error in place of the planner.
     const alert = page.getByRole("alert");
     await expect(alert).toContainText("RangeError");
@@ -84,6 +92,8 @@ test.describe("render crash recovery in the built app", () => {
 
     // Going back brings the planner back with the project open before the import.
     await alert.getByRole("button", { name: "Go back to the project before the last change" }).click();
+    // The crashed project is the imported file, unchanged since the import, so going back asks nothing.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Keep me, no Duration" })).toBeVisible();
     await expect(page.getByRole("alert")).toHaveCount(0);
     // The focused button went with the fallback, so focus goes to New Task, as after Import or Delete Task.

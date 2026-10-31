@@ -50,6 +50,7 @@ Other scripts: @package.json. Pre-commit runs `eslint --fix` on `*.{ts,tsx,astro
 - No literal colours (hex, `rgb()`, `hsl()`, `oklch()`), Tailwind palette classes (`bg-blue-500`, `text-white`) or arbitrary values (`p-[13px]`) in views. `npm run lint` rejects them in `src/components/planner/`, and applies jsx-a11y to every `.tsx` file.
 - Check `src/components/ui/` (shadcn/ui, "new-york" variant) before creating a component; add a missing one with `npx shadcn@latest add <name>` instead of hand-building it in a view.
 - After `npx shadcn@latest add`, check that the component imports `cn` from `@/lib/utils` and that no `cn` package was added to @package.json; CLI 4.21.1 does both despite @components.json.
+- Confirmations use `ConfirmDialog` in `src/components/ui/confirm-dialog.tsx` (native `<dialog>`); do not add Radix Dialog or shadcn `dialog`/`alert-dialog`, whose scroll lock injects a `<style>` the CSP blocks.
 - Merge Tailwind classes with `cn()` from `@/lib/utils`; never concatenate class strings.
 - The kitchen sink at `/kitchen-sink` (under `npm run dev` only, from `src/dev/`) shows the planner in every state; check UI changes there.
 

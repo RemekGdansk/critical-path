@@ -371,3 +371,194 @@ describe("useProject: only a checked project gets in", () => {
     expect(result.current.replacements).toBe(3);
   });
 });
+
+describe("useProject: unexported changes", () => {
+  /** The fixture renamed "Q4 plan", exported and imported: a parsed file unlike the fixture. */
+  function parsedOther(): CheckedProject {
+    const parsed = parseProjectFile(serializeProject(accepted(setProjectName(fixture(), "Q4 plan"))));
+    if (!parsed.ok) throw new Error(`Expected the file to import, got ${parsed.error.rule}`);
+    return parsed.project;
+  }
+
+  it("the project the planner opened with has none", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+  });
+
+  it("hasUnexportedChanges and markExported keep their identity across commits", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { hasUnexportedChanges, markExported } = result.current;
+
+    act(() => {
+      result.current.setDuration(2, "4");
+    });
+
+    expect(result.current.hasUnexportedChanges).toBe(hasUnexportedChanges);
+    expect(result.current.markExported).toBe(markExported);
+  });
+
+  it("one accepted edit makes them unexported", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.setDuration(2, "4");
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(true);
+  });
+
+  it("a rejected edit leaves none", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.addPredecessor(1, 2);
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+  });
+
+  it("an edit committed earlier in the same event counts", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    let unexported: boolean | undefined;
+    act(() => {
+      result.current.setProjectName("Q4 plan");
+      unexported = result.current.hasUnexportedChanges();
+    });
+
+    expect(unexported).toBe(true);
+  });
+
+  it("a rename and back leaves none, since the file text is the same", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.renameTask(1, "A renamed");
+    });
+    expect(result.current.hasUnexportedChanges()).toBe(true);
+    act(() => {
+      result.current.renameTask(1, "A");
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+  });
+
+  it("a Task created and deleted is unexported, since nextTaskId moved", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.createTask("C");
+    });
+    act(() => {
+      result.current.deleteTask(3);
+    });
+
+    expect(result.current.project.tasks).toStrictEqual(project.tasks);
+    expect(result.current.project.nextTaskId).toBe(project.nextTaskId + 1);
+    expect(result.current.hasUnexportedChanges()).toBe(true);
+  });
+
+  it("a Day counting switch is unexported, and switching back leaves none", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.setDayCountingMode("weekdays");
+    });
+    expect(result.current.hasUnexportedChanges()).toBe(true);
+    act(() => {
+      result.current.setDayCountingMode("calendar-days");
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+  });
+
+  it("markExported of the current project leaves none, and a later edit is unexported again", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.setDuration(2, "4");
+    });
+    act(() => {
+      result.current.markExported(result.current.project);
+    });
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+    act(() => {
+      result.current.setDuration(2, "5");
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(true);
+  });
+
+  it("replaceProject with a parsed file leaves none", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.setDuration(2, "4");
+    });
+    act(() => {
+      result.current.replaceProject(parsedOther());
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+  });
+
+  it("replaceProject with a new empty project leaves none", () => {
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.setDuration(2, "4");
+    });
+    act(() => {
+      result.current.replaceProject(createEmptyProject());
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+  });
+
+  it("restorePreviousProject leaves the baseline where it was: a restored project unlike the replacement is unexported", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.replaceProject(parsedOther());
+    });
+    act(() => {
+      result.current.restorePreviousProject();
+    });
+
+    expect(result.current.project).toBe(project);
+    expect(result.current.hasUnexportedChanges()).toBe(true);
+  });
+
+  it("a restored project that was the one last passed to markExported has none", () => {
+    const project = fixture();
+    const { result } = renderHook(() => useProject(project, 1));
+
+    act(() => {
+      result.current.replaceProject(parsedOther());
+    });
+    act(() => {
+      result.current.markExported(project);
+    });
+    act(() => {
+      result.current.restorePreviousProject();
+    });
+
+    expect(result.current.project).toBe(project);
+    expect(result.current.hasUnexportedChanges()).toBe(false);
+  });
+
+  it("a baseline that cannot be serialized counts as unexported", () => {
+    const malformed = { ...fixture(), tasks: null } as unknown as Project;
+    expect(() => serializeProject(malformed)).toThrow();
+    const { result } = renderHook(() => useProject(fixture(), 1));
+
+    act(() => {
+      result.current.markExported(malformed);
+    });
+
+    expect(result.current.hasUnexportedChanges()).toBe(true);
+  });
+});

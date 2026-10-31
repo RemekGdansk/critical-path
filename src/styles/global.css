@@ -42,6 +42,8 @@
   /* The dots on the diagram canvas: decorative, but visible (2.38:1 on --muted);
      contrast in context/archive/2026-10-04-forecast-finish-dates/tokens.md. */
   --canvas-pattern: oklch(0.708 0 0);
+  /* The scrim behind a modal dialog (ConfirmDialog's ::backdrop): translucent, so the page shows dimmed through it. */
+  --overlay: oklch(0 0 0 / 50%);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
@@ -78,6 +80,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --warning: oklch(0.82 0.16 80);
   --canvas-pattern: oklch(0.5 0 0);
+  --overlay: oklch(0 0 0 / 70%);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
@@ -118,6 +121,7 @@
   --color-destructive: var(--destructive);
   --color-warning: var(--warning);
   --color-canvas-pattern: var(--canvas-pattern);
+  --color-overlay: var(--overlay);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);

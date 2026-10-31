@@ -2,11 +2,14 @@
 // pure edit function and commits the result only when it is accepted, so a
 // rejected edit leaves the project exactly as it was. Each commit also keeps the
 // project it superseded, so a view that crashed on the new one can go back.
+// It also keeps the export baseline: the project last exported, imported or
+// started new, against which `hasUnexportedChanges` compares the file text.
 import { useCallback, useRef, useState } from "react";
 
 import * as edits from "@/lib/services/project";
 import type { CheckedProject, EditResult } from "@/lib/services/project";
-import type { DayCountingMode, Task, TaskId } from "@/types";
+import { serializeProject } from "@/lib/services/project-file";
+import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
 /** What the side panel edits: a Task, START, or nothing. */
 export type Selection = TaskId | "start" | null;
@@ -24,7 +27,8 @@ export interface ProjectActions {
   setProjectName: (input: string) => EditResult;
   /**
    * Replaces the whole project and selects nothing. Takes a `CheckedProject`,
-   * such as one `parseProjectFile` accepted or a new empty project.
+   * such as one `parseProjectFile` accepted or a new empty project. Also resets
+   * the export baseline to the replacement, so it has no unexported changes.
    */
   replaceProject: (project: CheckedProject) => void;
   /**
@@ -32,6 +36,16 @@ export interface ProjectActions {
    * replacement. A no-op when there is no previous project.
    */
   restorePreviousProject: () => void;
+  /**
+   * Whether the latest project's file text differs from the export baseline's:
+   * the project last exported, imported or started new, initially the one the
+   * planner opened with. True when either cannot be serialized, so the user is
+   * asked rather than losing work silently. Reads the latest commit, so an edit
+   * committed earlier in the same event counts.
+   */
+  hasUnexportedChanges: () => boolean;
+  /** Moves the export baseline to `project`, the one just written to a file. */
+  markExported: (project: Project) => void;
 }
 
 export interface ProjectState extends ProjectActions {
@@ -69,6 +83,10 @@ export function useProject(
   // reason as `latest`: a restore reads it in the event that calls it.
   const [previousProject, setPreviousProject] = useState<CheckedProject | undefined>(undefined);
   const previous = useRef<CheckedProject | undefined>(undefined);
+  // The export baseline. A ref only, never state: nothing renders it, and the
+  // check reads it on demand in event handlers. Accepted edits and a restore
+  // leave it where it is.
+  const baseline = useRef<Project>(project);
 
   // Every commit goes through here, recording what it supersedes before
   // overwriting `latest`.
@@ -126,6 +144,7 @@ export function useProject(
   const replaceProject = useCallback(
     (replacement: CheckedProject) => {
       commit(replacement, latest.current);
+      baseline.current = replacement;
       setSelection(null);
       setReplacements((count) => count + 1);
     },
@@ -141,6 +160,22 @@ export function useProject(
     setSelection(null);
     setReplacements((count) => count + 1);
   }, [commit]);
+
+  // Short-circuits on identity, so a project untouched since the baseline costs
+  // nothing; otherwise compares the file text, so a rename and back is clean.
+  const hasUnexportedChanges = useCallback(() => {
+    const current = latest.current;
+    if (current === baseline.current) return false;
+    try {
+      return serializeProject(current) !== serializeProject(baseline.current);
+    } catch {
+      return true;
+    }
+  }, []);
+
+  const markExported = useCallback((exported: Project) => {
+    baseline.current = exported;
+  }, []);
 
   const selectedTask = typeof selection === "number" ? project.tasks.find((task) => task.id === selection) : undefined;
 
@@ -162,5 +197,7 @@ export function useProject(
     setProjectName,
     replaceProject,
     restorePreviousProject,
+    hasUnexportedChanges,
+    markExported,
   };
 }
