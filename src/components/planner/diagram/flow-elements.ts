@@ -2,7 +2,7 @@
 // The domain says what a node is, shows and is called; this file says how React
 // Flow is told so. Nothing outside src/components/planner/diagram/ sees a React
 // Flow node or edge.
-import { MarkerType, type Edge, type Node, type NodeProps } from "@xyflow/react";
+import { MarkerType, type Edge, type EdgeMarker, type Node, type NodeProps } from "@xyflow/react";
 
 import type {
   DiagramNode,
@@ -55,13 +55,29 @@ export function toFlowNodes(diagram: LaidOutDiagram): FlowNode[] {
   return diagram.nodes.map(toFlowNode);
 }
 
+/**
+ * The arrowhead of a critical edge. Arrowheads are shared SVG markers outside
+ * the edge, so the `.react-flow__edge.critical-path` rule in global.css cannot
+ * colour them: this is the one documented exception to "canvas colours live in
+ * global.css" (critical-path-highlight plan, Critical Implementation Details).
+ * It names the token, so the value itself still lives only in global.css.
+ * Markers scale with the stroke width (markerUnits="strokeWidth"), so half of
+ * React Flow's default 12.5 keeps the arrowhead its usual size on the 2-unit
+ * critical stroke.
+ */
+const CRITICAL_MARKER_END: EdgeMarker = {
+  type: MarkerType.ArrowClosed,
+  color: "var(--critical-path)",
+  width: 6.25,
+  height: 6.25,
+};
+
 export function toFlowEdges(diagram: LaidOutDiagram): FlowEdge[] {
-  return diagram.edges.map(({ id, source, target }) => ({
-    id,
-    source,
-    target,
-    markerEnd: { type: MarkerType.ArrowClosed },
-  }));
+  return diagram.edges.map(({ id, source, target, critical }) =>
+    critical
+      ? { id, source, target, className: "critical-path", markerEnd: CRITICAL_MARKER_END }
+      : { id, source, target, markerEnd: { type: MarkerType.ArrowClosed } },
+  );
 }
 
 /** The one decoding of a React Flow node into what it selects; FINISH, or no node, selects nothing. */

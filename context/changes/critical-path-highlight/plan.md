@@ -308,27 +308,27 @@ None: the exported file format and the project model are unchanged.
 
 #### Automated
 
-- [x] 1.1 `npx vitest run src/lib/services/remaining-work.test.ts src/lib/services/forecast.test.ts` passes
-- [x] 1.2 `startDay + duration` appears in exactly one non-test line, in `remaining-work.ts`
-- [x] 1.3 `npm run lint && npx astro check && npm test` pass
+- [x] 1.1 `npx vitest run src/lib/services/remaining-work.test.ts src/lib/services/forecast.test.ts` passes — 9692b0f
+- [x] 1.2 `startDay + duration` appears in exactly one non-test line, in `remaining-work.ts` — 9692b0f
+- [x] 1.3 `npm run lint && npx astro check && npm test` pass — 9692b0f
 
 #### Manual
 
-- [x] 1.4 Optional selective mutation run on `remaining-work.ts`, user-visible survivors covered
+- [x] 1.4 Optional selective mutation run on `remaining-work.ts`, user-visible survivors covered — 9692b0f
 
 ### Phase 2: Critical path on the diagram
 
 #### Automated
 
-- [ ] 2.1 `npx vitest run src/lib/services/diagram.test.ts src/components/planner/diagram/flow-elements.test.ts` passes
-- [ ] 2.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass
-- [ ] 2.3 Built CSS defines `--critical-path` in both modes and contains the border, ring and edge rules
+- [x] 2.1 `npx vitest run src/lib/services/diagram.test.ts src/components/planner/diagram/flow-elements.test.ts` passes
+- [x] 2.2 `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` pass
+- [x] 2.3 Built CSS defines `--critical-path` in both modes and contains the border, ring and edge rules
 
 #### Manual
 
-- [ ] 2.4 Kitchen sink `critical-path` cell at 1440 and 1024: both equal branches highlighted START to FINISH, shorter branch and A→C link grey, arrowheads coloured and normal size
-- [ ] 2.5 Selected critical Task reads as selected; warned cell shows no highlight; critical colour distinct from warning and selection
-- [ ] 2.6 `tokens.md` records both values and ratios at or above 3:1
+- [x] 2.4 Kitchen sink `critical-path` cell at 1440 and 1024: both equal branches highlighted START to FINISH, shorter branch and A→C link grey, arrowheads coloured and normal size
+- [x] 2.5 Selected critical Task reads as selected; warned cell shows no highlight; critical colour distinct from warning and selection
+- [x] 2.6 `tokens.md` records both values and ratios at or above 3:1
 
 ### Phase 3: Remaining-work times in the header
 

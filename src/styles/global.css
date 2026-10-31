@@ -39,6 +39,11 @@
      text, icon and border, so it holds 4.5:1 on every surface; contrast in
      context/archive/2026-10-04-forecast-finish-dates/tokens.md. */
   --warning: oklch(0.555 0.13 60);
+  /* On the critical path: Task borders and rings, edges and their arrowheads.
+     Blue, apart from --warning (amber), --destructive (red), the grey edges and
+     the near-black selection; contrast in
+     context/changes/critical-path-highlight/tokens.md. */
+  --critical-path: oklch(0.55 0.22 264);
   /* The dots on the diagram canvas: decorative, but visible (2.38:1 on --muted);
      contrast in context/archive/2026-10-04-forecast-finish-dates/tokens.md. */
   --canvas-pattern: oklch(0.708 0 0);
@@ -79,6 +84,7 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --warning: oklch(0.82 0.16 80);
+  --critical-path: oklch(0.7 0.15 264);
   --canvas-pattern: oklch(0.5 0 0);
   --overlay: oklch(0 0 0 / 70%);
   --border: oklch(1 0 0 / 10%);
@@ -120,6 +126,7 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-warning: var(--warning);
+  --color-critical-path: var(--critical-path);
   --color-canvas-pattern: var(--canvas-pattern);
   --color-overlay: var(--overlay);
   --color-border: var(--border);
@@ -157,6 +164,14 @@
   --xy-controls-button-color-hover: var(--accent-foreground);
   --xy-controls-button-border-color: var(--border);
   --xy-attribution-background-color: var(--muted);
+}
+
+/* A critical edge, thicker and in --critical-path. Its arrowhead is a shared
+   <marker> outside the edge, which this rule cannot reach, so flow-elements.ts
+   gives it the same colour. */
+.react-flow__edge.critical-path {
+  --xy-edge-stroke: var(--critical-path);
+  --xy-edge-stroke-width: 2;
 }
 
 /* The attribution link's colour is a literal in React Flow's stylesheet, with no --xy-* variable to reach it. */

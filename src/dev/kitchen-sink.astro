@@ -107,6 +107,21 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
 
       <figure>
         <figcaption>
+          <h2>critical-path</h2>
+          <p>
+            Design → Build → Ship and Research → Prototype are two equal 7-day chains: both are highlighted end to end,
+            from START through to FINISH, in the critical-path colour, with arrowheads in that colour at their usual
+            size. Design → Ship (between two critical Tasks, but not on a longest chain) and the shorter Design → Write
+            docs branch stay grey. Build is selected and keeps the selection style.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="critical-path" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
           <h2>start-selected</h2>
           <p>
             START is selected with the past START date 2020-01-01: the START node shows the date, and the START panel

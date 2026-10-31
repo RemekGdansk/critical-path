@@ -39,7 +39,7 @@ function accepted(result: EditResult): CheckedProject {
 
 const A_ID = 1;
 
-/** START 2999-01-01 (far ahead of any real today), A (id 1, 5 days) and B (id 2, 3 days), independent. */
+/** START 2999-01-01 (far ahead of any real today), A (id 1, 5 days) and B (id 2, 3 days), independent: A alone is the critical path. */
 function fixture(): CheckedProject {
   const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), A_ID, "5"));
   const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, "3"));
@@ -81,13 +81,13 @@ describe("Planner: the forecast follows the committed project", () => {
   it("renders the Task nodes on the diagram by their accessible names", async () => {
     renderPlanner();
 
-    expect(await screen.findByRole("button", { name: "A, 5 days" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 5 days, on the critical path" })).toBeDefined();
     expect(await screen.findByRole("button", { name: "B, 3 days" })).toBeDefined();
   });
 
   it("withholds both Project Finish Dates while A lacks a Duration, then shows new ones once it has one", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     const dated = textOf(forecastRegion());
     expect(dated).toContain("Resource-Unconstrained Project Finish Date 2999-01-06");
@@ -111,19 +111,19 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(restored).not.toContain("2999-01-06");
     expect(restored).not.toContain("2999-01-09");
     expect(restored).not.toContain("Forecast not possible");
-    expect(await screen.findByRole("button", { name: "A, 7 days" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 7 days, on the critical path" })).toBeDefined();
   });
 
   it("names the rule for a rejected Duration and keeps every committed view on the previous project", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     commitDuration("0");
 
     const alert = screen.getByRole("alert");
     expect(within(alert).getByText("A Duration must be a positive whole number of days.")).toBeDefined();
     expect(alert.textContent).not.toMatch(/invalid|conflict|blocked/i);
-    expect(await screen.findByRole("button", { name: "A, 5 days" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 5 days, on the critical path" })).toBeDefined();
     const forecast = textOf(forecastRegion());
     expect(forecast).toContain("Resource-Unconstrained Project Finish Date 2999-01-06");
     expect(forecast).toContain("Resource-Constrained Project Finish Date 2999-01-09");
@@ -131,7 +131,7 @@ describe("Planner: the forecast follows the committed project", () => {
 
   it("recomputes both Project Finish Dates and shows weekday units once Day counting is switched to Weekdays", async () => {
     renderPlanner();
-    await screen.findByRole("button", { name: "A, 5 days" });
+    await screen.findByRole("button", { name: "A, 5 days, on the critical path" });
 
     fireEvent.change(screen.getByLabelText("Day counting"), { target: { value: "weekdays" } });
 
@@ -141,7 +141,7 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(weekdays).toContain("Resource-Constrained Project Finish Date 2999-01-11");
     expect(weekdays).not.toContain("2999-01-06");
     expect(weekdays).not.toContain("2999-01-09");
-    expect(await screen.findByRole("button", { name: "A, 5 weekdays" })).toBeDefined();
+    expect(await screen.findByRole("button", { name: "A, 5 weekdays, on the critical path" })).toBeDefined();
     expect(screen.getByLabelText("Duration (weekdays)")).toBeDefined();
   });
 });
