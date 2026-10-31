@@ -118,4 +118,51 @@ describe("ForecastSummary", () => {
     expect(text).not.toContain("Saturday");
     expect(text).not.toContain("counting weekdays");
   });
+
+  it("shows the critical-path time and the total-work time under the Project Finish Dates (FR-011)", () => {
+    // A (5) → B (3) → C (2) and A → D (4) → C: the longest chain is A → D → C, 5 + 4 + 2 = 11; all work is 5 + 3 + 2 + 4 = 14.
+    const markup = renderedMarkup(accepted(setDuration(us02WithoutDDuration(), 4, "4")));
+    const text = textOf(markup);
+
+    expect(text).toContain("Critical-path time 11 days · Total-work time 14 days");
+    expect(text.indexOf("Resource-Constrained Project Finish Date")).toBeLessThan(text.indexOf("Critical-path time"));
+    expect(markup).toMatch(/<span aria-hidden="true" class="[^"]*\bbg-critical-path\b[^"]*"><\/span>/);
+  });
+
+  it("counts both times in weekdays in weekdays mode", () => {
+    const project = accepted(setDayCountingMode(accepted(setDuration(us02WithoutDDuration(), 4, "4")), "weekdays"));
+    const text = textOf(renderedMarkup(project));
+
+    expect(text).toContain("Critical-path time 11 weekdays · Total-work time 14 weekdays");
+    expect(text).not.toContain("11 days");
+    expect(text).not.toContain("14 days");
+  });
+
+  it("reads a time past the largest safe integer as too large to count", () => {
+    // A → B, each 9007199254740991 days: both the chain and the sum pass the largest safe integer.
+    const max = String(Number.MAX_SAFE_INTEGER);
+    const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), 1, max));
+    const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, max));
+    const text = textOf(renderedMarkup(withDependencies(withB, [1, 2])));
+
+    expect(text).toContain("Critical-path time Too large to count · Total-work time Too large to count");
+  });
+
+  it("shows neither time while a Validation Warning withholds the forecast", () => {
+    const text = textOf(renderedMarkup(us02WithoutDDuration()));
+
+    expect(text).toContain("Validation Warning");
+    expect(text).not.toContain("Critical-path time");
+    expect(text).not.toContain("Total-work time");
+  });
+
+  it("shows neither time for an empty project", () => {
+    const markup = renderedMarkup(createEmptyProject());
+    const text = textOf(markup);
+
+    expect(text).toContain("Add Tasks to see a forecast.");
+    expect(text).not.toContain("Critical-path time");
+    expect(text).not.toContain("Total-work time");
+    expect(markup).not.toContain("bg-critical-path");
+  });
 });

@@ -1,9 +1,11 @@
 import { TriangleAlertIcon } from "lucide-react";
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDuration } from "@/lib/services/duration";
 import { type Forecast, type ForecastDate, weekendMoveNote } from "@/lib/services/forecast";
 import { taskLabel } from "@/lib/services/project";
-import type { Task } from "@/types";
+import type { RemainingWorkTime } from "@/lib/services/remaining-work";
+import type { DayCountingMode, Task } from "@/types";
 
 interface ForecastSummaryProps {
   forecast: Forecast;
@@ -14,6 +16,35 @@ interface ForecastSummaryProps {
 
 function ForecastDateValue({ value }: { value: ForecastDate }) {
   return value.kind === "date" ? <time dateTime={value.date}>{value.date}</time> : <>Beyond year 9999</>;
+}
+
+function RemainingWorkTimeValue({ time, mode }: { time: RemainingWorkTime; mode: DayCountingMode }) {
+  return <>{time.kind === "days" ? formatDuration(time.days, mode) : "Too large to count"}</>;
+}
+
+/**
+ * The critical-path time and the total-work time of the remaining work, on one
+ * line. The swatch is the diagram's legend: it is the colour the critical path
+ * is drawn in.
+ */
+function RemainingWorkTimes({ forecast }: { forecast: Extract<Forecast, { kind: "forecast" }> }) {
+  const mode = forecast.dayCountingMode;
+  return (
+    <p className="flex flex-wrap items-center justify-end gap-x-1.5">
+      <span aria-hidden="true" className="bg-critical-path size-2.5 shrink-0 rounded-sm" />
+      <span className="text-muted-foreground">Critical-path time</span>
+      <span className="font-medium tabular-nums">
+        <RemainingWorkTimeValue time={forecast.criticalPathTime} mode={mode} />
+      </span>
+      <span aria-hidden="true" className="text-muted-foreground">
+        ·
+      </span>
+      <span className="text-muted-foreground">Total-work time</span>
+      <span className="font-medium tabular-nums">
+        <RemainingWorkTimeValue time={forecast.totalWorkTime} mode={mode} />
+      </span>
+    </p>
+  );
 }
 
 /**
@@ -83,9 +114,10 @@ export function ForecastSummary({ forecast, tasks, startDate }: ForecastSummaryP
 }
 
 /**
- * Both Project Finish Dates, then why the forecast starts where it does. The
- * notes name the real today: in weekdays mode that is the weekend day the base
- * date moved from, and the weekend sentence names the Monday it moved to.
+ * Both Project Finish Dates and the remaining-work times, then why the
+ * forecast starts where it does. The notes name the real today: in weekdays
+ * mode that is the weekend day the base date moved from, and the weekend
+ * sentence names the Monday it moved to.
  */
 function ForecastDates({
   forecast,
@@ -112,6 +144,7 @@ function ForecastDates({
           </dd>
         </div>
       </dl>
+      <RemainingWorkTimes forecast={forecast} />
       {forecast.baseDateReason === "start-date-in-past" && startDate !== undefined && (
         <p className="text-muted-foreground text-xs">
           START date {startDate} is in the past: forecasting from today, {today}.

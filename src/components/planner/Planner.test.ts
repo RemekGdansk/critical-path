@@ -92,6 +92,8 @@ describe("Planner: the forecast follows the committed project", () => {
     const dated = textOf(forecastRegion());
     expect(dated).toContain("Resource-Unconstrained Project Finish Date 2999-01-06");
     expect(dated).toContain("Resource-Constrained Project Finish Date 2999-01-09");
+    // A (5) alone is the longest chain; all work is A (5) + B (3) = 8.
+    expect(dated).toContain("Critical-path time 5 days · Total-work time 8 days");
 
     commitDuration("");
 
@@ -101,7 +103,10 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(textOf(withheld)).not.toContain("Project Finish Date");
     // Over the whole markup, so a date in an attribute such as `dateTime` counts too.
     expect(withheld.outerHTML).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+    expect(textOf(withheld)).not.toContain("Critical-path time");
+    expect(textOf(withheld)).not.toContain("Total-work time");
     expect(await screen.findByRole("button", { name: "A, no Duration (Validation Warning)" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /on the critical path/ })).toBeNull();
 
     commitDuration("7");
 
@@ -111,6 +116,10 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(restored).not.toContain("2999-01-06");
     expect(restored).not.toContain("2999-01-09");
     expect(restored).not.toContain("Forecast not possible");
+    // A (7) alone is the longest chain; all work is A (7) + B (3) = 10.
+    expect(restored).toContain("Critical-path time 7 days · Total-work time 10 days");
+    expect(restored).not.toContain("5 days");
+    expect(restored).not.toContain("8 days");
     expect(await screen.findByRole("button", { name: "A, 7 days, on the critical path" })).toBeDefined();
   });
 
