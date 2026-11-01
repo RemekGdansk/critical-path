@@ -98,6 +98,11 @@ export function TaskPanel({ task, project, today, actions, focusRequest }: TaskP
   // Set by a key press in the field and cleared by a pointer press on it, so a
   // change that arrives while it is false came from the calendar popup.
   const typingCompletionDate = useRef(false);
+  // The completion date the Task had when it last left Done in this panel. A closed
+  // select fires `change` on arrow keys, so browsing past Done and back would replace a
+  // backdated date with today; going back to Done restores it instead. Panel state only:
+  // the project never holds a completion date on a Task that is not Done.
+  const dateBeforeLeavingDone = useRef<string | undefined>(undefined);
 
   const nameId = useId();
   const nameErrorId = useId();
@@ -194,8 +199,21 @@ export function TaskPanel({ task, project, today, actions, focusRequest }: TaskP
   // Commits on change: every choice is one whole edit, unlike a typed draft.
   function handleStatusChange(value: string) {
     if (!isTaskStatus(value)) return;
+    const leavingDate = task.status === "done" && value !== "done" ? task.completionDate : undefined;
     const result = setStatus(task.id, value);
-    setStatusError(result.ok ? undefined : result.error.message);
+    if (!result.ok) {
+      setStatusError(result.error.message);
+      return;
+    }
+    setStatusError(undefined);
+    if (leavingDate !== undefined) {
+      dateBeforeLeavingDone.current = leavingDate;
+    } else if (value === "done" && dateBeforeLeavingDone.current !== undefined) {
+      const restored = dateBeforeLeavingDone.current;
+      dateBeforeLeavingDone.current = undefined;
+      // Through the guardian like any edit; if a Done rule now refuses it, today's date stays.
+      setCompletionDate(task.id, restored);
+    }
   }
 
   function commitCompletionDate(value: string) {

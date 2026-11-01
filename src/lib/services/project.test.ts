@@ -683,6 +683,17 @@ describe("the Done rules on edits to other Tasks and the project", () => {
     );
   });
 
+  it("rejects adding a Done predecessor completed later than the Done Task, naming both Tasks and dates", () => {
+    let project = projectWith("A", "B", "C");
+    project = accepted(setCompletionDate(accepted(setStatus(project, 1, "done", CONTEXT)), 1, "2026-09-04", CONTEXT));
+    project = accepted(setCompletionDate(accepted(setStatus(project, 2, "done", CONTEXT)), 2, "2026-09-03", CONTEXT));
+    expectRejectedWith(
+      edit(addPredecessor, project, 2, 1),
+      "completion-date-before-predecessor",
+      "Task 2: B has the completion date 2026-09-03, which is before the completion date of its predecessor 1: A, 2026-09-04.",
+    );
+  });
+
   it("rejects a START date after a completion date, naming the Task", () => {
     expectRejectedWith(
       edit(setStartDate, aThenB("2026-09-02"), "2026-09-03"),

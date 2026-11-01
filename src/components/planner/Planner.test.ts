@@ -263,14 +263,80 @@ describe("Planner: Status and completion date", () => {
     expect(statusSelect().value).toBe("done");
     // The real today, so only its shape is asserted; the draft follows the committed date.
     const field = completionDateField();
-    expect(field?.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(field?.max).toBe(field?.value);
+    if (field === null) throw new Error("Expected the Completion date field");
+    expect(field.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    // Two clock reads (the edit's and the render's max), so midnight may fall between them.
+    expect(field.value <= field.max).toBe(true);
 
     fireEvent.change(statusSelect(), { target: { value: "in-progress" } });
 
     expect(screen.queryByRole("alert")).toBeNull();
     expect(statusSelect().value).toBe("in-progress");
     expect(completionDateField()).toBeNull();
+  });
+
+  // A closed select fires `change` on arrow keys, so browsing past Done and back is two edits.
+  it("restores A's backdated completion date when A leaves Done and comes back in the same panel", async () => {
+    renderPlanner(A_ID, doneFixture(false));
+    await screen.findByRole("button", { name: A_DONE_NODE });
+
+    fireEvent.change(statusSelect(), { target: { value: "in-progress" } });
+    expect(completionDateField()).toBeNull();
+    fireEvent.change(statusSelect(), { target: { value: "done" } });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(statusSelect().value).toBe("done");
+    expect(completionDateField()?.value).toBe("2026-09-03");
+  });
+
+  // jsdom never sets `validity.badInput` and sanitizes "2026-02-30" to "", so it is stubbed as Chromium reports it.
+  it("names the completion date rule for an unreadable date and keeps the committed date", async () => {
+    renderPlanner(A_ID, doneFixture(false));
+    await screen.findByRole("button", { name: A_DONE_NODE });
+    const field = completionDateField();
+    if (field === null) throw new Error("Expected the Completion date field");
+
+    fireEvent.keyDown(field, { key: "2" });
+    Object.defineProperty(field, "validity", { configurable: true, value: { badInput: true } });
+    fireEvent.change(field, { target: { value: "2026-02-30" } });
+    fireEvent.blur(field);
+
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toBe("A completion date must be a calendar date from 0001-01-01 to 9999-12-31.");
+    expect(statusSelect().value).toBe("done");
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(field.value).toBe("2026-09-03");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  // Escape restores the committed date, so a date it leaves in place was committed.
+  it("commits a date picked from the calendar at once, with no blur or Enter", async () => {
+    renderPlanner(A_ID, doneFixture(false));
+    await screen.findByRole("button", { name: A_DONE_NODE });
+    const field = completionDateField();
+    if (field === null) throw new Error("Expected the Completion date field");
+
+    fireEvent.pointerDown(field);
+    fireEvent.change(field, { target: { value: "2026-09-02" } });
+    fireEvent.keyDown(field, { key: "Escape" });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(field.value).toBe("2026-09-02");
+  });
+
+  it("commits a typed date on Enter", async () => {
+    renderPlanner(A_ID, doneFixture(false));
+    await screen.findByRole("button", { name: A_DONE_NODE });
+    const field = completionDateField();
+    if (field === null) throw new Error("Expected the Completion date field");
+
+    fireEvent.keyDown(field, { key: "2" });
+    fireEvent.change(field, { target: { value: "2026-09-02" } });
+    fireEvent.keyDown(field, { key: "Enter" });
+    fireEvent.keyDown(field, { key: "Escape" });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(field.value).toBe("2026-09-02");
   });
 });
 

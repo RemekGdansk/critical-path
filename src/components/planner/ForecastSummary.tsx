@@ -14,6 +14,15 @@ interface ForecastSummaryProps {
   startDate: string | undefined;
 }
 
+type BaseDateReason = Extract<Forecast, { kind: "forecast" }>["baseDateReason"];
+
+/** The base-date reasons whose base date is today. */
+const TODAY_BASED_REASONS: ReadonlySet<BaseDateReason> = new Set([
+  "start-date-unset",
+  "start-date-in-past",
+  "start-successors-done",
+]);
+
 function ForecastDateValue({ value }: { value: ForecastDate }) {
   return value.kind === "date" ? <time dateTime={value.date}>{value.date}</time> : <>Beyond year 9999</>;
 }
@@ -137,9 +146,10 @@ function ForecastDates({
   startDate: string | undefined;
 }) {
   const { movedFromWeekend, baseDateReason } = forecast;
-  // The real today, for the notes of the reasons whose base date is today. Not
-  // under all-tasks-done, whose base date is the latest completion date.
-  const today = baseDateReason === "all-tasks-done" ? undefined : (movedFromWeekend ?? forecast.baseDate);
+  // The real today, defined only for the reasons whose base date is today (before
+  // any weekend move). Not under start-date (the START date) or all-tasks-done
+  // (the latest completion date).
+  const today = TODAY_BASED_REASONS.has(baseDateReason) ? (movedFromWeekend ?? forecast.baseDate) : undefined;
   return (
     <>
       <dl className="flex flex-col gap-0.5">
