@@ -48,7 +48,7 @@ Early-stage project planning needs near-zero-friction task capture, with details
 | S-04 | forecast-finish-dates       | user can set START date and Durations and see both finish dates, withheld while warned      | S-01          | US-02, FR-004, FR-006, FR-009, FR-012 | done     |
 | S-05 | critical-path-highlight     | user can see the critical path(s) highlighted plus critical-path and total-work times       | S-04          | FR-010, FR-011                        | done     |
 | S-06 | weekdays-day-counting       | user can switch the project between calendar days and weekdays for all date calculations    | S-04          | FR-017, FR-012                        | done     |
-| S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | proposed |
+| S-07 | progress-aware-forecast     | user can mark Tasks In Progress / Done with a completion date and see the forecast adjust   | S-03, S-04    | US-04, FR-005, FR-019, FR-014         | planning |
 | S-08 | start-new-project           | user can start a new empty project, confirming first if changes were not exported           | S-03          | FR-016                                | done     |
 
 ## Streams
@@ -176,7 +176,7 @@ Foundations below assume these are present and do NOT re-scaffold them.
   - Once every direct successor of START is Done, should the forecast still say the START date is in the past? The PRD says the START date no longer matters then, but the code keeps `baseDateReason: "start-date-in-past"` and `ForecastSummary` shows "START date … is in the past"; the Done rows of the test-plan Phase 1 oracle table assert that label as the code's current choice, not a PRD value. — Owner: user. Block: no (decide during planning).
   - Should the critical-path highlight (S-05) reach START and FINISH through Done Tasks? A Done Task is never critical, so a critical Task whose predecessors are all Done has no highlighted edge leading in from START, and one whose successors are all Done has none leading out to FINISH: the highlight starts or ends mid-diagram. `diagram.test.ts` "never marks a Done Task or an edge from it" asserts the current behaviour. The legend swatch beside "Critical-path time" in `ForecastSummary` needs the same decision: an all-Done project has a critical-path time of 0 days and nothing highlighted, yet the swatch still shows (it is hidden only for a time too large to count). Raised by the critical-path-highlight impl review (round 1 F4, round 2 F4). — Owner: user. Block: no (decide during planning).
 - **Risk:** The densest rule set in the PRD (seven US-04 acceptance criteria, several indirect-edit rejections); sequenced after the file round-trip so its rules land in editing and import at once. Done Tasks need no Duration, so S-04's withheld copy ("Forecast not possible until every Task has one." in `ForecastSummary`) must be reworded for not-Done Tasks. Lifts the S-03 import rejection of Statuses other than To Do and of completion dates (rule `task-status-not-supported-yet`); the file version stays `"0.1"` until M-1 closes and then becomes `"1"`; adds a golden file holding In Progress and Done Tasks with completion dates next to the 0.1 one.
-- **Status:** proposed
+- **Status:** planning
 
 ### S-08: Start a new project safely
 
