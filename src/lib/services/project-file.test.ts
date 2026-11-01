@@ -403,6 +403,31 @@ describe("parseProjectFile", () => {
         project.tasks[0] = { ...project.tasks[0], status: "done", completionDate: TODAY };
       }),
     },
+    {
+      case: "a Done Task while the START date is unset",
+      text: fileWith((file) => {
+        file.start = {};
+        markDone(file.tasks[0], "2026-09-03");
+      }),
+      project: projectWithChange((project) => {
+        project.start = {};
+        project.tasks[0] = { ...project.tasks[0], status: "done", completionDate: "2026-09-03" };
+      }),
+    },
+    {
+      // 2026-09-05 is a Saturday; weekdays mode places no weekend rule on completion dates.
+      case: "a Saturday completion date in a file that counts weekdays",
+      text: fileWith((file) => {
+        file.dayCountingMode = "weekdays";
+        file.start.date = "2026-09-01";
+        markDone(file.tasks[0], "2026-09-05");
+      }),
+      project: projectWithChange((project) => {
+        project.dayCountingMode = "weekdays";
+        project.start.date = "2026-09-01";
+        project.tasks[0] = { ...project.tasks[0], status: "done", completionDate: "2026-09-05" };
+      }),
+    },
   ];
 
   it.each(statusRows)("accepts $case, and it round-trips", ({ text, project }) => {
@@ -925,6 +950,9 @@ describe("parseProjectFile", () => {
       file.tasks[1].status = "done";
     });
     expectRejected(parseProjectFile(duplicate, CONTEXT), "duplicate-task-id", "Two Tasks have the id 2.");
+    // Control: without the duplicate, the same file breaks a Done rule.
+    const noDuplicate = fileWith((file) => (file.tasks[1].status = "done"));
+    expectRejected(parseProjectFile(noDuplicate, CONTEXT), "done-without-completion-date", "Task 2: Build");
   });
 
   describe("normalises without loss", () => {
