@@ -11,10 +11,12 @@ import {
   deleteTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDayCountingMode,
   setDuration,
   setProjectName,
   setStartDate,
+  setStatus,
   type ValidationErrorRule,
 } from "@/lib/services/project";
 import {
@@ -63,6 +65,28 @@ const GOLDEN_WEEKDAYS_PROJECT: Project = {
     { id: 1, name: "Pack", predecessors: [], duration: 2, status: "to-do" },
     { id: 3, name: "Book movers", predecessors: [], duration: 1, status: "to-do" },
     { id: 4, name: "Move", predecessors: [1, 3], duration: 1, status: "to-do" },
+  ],
+};
+
+const GOLDEN_STATUSES = readFileSync(new URL("./golden/project-file-0.1-statuses.json", import.meta.url), "utf8");
+
+/**
+ * The project the statuses golden file holds, written by hand from the file: a Done
+ * chain, an In Progress Task, a To Do Task and a Done Task without a Duration. Its
+ * completion dates are before TODAY and on or after the START date.
+ */
+const GOLDEN_STATUSES_PROJECT: Project = {
+  name: "Shop fit-out – progress",
+  start: { date: "2026-09-01" },
+  finish: {},
+  dayCountingMode: "calendar-days",
+  nextTaskId: 6,
+  tasks: [
+    { id: 1, name: "Survey", predecessors: [], duration: 2, status: "done", completionDate: "2026-09-03" },
+    { id: 2, name: "Strip out", predecessors: [1], duration: 3, status: "done", completionDate: "2026-09-08" },
+    { id: 3, name: "Wiring", predecessors: [2], duration: 5, status: "in-progress" },
+    { id: 4, name: "Paint", predecessors: [3, 5], duration: 4, status: "to-do" },
+    { id: 5, name: "Order signage", predecessors: [], status: "done", completionDate: "2026-09-02" },
   ],
 };
 
@@ -161,6 +185,12 @@ function fileWith(change: (file: TestFile) => void): string {
   return JSON.stringify(file, null, 2);
 }
 
+/** Marks a Task of a test file Done on the completion date. */
+function markDone(task: Record<string, unknown>, completionDate: string): void {
+  task.status = "done";
+  task.completionDate = completionDate;
+}
+
 function projectWithChange(change: (project: Project) => void): Project {
   const project = baseProject();
   change(project);
@@ -199,6 +229,20 @@ describe("the weekdays golden file (format 0.1)", () => {
   });
 });
 
+describe("the statuses golden file (format 0.1)", () => {
+  it("imports to the project it holds", () => {
+    expect(imported(parseProjectFile(GOLDEN_STATUSES, CONTEXT))).toStrictEqual(GOLDEN_STATUSES_PROJECT);
+  });
+
+  it("is what serializeProject writes for that project, byte for byte", () => {
+    expect(serializeProject(deepFreeze(structuredClone(GOLDEN_STATUSES_PROJECT)))).toBe(GOLDEN_STATUSES);
+  });
+
+  it("holds no Validation Warning, since a Done Task needs no Duration", () => {
+    expect(validationWarnings(imported(parseProjectFile(GOLDEN_STATUSES, CONTEXT)))).toStrictEqual([]);
+  });
+});
+
 describe("serializeProject", () => {
   it("writes the empty project with empty START, FINISH and Task list", () => {
     expect(PROJECT_FILE_VERSION).toBe("0.1");
@@ -219,7 +263,12 @@ describe("serializeProject", () => {
 });
 
 describe("export then import", () => {
-  /** Every US-03 field the model can hold before S-07 but the day-counting mode (its own case below): name, START date, Durations, a cleared one, a deleted id. */
+  /**
+   * Every US-03 field but the day-counting mode (its own case below): name, START
+   * date, Durations, a cleared one, a deleted id, every Status, and completion
+   * dates. The START date is set before the Statuses, so the completion dates are
+   * never before it.
+   */
   function fullProject(): CheckedProject {
     let project = withDependencies(
       projectWith("Design", "Build", "Write copy", "Review", "Launch"),
@@ -234,7 +283,12 @@ describe("export then import", () => {
     project = accepted(setDuration(project, 5, "8", CONTEXT));
     project = accepted(setDuration(project, 5, "", CONTEXT));
     project = accepted(deleteTask(project, 4, CONTEXT));
-    project = accepted(setStartDate(project, "2026-11-02", CONTEXT));
+    project = accepted(setStartDate(project, "2026-09-01", CONTEXT));
+    project = accepted(setStatus(project, 1, "done", CONTEXT));
+    project = accepted(setCompletionDate(project, 1, "2026-09-03", CONTEXT));
+    project = accepted(setStatus(project, 3, "done", CONTEXT));
+    project = accepted(setCompletionDate(project, 3, "2026-09-04", CONTEXT));
+    project = accepted(setStatus(project, 2, "in-progress", CONTEXT));
     return accepted(setProjectName(project, "Website relaunch – QA ✓", CONTEXT));
   }
 
@@ -306,6 +360,54 @@ describe("parseProjectFile", () => {
       ...baseProject(),
       dayCountingMode: "weekdays",
     });
+  });
+
+  const statusRows: { case: string; text: string; project: Project }[] = [
+    {
+      case: "an In Progress Task",
+      text: fileWith((file) => (file.tasks[1].status = "in-progress")),
+      project: projectWithChange((project) => (project.tasks[1].status = "in-progress")),
+    },
+    {
+      case: "a Done Task with its completion date",
+      text: fileWith((file) => {
+        file.start.date = "2026-09-01";
+        markDone(file.tasks[0], "2026-09-03");
+      }),
+      project: projectWithChange((project) => {
+        project.start.date = "2026-09-01";
+        project.tasks[0] = { ...project.tasks[0], status: "done", completionDate: "2026-09-03" };
+      }),
+    },
+    {
+      case: "a chain of Done Tasks completed on the same day",
+      text: fileWith((file) => {
+        file.start.date = "2026-09-01";
+        markDone(file.tasks[0], "2026-09-08");
+        markDone(file.tasks[1], "2026-09-08");
+      }),
+      project: projectWithChange((project) => {
+        project.start.date = "2026-09-01";
+        project.tasks[0] = { ...project.tasks[0], status: "done", completionDate: "2026-09-08" };
+        project.tasks[1] = { ...project.tasks[1], status: "done", completionDate: "2026-09-08" };
+      }),
+    },
+    {
+      case: "a Done Task completed today",
+      text: fileWith((file) => {
+        file.start.date = "2026-09-01";
+        markDone(file.tasks[0], TODAY);
+      }),
+      project: projectWithChange((project) => {
+        project.start.date = "2026-09-01";
+        project.tasks[0] = { ...project.tasks[0], status: "done", completionDate: TODAY };
+      }),
+    },
+  ];
+
+  it.each(statusRows)("accepts $case, and it round-trips", ({ text, project }) => {
+    expect(imported(parseProjectFile(text, CONTEXT))).toStrictEqual(project);
+    expectRoundTrip(project);
   });
 
   interface RejectionRow {
@@ -412,6 +514,63 @@ describe("parseProjectFile", () => {
       text: fileWith((file) => (file.name = "Q3\nLaunch")),
       rule: "project-name-control-character",
       fragment: "A project name cannot contain a line break or other control character.",
+    },
+    {
+      case: "a Done Task without a completion date",
+      text: fileWith((file) => (file.tasks[0].status = "done")),
+      rule: "done-without-completion-date",
+      fragment: "Task 1: Design: A Done Task needs a completion date.",
+    },
+    {
+      case: "a completion date on a To Do Task",
+      text: fileWith((file) => (file.tasks[1].completionDate = "2026-10-01")),
+      rule: "completion-date-without-done",
+      fragment: "Task 2: Build: Only a Done Task can have a completion date.",
+    },
+    {
+      case: "a completion date that is not a calendar date",
+      text: fileWith((file) => {
+        markDone(file.tasks[0], "2026-02-30");
+      }),
+      rule: "completion-date-not-a-date",
+      fragment: "Task 1: Design: A completion date must be a calendar date from 0001-01-01 to 9999-12-31.",
+    },
+    {
+      case: "a completion date after today",
+      text: fileWith((file) => {
+        file.start.date = "2026-09-01";
+        markDone(file.tasks[0], "2026-10-12");
+      }),
+      rule: "completion-date-after-today",
+      fragment: "Task 1: Design has the completion date 2026-10-12, which is after today, 2026-10-11.",
+    },
+    {
+      case: "a completion date before the START date",
+      text: fileWith((file) => {
+        markDone(file.tasks[0], "2026-10-01");
+      }),
+      rule: "completion-date-before-start-date",
+      fragment: "Task 1: Design cannot be completed on 2026-10-01, which is before the START date, 2026-11-02.",
+    },
+    {
+      case: "a Done Task whose predecessor is not Done",
+      text: fileWith((file) => {
+        file.start.date = "2026-09-01";
+        markDone(file.tasks[1], "2026-09-08");
+      }),
+      rule: "done-predecessor-not-done",
+      fragment: "Task 2: Build cannot be Done while its predecessor 1: Design is not Done.",
+    },
+    {
+      case: "a completion date before a predecessor's",
+      text: fileWith((file) => {
+        file.start.date = "2026-09-01";
+        markDone(file.tasks[0], "2026-09-08");
+        markDone(file.tasks[1], "2026-09-03");
+      }),
+      rule: "completion-date-before-predecessor",
+      fragment:
+        "Task 2: Build has the completion date 2026-09-03, which is before the completion date of its predecessor 1: Design, 2026-09-08.",
     },
   ];
 
@@ -700,24 +859,6 @@ describe("parseProjectFile", () => {
       rule: "duplicate-task-id",
       fragment: "Two Tasks have the id 2.",
     },
-    {
-      case: "an In Progress Task",
-      text: fileWith((file) => (file.tasks[1].status = "in-progress")),
-      rule: "task-status-not-supported-yet",
-      fragment: "Task 2 is In Progress, and this version of the app can import only To Do Tasks.",
-    },
-    {
-      case: "a Done Task",
-      text: fileWith((file) => (file.tasks[1].status = "done")),
-      rule: "task-status-not-supported-yet",
-      fragment: "Task 2 is Done, and this version of the app can import only To Do Tasks.",
-    },
-    {
-      case: "a completion date",
-      text: fileWith((file) => (file.tasks[1].completionDate = "2026-11-04")),
-      rule: "task-status-not-supported-yet",
-      fragment: "Task 2 has a completion date, and this version of the app cannot import completion dates yet.",
-    },
   ];
 
   it.each([...validationErrorRows, ...fileRuleRows])("rejects $case", ({ text, rule, fragment }) => {
@@ -777,17 +918,13 @@ describe("parseProjectFile", () => {
     expectRejected(parseProjectFile(text, CONTEXT), "file-version-newer", "0.2");
   });
 
-  it("checks unique ids before the pre-S-07 limits, and those before the Validation Errors", () => {
+  it("checks unique ids before the Validation Errors", () => {
+    // Task 2 is Done while its predecessor is not, and has no completion date.
     const duplicate = fileWith((file) => {
       file.tasks[2].id = 2;
-      file.tasks[1].status = "in-progress";
+      file.tasks[1].status = "done";
     });
     expectRejected(parseProjectFile(duplicate, CONTEXT), "duplicate-task-id", "Two Tasks have the id 2.");
-    const inProgress = fileWith((file) => {
-      file.tasks[1].status = "in-progress";
-      file.tasks[0].predecessors = [7];
-    });
-    expectRejected(parseProjectFile(inProgress, CONTEXT), "task-status-not-supported-yet", "Task 2 is In Progress");
   });
 
   describe("normalises without loss", () => {

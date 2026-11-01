@@ -136,13 +136,11 @@ describe("edit sequences", () => {
             expect(validateProject(result.project, CONTEXT)).toBeUndefined();
             // The file module's shape stage is a second check of the model shape and the Task id caps,
             // independent of the guardian, and the round-trip pins the serializer for every reachable Project.
-            // Until import lifts its Status gate, a project with a Task that is not To Do is refused there.
-            const imported = parseProjectFile(serializeProject(result.project), CONTEXT);
-            if (result.project.tasks.every((task) => task.status === "to-do")) {
-              expect(imported).toStrictEqual({ ok: true, project: result.project });
-            } else {
-              expect(imported).toMatchObject({ ok: false, error: { rule: "task-status-not-supported-yet" } });
-            }
+            // The import runs with the edits' today, so every completion date is still on or before it.
+            expect(parseProjectFile(serializeProject(result.project), CONTEXT)).toStrictEqual({
+              ok: true,
+              project: result.project,
+            });
             project = result.project;
           } else {
             expect(project).toEqual(before);

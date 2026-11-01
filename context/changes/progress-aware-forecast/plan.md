@@ -734,13 +734,13 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [ ] 3.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
-- [ ] 3.2 `task-status-not-supported-yet` is gone from the source
-- [ ] 3.3 Full suite, lint, type check: `npm test && npm run lint && npx astro check`
+- [x] 3.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
+- [x] 3.2 `task-status-not-supported-yet` is gone from the source
+- [x] 3.3 Full suite, lint, type check: `npm test && npm run lint && npx astro check`
 
 #### Manual
 
-- [ ] 3.4 The golden statuses file reads as a hand-edited project would
+- [x] 3.4 The golden statuses file reads as a hand-edited project would
 
 ### Phase 4: Progress-aware forecast
 
