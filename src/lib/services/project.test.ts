@@ -571,7 +571,7 @@ describe("setStatus", () => {
     expectRejectedWith(
       edit(setStatus, project, 1, "done"),
       "completion-date-before-start-date",
-      "Task 1: A has the completion date 2026-09-05, which is before the START date, 2026-09-10.",
+      "Task 1: A cannot be completed on 2026-09-05, which is before the START date, 2026-09-10.",
     );
   });
 
@@ -600,7 +600,7 @@ describe("setCompletionDate", () => {
     expectRejectedWith(
       edit(setCompletionDate, project, 1, "2026-09-03"),
       "completion-date-before-start-date",
-      "Task 1: A has the completion date 2026-09-03, which is before the START date, 2026-09-04.",
+      "Task 1: A cannot be completed on 2026-09-03, which is before the START date, 2026-09-04.",
     );
     expect(accepted(edit(setCompletionDate, project, 1, "2026-09-04")).tasks[0]?.completionDate).toBe("2026-09-04");
   });
@@ -687,7 +687,7 @@ describe("the Done rules on edits to other Tasks and the project", () => {
     expectRejectedWith(
       edit(setStartDate, aThenB("2026-09-02"), "2026-09-03"),
       "completion-date-before-start-date",
-      "Task 1: A has the completion date 2026-09-02, which is before the START date, 2026-09-03.",
+      "Task 1: A cannot be completed on 2026-09-02, which is before the START date, 2026-09-03.",
     );
   });
 
@@ -891,7 +891,7 @@ describe("validateProject", () => {
     expectValidationError(
       projectOf(tasks, { start: { date: "2026-09-04" } }),
       "completion-date-before-start-date",
-      "Task 3: Build has the completion date 2026-09-03, which is before the START date, 2026-09-04.",
+      "Task 3: Build cannot be completed on 2026-09-03, which is before the START date, 2026-09-04.",
     );
     expect(validateProject(projectOf(tasks), CONTEXT)).toBeUndefined();
     expect(validateProject(projectOf(tasks, { start: { date: "2026-09-03" } }), CONTEXT)).toBeUndefined();
@@ -921,7 +921,7 @@ describe("validateProject", () => {
     ).toBeUndefined();
   });
 
-  it("returns the first Validation Error: Tasks in array order, then START date, project name, id ceiling and cycle", () => {
+  it("returns the first Validation Error: Tasks in array order, then START date, project name, id ceiling, cycle, then the Done predecessor rules", () => {
     const cycle = [task(1, "A", [2]), task(2, "B", [1])];
     const badStart = { start: { date: "2026-13-01" } };
     const badName = { name: "" };

@@ -74,7 +74,11 @@ type Explanations = Partial<Record<ValidationErrorRule, () => string | undefined
  * The guardian, and the only way an edit is accepted: it checks the whole
  * candidate project, not the rule the edit expects to break. The input of the
  * edit held no Validation Error, so the first one the candidate holds is the
- * edit's doing. Throws ProjectInvariantBreach on a broken model shape.
+ * edit's doing. One exception: `completion-date-after-today` reads the clock,
+ * so if today moves backward (a clock correction, a westward time-zone change)
+ * a project accepted earlier can hold it, and every edit reports it until that
+ * Task's completion date is moved on or before today. Throws
+ * ProjectInvariantBreach on a broken model shape.
  */
 function accept(
   candidate: Project,
@@ -483,10 +487,7 @@ const TASK_CHECKS: readonly TaskCheck[] = [
   (task, _index, wording) =>
     task.duration === undefined || isPositiveWholeDays(task.duration)
       ? undefined
-      : {
-          rule: "duration-not-positive-whole-number",
-          message: wording === "file" ? `Task ${taskLabel(task)}: ${DURATION_MESSAGE}` : DURATION_MESSAGE,
-        },
+      : inWording(task, wording, "duration-not-positive-whole-number", DURATION_MESSAGE),
   (task, { tasksById }) => {
     const unknownId = task.predecessors.find((id) => !tasksById.has(id));
     return unknownId === undefined
@@ -528,7 +529,7 @@ const TASK_CHECKS: readonly TaskCheck[] = [
       ? undefined
       : {
           rule: "completion-date-before-start-date",
-          message: `Task ${taskLabel(task)} has the completion date ${task.completionDate}, which is before the START date, ${startDate}.`,
+          message: `Task ${taskLabel(task)} cannot be completed on ${task.completionDate}, which is before the START date, ${startDate}.`,
         };
   },
 ];
@@ -547,6 +548,7 @@ function findDonePredecessor(
     if (task.status !== "done") continue;
     for (const id of task.predecessors) {
       const predecessor = tasksById.get(id);
+      // Never undefined here: `unknown-task` in TASK_CHECKS has already passed; the guard is for the type.
       if (predecessor !== undefined && breaks(task, predecessor)) return [task, predecessor];
     }
   }
