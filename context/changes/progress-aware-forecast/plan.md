@@ -15,8 +15,8 @@ Roadmap slice S-07 (US-04, FR-005, FR-019, FR-014): a user can set a Task's Stat
 ## Desired End State
 
 - A user selects a Task, picks **Done** in its Status select, and the Task is Done with today as its completion date in one edit; a Completion date field then lets them backdate it. Picking To Do or In Progress removes the completion date.
-- Every Done rule from the PRD, plus "only a Done Task has a completion date", is a Validation Error decided in exactly one `TASK_CHECKS` entry. Direct and indirect edits that break one are rejected with a message naming the rule and the Task(s) involved; files that break one are rejected on import.
-- A file with In Progress and Done Tasks and completion dates round-trips byte for byte; `project-file-0.1-statuses.json` proves it.
+- Every Done rule from the PRD, plus "only a Done Task has a completion date", is a Validation Error decided in exactly one guardian entry (`TASK_CHECKS` for a Task alone, `PROJECT_CHECKS` after `cycle` for a Task and its predecessors). Direct and indirect edits that break one are rejected with a message naming the rule and the Task(s) involved; files that break one are rejected on import.
+- A file with In Progress and Done Tasks and completion dates round-trips byte for byte; `project-file-0.1-statuses.json` proves it until Phase 8 replaces it with `project-file-1.0.json`.
 - Export writes `"version": "1.0"`, the MVP file schema; import reads both `"0.1"` and `"1.0"` files, and `project-file-1.0.json` is the golden file `serializeProject` must match byte for byte.
 - The forecast follows US-04. When every direct successor of a past START date is Done, the note says so rather than calling the START date "in the past". When every Task is Done, both Project Finish Dates are the latest completion date, the note says "Every Task is Done.", and the legend swatch is hidden.
 - The diagram shows Done Tasks (muted, check icon, "Done 2026-09-03") and In Progress Tasks (marker after the Duration), in their accessible names too.
@@ -50,7 +50,7 @@ Follow the upstream aggregate design: rules live only in the guardian's lists, e
 
 ## Critical Implementation Details
 
-- **Check ordering inside `TASK_CHECKS`.** The Done entries go after the three existing Task checks, in this order: `done-without-completion-date`, `completion-date-without-done`, `completion-date-not-a-date`, `completion-date-after-today`, `completion-date-before-start-date`, `done-predecessor-not-done`, `completion-date-before-predecessor`. The START bound is skipped while the START date is unset or not an ISO date, so `start-date-not-a-date` still reports a malformed one. The predecessor bound is skipped for a predecessor whose completion date is not an ISO date: predecessors may have higher ids and be checked later, and that predecessor's own check reports it. `done-predecessor-not-done` runs first, so the predecessor bound only ever compares two Done Tasks.
+- **Check ordering in the guardian.** The five rules about a Task alone go into `TASK_CHECKS` after the three existing Task checks, in this order: `done-without-completion-date`, `completion-date-without-done`, `completion-date-not-a-date`, `completion-date-after-today`, `completion-date-before-start-date`. The two rules about a Task and its predecessors, `done-predecessor-not-done` then `completion-date-before-predecessor`, go into `PROJECT_CHECKS` **after `cycle`**, each walking the Tasks in array order. Placed in `TASK_CHECKS`, they would run before `cycle`, and an `addPredecessor` that closes a cycle through a Done Task would report a Done rule instead of the cycle that US-01 and FR-003 require (A Done, B To Do depending on A, `addPredecessor(A, B)` → `done-predecessor-not-done`). After `cycle`, they only ever see an acyclic graph whose every Task already passed its own completion-date checks, so the predecessor bound compares two ISO dates. The START bound is skipped while the START date is unset or not an ISO date, so `start-date-not-a-date` still reports a malformed one. `done-predecessor-not-done` runs first, so the predecessor bound only ever compares two Done Tasks.
 - **The all-Done forecast must not use weekday arithmetic.** With `baseDateReason: "all-tasks-done"` the base date is the latest completion date, which may be a weekend in weekdays mode, and `addWeekdays` throws there. Both Project Finish Dates are that date as-is, with no weekend move and no `movedFromWeekend`.
 - **The completion-date draft must follow the committed date.** TaskPanel is keyed by Task id, so its drafts start on mount. When `setStatus(…, "done")` commits today's date, or a revert removes the date, the Completion date field must show the committed value, not a stale draft. Reset the draft whenever the committed `completionDate` or Status changes.
 
@@ -92,19 +92,19 @@ Give the guardian access to today without changing any behaviour: an `EditContex
 
 **Intent**: The hook supplies today to every edit at the moment it is applied, read from the clock by default and injectable in tests (upstream design §4.6–4.7).
 
-**Contract**: `useProject(initial?, initialSelection?, options?: { today?: () => string })`, default `() => todayIsoDate(new Date())`. Every action calls its edit with `{ today: today() }`. The default initial project is `createEmptyProject({ today: today() })`, built lazily.
+**Contract**: `useProject(initial?, initialSelection?, options?: { today?: () => string })`, default `() => todayIsoDate(new Date())`. Every action calls its edit with `{ today: today() }`. The default initial project is `createEmptyProject({ today: today() })`, built lazily: the `useState` initializer at `useProject.ts:74`, which passes `edits.createEmptyProject` by reference today, becomes a closure.
 
 #### 5. View callers
 
-**Files**: `src/components/planner/ProjectControls.tsx`, `src/components/planner/RenderCrashFallback.tsx`, `src/dev/KitchenSinkPlanner.tsx`, and any dev page using `createPerfProject`
+**Files**: `src/components/planner/Planner.tsx`, `src/components/planner/ProjectControls.tsx`, `src/components/planner/RenderCrashFallback.tsx`, `src/dev/KitchenSinkPlanner.tsx`
 
-**Intent**: Views read the clock where they already may (as `Planner.tsx:124` does) and pass it in: import (`ProjectControls.tsx:191`), New project's `createEmptyProject`, the crash fallback's `validateProject` (`RenderCrashFallback.tsx:42`), and kitchen-sink fixture builders.
+**Intent**: Views read the clock where they already may (as `Planner.tsx:124` does) and pass it in: Planner's `initialProject()` (`Planner.tsx:24-28`, which calls `createPerfProject()` behind `?fixture=perf100` and `createEmptyProject()`), import (`ProjectControls.tsx:191`), New project's `createEmptyProject`, the crash fallback's `validateProject` (`RenderCrashFallback.tsx:42`), and kitchen-sink fixture builders.
 
 **Contract**: each passes `{ today: todayIsoDate(new Date()) }`.
 
 #### 6. Tests
 
-**Files**: every test calling an edit or door — `project.test.ts`, `project.property.test.ts`, `project-file.test.ts`, `forecast.test.ts`, `remaining-work.test.ts`, `validation-warnings.test.ts`, `diagram.test.ts`, `layout-engine.test.ts`, `flow-elements.test.ts`, `useProject.test.ts`, `Planner.test.ts`, `ForecastSummary.test.ts`, `StartPanel.test.ts`, `RenderCrashFallback.test.ts`
+**Files**: every test calling an edit or door — `project.test.ts`, `project.property.test.ts`, `project-file.test.ts`, `forecast.test.ts`, `remaining-work.test.ts`, `validation-warnings.test.ts`, `diagram.test.ts`, `layout-engine.test.ts`, `task-graph.test.ts` (`createPerfProject()` at `:208`), `flow-elements.test.ts`, `useProject.test.ts`, `Planner.test.ts`, `ForecastSummary.test.ts`, `StartPanel.test.ts`, `RenderCrashFallback.test.ts`
 
 **Intent**: Pass a fixed context per file (a `TODAY` constant), never the clock, keeping every assertion unchanged. `useProject.test.ts` injects `options.today`.
 
@@ -132,7 +132,7 @@ Give the guardian access to today without changing any behaviour: an `EditContex
 
 ### Overview
 
-Add seven Validation Error rules as `TASK_CHECKS` entries, and add `setStatus` and `setCompletionDate` as addressing + parsing + `accept`. Every PRD acceptance criterion of US-04 about rejection gets a test first.
+Add seven Validation Error rules as guardian entries (five in `TASK_CHECKS`, two in `PROJECT_CHECKS` after `cycle`), and add `setStatus` and `setCompletionDate` as addressing + parsing + `accept`. Every PRD acceptance criterion of US-04 about rejection gets a test first.
 
 ### Changes Required:
 
@@ -175,7 +175,8 @@ Add seven Validation Error rules as `TASK_CHECKS` entries, and add `setStatus` a
 
 **Contract**: rows and cases —
 
-- `validateProject` table: one row per new rule, plus the error-order test (`project.test.ts:576-609`) extended with the new positions (including a malformed START date reported as `start-date-not-a-date`, and a predecessor with a malformed date reported on that predecessor).
+- `validateProject` table: one row per new rule, plus the error-order test (`project.test.ts:576-609`) extended with the new positions (including a malformed START date reported as `start-date-not-a-date`, a predecessor with a malformed date reported on that predecessor, and a cycle through Done Tasks with unequal completion dates reported as `cycle`).
+- Cycle before Done rules (US-01): A Done, B To Do depending on A, `addPredecessor(A, B)` → `cycle` with "would create the cycle 1: A → 2: B → 1: A"; the same with A and B Done on different dates.
 - Edits (PRD `prd.md:116-119`): B Done while A To Do → `done-predecessor-not-done`; completion date after today, before the START date, before A's → each rule; A and B Done, `setStatus(A, "to-do")` → rejected naming B; `addPredecessor(B Done, C To Do)` → rejected naming B; `setStartDate` after A's completion date → rejected naming A; clearing the START date with Done Tasks → accepted; `setCompletionDate(A, later than B's)` → rejected naming B; `setCompletionDate(A, "")` while Done → `done-without-completion-date`; `setCompletionDate` on a To Do Task → `completion-date-without-done`; `setStatus(A, "done")` sets `completionDate` to `context.today`; Done → In Progress removes the date; Done → Done keeps the original date; a Saturday completion date in weekdays mode → accepted.
 - Monotonicity (upstream §4.9): a project accepted with today T passes `validateProject` with today T+1.
 - The guardian `it.each` (`project.test.ts:626-646`) gains both edits; the error-message assertions reject "invalid", "conflict" and "blocked".
@@ -199,7 +200,7 @@ Add seven Validation Error rules as `TASK_CHECKS` entries, and add `setStatus` a
 
 #### Manual Verification:
 
-- Review: no Done-rule rule id or condition appears in `setStartDate`, `addPredecessor`, `setStatus` or `setCompletionDate`; each new rule id is produced by exactly one `TASK_CHECKS` entry (upstream acceptance test, `02-invariant-aggregate-refactor.md:381-383`)
+- Review: no Done-rule rule id or condition appears in `setStartDate`, `addPredecessor`, `setStatus` or `setCompletionDate`; each new rule id is produced by exactly one guardian entry, and the two predecessor rules sit after `cycle` in `PROJECT_CHECKS` (upstream acceptance test, `02-invariant-aggregate-refactor.md:381-383`)
 - Review: every new message uses the domain terms and names the Task(s) for the four indirect rules
 
 **Implementation Note**: After completing this phase and all automated verification passes, pause here for manual confirmation from the human that the manual testing was successful before proceeding to the next phase.
@@ -373,7 +374,7 @@ Expose the two edits through the hook, add Status and Completion date to TaskPan
 
 **Intent**: Say why the START date no longer drives the forecast.
 
-**Contract**: `start-successors-done` → "The Tasks that follow START are Done, so this date no longer affects the forecast: it starts from today, {today}."; `all-tasks-done` → "Every Task is Done, so this date no longer affects the forecast." Existing notes unchanged.
+**Contract**: `start-successors-done` → "The Tasks that follow START are Done, so this date no longer affects the forecast: it starts from today, {today}."; `all-tasks-done` → "Every Task is Done, so this date no longer affects the forecast." when a START date is set, and "Not set. Every Task is Done, so the START date does not affect the forecast." when it is unset (`all-tasks-done` is decided before `start-date-unset`, so the unset note would not show). Existing notes unchanged.
 
 #### 5. ForecastSummary
 
@@ -409,8 +410,8 @@ Expose the two edits through the hook, add Status and Completion date to TaskPan
   Each row has the same identity, selection and replacement assertions as the existing rows, plus a row proving `setStatus(…, "done")` commits today's date.
 
 - **ForecastSummary** static renders from real forecasts: all-Done (latest completion date, "Every Task is Done.", no swatch); `start-successors-done` note; reworded withheld line.
-- **StartPanel**: both new notes.
-- **Planner**: a fixture with START 2026-09-01 and A Done 2026-09-03, built through the edits. The node is found by "A, Done on 2026-09-03". Setting A's completion date to 2999-01-01 in the panel shows an alert naming the after-today rule, with the node unchanged. Reverting A to To Do while B is Done shows an alert naming B. Marking a To Do Task Done shows a node whose name starts "B, Done on ". The `forecastRegion()` regexes (`:60, :103, :117`) are updated for the new withheld copy.
+- **StartPanel**: the new notes, including the all-Done note with START set and with START unset.
+- **Planner**: a fixture with START 2026-09-01 and A Done 2026-09-03, built through the edits. The node is found by "A, Done on 2026-09-03". Setting A's completion date to 2999-01-01 in the panel shows an alert naming the after-today rule, with the node unchanged. Reverting A to To Do while B is Done shows an alert naming B. Marking a To Do Task Done shows a node whose name starts "B, Done on ". Planner has no `today` prop and calls `useProject` without options, so in these renders the edits, the Completion date `max` and the forecast all use the real clock. A Done fixture needs a past START date, so the far-future-START workaround of test-plan §6.2 does not apply. These tests therefore assert only clock-free text: rule fragments (e.g. "which is after today"), the "B, Done on " prefix, never a full after-today message or a forecast date. The fixed-clock case is Phase 7's e2e. The `forecastRegion()` regexes (`:60, :103, :117`) are updated for the new withheld copy.
 
 ### Success Criteria:
 
@@ -612,7 +613,8 @@ With S-07 the file format holds every US-03 field, so mark it as the MVP schema.
 **Contract**:
 
 - The 1.0 golden file imports `toStrictEqual` a hand-written project, keeps its Validation Warning, mints the right next Task id, and is what `serializeProject` writes byte for byte.
-- The three 0.1 golden files (`project-file-0.1.json`, `-0.1-weekdays.json`, `-0.1-statuses.json`) keep only their import assertions. Their byte-for-byte checks and the `PROJECT_FILE_VERSION === "0.1"` assertion (`:202-206`) go.
+- The two shipped 0.1 golden files (`project-file-0.1.json`, `-0.1-weekdays.json`) keep only their import assertions. Their byte-for-byte checks and the `PROJECT_FILE_VERSION === "0.1"` assertion (`:202-206`) go.
+- `project-file-0.1-statuses.json` and its tests are deleted: no deployed build ever writes a `"0.1"` file with Statuses (Migration Notes), and `project-file-1.0.json` pins the same fields byte for byte.
 - One row proves an imported 0.1 golden re-exports with bytes identical except the version line.
 - The version rows (`:428-450`) are re-derived against 1.0. Newer: `"1.1"`, `"2"`, `"10"`, `"1.12"`. Not a version: `"0.2"`, `"0.0"`, `"1"`, `"1.00"`, `"01.0"`, `"1.0.0"`, `"v1.0"`, `" 1.0"`.
 - A test name or comment records that 1.0 adds no key, so no field has an older-version default (M-1 "Done when").
@@ -634,7 +636,7 @@ With S-07 the file format holds every US-03 field, so mark it as the MVP schema.
 **Contract**:
 
 - **Roadmap**: M-1 "Done when" (`:27`) reads `"0.1"` → `"1.0"`, with the `"1.0"` golden file. The S-06 and S-07 Risk text (`:163, :178`) says S-07 bumps to `"1.0"`. M-1 status is left for `/10x-roadmap` and `/10x-archive`.
-- **Test plan**: §6.3 "Version bump" says `"1.0"` and records it landed. The golden-file bullet names `project-file-1.0.json` as the byte-for-byte file.
+- **Test plan**: §6.3 "Version bump" says `"1.0"` and records it landed. The golden-file bullet names `project-file-1.0.json` as the byte-for-byte file, and the lifting paragraph Phase 7 updated names it instead of the deleted `project-file-0.1-statuses.json`.
 - **Glossary**: the Project file row (`:48`) says version `"1.0"`, which reads `"0.1"` too.
 
 ### Success Criteria:
@@ -662,7 +664,7 @@ With S-07 the file format holds every US-03 field, so mark it as the MVP schema.
 - One `validateProject` row per new rule (file wording), and edit cases for every US-04 rejection, direct and indirect.
 - Property test with Status steps: no accepted sequence ever holds a Validation Error.
 - Forecast PRD oracle rows, hand-derived, plus all-Done and weekdays-weekend edge rows.
-- Import: rejection row per rule, round-trip of `fullProject()` with Statuses. The statuses golden file is checked byte for byte in Phase 3, and after Phase 8 the `1.0` golden file is the only byte-for-byte check while the `0.1` files keep their import assertions.
+- Import: rejection row per rule, round-trip of `fullProject()` with Statuses. The statuses golden file is checked byte for byte in Phase 3, and after Phase 8 the `1.0` golden file is the only byte-for-byte check, the two shipped `0.1` files keep their import assertions, and the statuses file is deleted.
 
 ### Integration Tests:
 
@@ -725,7 +727,7 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Manual
 
-- [ ] 2.4 Review: no Done-rule code in edits; each new rule id produced by exactly one `TASK_CHECKS` entry
+- [ ] 2.4 Review: no Done-rule code in edits; each new rule id produced by exactly one guardian entry, predecessor rules after `cycle`
 - [ ] 2.5 Review: messages use domain terms and name the Task(s) for the four indirect rules
 
 ### Phase 3: Import lifts the Status gate

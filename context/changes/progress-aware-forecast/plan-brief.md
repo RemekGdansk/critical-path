@@ -34,7 +34,7 @@ Picking Done in the side panel marks the Task Done today in one edit, and a Comp
 
 **In scope:**
 
-- Seven new Validation Error rules in `TASK_CHECKS`; `setStatus`, `setCompletionDate`
+- Seven new Validation Error rules in the guardian (five in `TASK_CHECKS`; the two predecessor rules in `PROJECT_CHECKS` after `cycle`, so a cycle is always reported first); `setStatus`, `setCompletionDate`
 - `today` threaded through edits, `checkProject`, `toCheckedProject`, `validateProject`, `parseProjectFile`, `useProject`
 - Import gate removed; `project-file-0.1-statuses.json` golden file
 - Forecast reasons `all-tasks-done` and `start-successors-done`; US-04 oracle rows
