@@ -10,7 +10,7 @@ import { todayIsoDate } from "@/lib/services/calendar-date";
 import * as edits from "@/lib/services/project";
 import type { CheckedProject, EditContext, EditResult } from "@/lib/services/project";
 import { serializeProject } from "@/lib/services/project-file";
-import type { DayCountingMode, Project, Task, TaskId } from "@/types";
+import type { DayCountingMode, Project, Task, TaskId, TaskStatus } from "@/types";
 
 /** What the side panel edits: a Task, START, or nothing. */
 export type Selection = TaskId | "start" | null;
@@ -23,6 +23,9 @@ export interface ProjectActions {
   addPredecessor: (taskId: TaskId, predecessorId: TaskId) => EditResult;
   removePredecessor: (taskId: TaskId, predecessorId: TaskId) => EditResult;
   setDuration: (taskId: TaskId, input: string) => EditResult;
+  /** Marking a Task Done also sets today as its completion date, in the same edit. */
+  setStatus: (taskId: TaskId, status: TaskStatus) => EditResult;
+  setCompletionDate: (taskId: TaskId, input: string) => EditResult;
   setStartDate: (input: string) => EditResult;
   setDayCountingMode: (mode: DayCountingMode) => EditResult;
   setProjectName: (input: string) => EditResult;
@@ -152,6 +155,16 @@ export function useProject(
     (taskId: TaskId, input: string) => apply((current, context) => edits.setDuration(current, taskId, input, context)),
     [apply],
   );
+  const setStatus = useCallback(
+    (taskId: TaskId, status: TaskStatus) =>
+      apply((current, context) => edits.setStatus(current, taskId, status, context)),
+    [apply],
+  );
+  const setCompletionDate = useCallback(
+    (taskId: TaskId, input: string) =>
+      apply((current, context) => edits.setCompletionDate(current, taskId, input, context)),
+    [apply],
+  );
   const setStartDate = useCallback(
     (input: string) => apply((current, context) => edits.setStartDate(current, input, context)),
     [apply],
@@ -218,6 +231,8 @@ export function useProject(
     addPredecessor,
     removePredecessor,
     setDuration,
+    setStatus,
+    setCompletionDate,
     setStartDate,
     setDayCountingMode,
     setProjectName,

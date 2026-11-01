@@ -757,14 +757,14 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [ ] 5.1 State and view tests pass
-- [ ] 5.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check`
+- [x] 5.1 State and view tests pass
+- [x] 5.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check`
 
 #### Manual
 
-- [ ] 5.3 Marking Done shows today in Completion date; backdating commits only on blur or Enter; Escape restores
-- [ ] 5.4 A rejected Status change leaves the select on the committed Status and announces the alert
-- [ ] 5.5 Keyboard-only: Status and Completion date reachable in order with visible focus
+- [x] 5.3 Marking Done shows today in Completion date; backdating commits only on blur or Enter; Escape restores
+- [x] 5.4 A rejected Status change leaves the select on the committed Status and announces the alert
+- [x] 5.5 Keyboard-only: Status and Completion date reachable in order with visible focus
 
 ### Phase 6: Diagram Status display
 

@@ -112,6 +112,8 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
     addPredecessor,
     removePredecessor,
     setDuration,
+    setStatus,
+    setCompletionDate,
     setStartDate,
     setDayCountingMode,
     setProjectName,
@@ -231,7 +233,16 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
               key={selectedTask.id}
               task={selectedTask}
               project={project}
-              actions={{ renameTask, deleteTask: handleDeleteTask, addPredecessor, removePredecessor, setDuration }}
+              today={today}
+              actions={{
+                renameTask,
+                deleteTask: handleDeleteTask,
+                addPredecessor,
+                removePredecessor,
+                setDuration,
+                setStatus,
+                setCompletionDate,
+              }}
               focusRequest={focusRequest?.target === selectedTask.id ? focusRequest.id : undefined}
             />
           )}

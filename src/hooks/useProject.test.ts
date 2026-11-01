@@ -11,9 +11,11 @@ import {
   type EditContext,
   type EditResult,
   PROJECT_NAME_MAX_LENGTH,
+  setCompletionDate,
   setDuration,
   setProjectName,
   setStartDate,
+  setStatus,
   TASK_NAME_MAX_LENGTH,
   type ValidationErrorRule,
 } from "@/lib/services/project";
@@ -50,6 +52,22 @@ function fixture(): CheckedProject {
   const dependent = accepted(addPredecessor(withB, 2, 1, CONTEXT));
   return deepFreeze(
     accepted(setProjectName(accepted(setStartDate(dependent, "2026-09-01", CONTEXT)), "Q3 plan", CONTEXT)),
+  );
+}
+
+/**
+ * START 2026-09-01; A (id 1) Done 2026-09-03 → B (id 2) Done 2026-09-04; C (id 3)
+ * To Do → D (id 4) To Do; built through the edits as of TODAY and deep-frozen.
+ */
+function doneFixture(): CheckedProject {
+  const created = ["A", "B", "C", "D"].reduce(
+    (current, name) => accepted(createTask(current, name, CONTEXT)),
+    accepted(setStartDate(createEmptyProject(CONTEXT), "2026-09-01", CONTEXT)),
+  );
+  const linked = accepted(addPredecessor(accepted(addPredecessor(created, 2, 1, CONTEXT)), 4, 3, CONTEXT));
+  const doneA = accepted(setCompletionDate(accepted(setStatus(linked, 1, "done", CONTEXT)), 1, "2026-09-03", CONTEXT));
+  return deepFreeze(
+    accepted(setCompletionDate(accepted(setStatus(doneA, 2, "done", CONTEXT)), 2, "2026-09-04", CONTEXT)),
   );
 }
 
@@ -174,6 +192,90 @@ const rows: RejectionRow[] = [
   },
 ];
 
+/** Rows for the Done rules, run on `doneFixture()` as of TODAY (2026-09-05). */
+const doneRows: RejectionRow[] = [
+  {
+    name: "setStatus reverting A to To Do while its successor B is Done",
+    run: (state) => state.setStatus(1, "to-do"),
+    rule: "done-predecessor-not-done",
+    fragment: "Task 2: B cannot be Done while its predecessor 1: A is not Done.",
+  },
+  {
+    name: "setStatus marking D Done while its predecessor C is To Do",
+    run: (state) => state.setStatus(4, "done"),
+    rule: "done-predecessor-not-done",
+    fragment: "Task 4: D cannot be Done while its predecessor 3: C is not Done.",
+  },
+  {
+    name: "addPredecessor giving Done B the To Do predecessor C",
+    run: (state) => state.addPredecessor(2, 3),
+    rule: "done-predecessor-not-done",
+    fragment: "Task 2: B cannot be Done while its predecessor 3: C is not Done.",
+  },
+  {
+    name: "setCompletionDate after today",
+    run: (state) => state.setCompletionDate(2, "2026-09-06"),
+    rule: "completion-date-after-today",
+    fragment: "Task 2: B has the completion date 2026-09-06, which is after today, 2026-09-05.",
+  },
+  {
+    name: "setCompletionDate before the START date",
+    run: (state) => state.setCompletionDate(1, "2026-08-31"),
+    rule: "completion-date-before-start-date",
+    fragment: "Task 1: A cannot be completed on 2026-08-31, which is before the START date, 2026-09-01.",
+  },
+  {
+    name: "setStartDate after A's completion date",
+    run: (state) => state.setStartDate("2026-09-04"),
+    rule: "completion-date-before-start-date",
+    fragment: "Task 1: A cannot be completed on 2026-09-03, which is before the START date, 2026-09-04.",
+  },
+  {
+    name: "setCompletionDate of B before its predecessor A's",
+    run: (state) => state.setCompletionDate(2, "2026-09-02"),
+    rule: "completion-date-before-predecessor",
+    fragment:
+      "Task 2: B has the completion date 2026-09-02, which is before the completion date of its predecessor 1: A, 2026-09-03.",
+  },
+  {
+    name: "setCompletionDate of A after its successor B's",
+    run: (state) => state.setCompletionDate(1, "2026-09-05"),
+    rule: "completion-date-before-predecessor",
+    fragment:
+      "Task 2: B has the completion date 2026-09-04, which is before the completion date of its predecessor 1: A, 2026-09-05.",
+  },
+  {
+    name: "setCompletionDate emptying a Done Task's date",
+    run: (state) => state.setCompletionDate(1, " "),
+    rule: "done-without-completion-date",
+    fragment: "A Done Task needs a completion date.",
+  },
+  {
+    name: "setCompletionDate on a To Do Task",
+    run: (state) => state.setCompletionDate(3, "2026-09-03"),
+    rule: "completion-date-without-done",
+    fragment: "Only a Done Task can have a completion date.",
+  },
+  {
+    name: "setCompletionDate to a non-date",
+    run: (state) => state.setCompletionDate(1, "2026-02-30"),
+    rule: "completion-date-not-a-date",
+    fragment: "A completion date must be a calendar date",
+  },
+  {
+    name: "setStatus on an unknown Task",
+    run: (state) => state.setStatus(UNKNOWN_ID, "done"),
+    rule: "unknown-task",
+    fragment: `There is no Task with id ${UNKNOWN_ID}`,
+  },
+  {
+    name: "setCompletionDate on an unknown Task",
+    run: (state) => state.setCompletionDate(UNKNOWN_ID, "2026-09-03"),
+    rule: "unknown-task",
+    fragment: `There is no Task with id ${UNKNOWN_ID}`,
+  },
+];
+
 function expectRejected(result: EditResult, row: RejectionRow): void {
   if (result.ok) throw new Error(`Expected the edit to be rejected with ${row.rule}`);
   expect(result.error.rule).toBe(row.rule);
@@ -181,9 +283,10 @@ function expectRejected(result: EditResult, row: RejectionRow): void {
   expect(result.error.message).not.toMatch(/invalid|conflict|blocked/i);
 }
 
-describe("useProject: a rejected edit commits nothing", () => {
-  it.each(rows)("$name leaves project, selection and replacements unchanged", (row) => {
-    const project = fixture();
+/** The two rejection cases over `table`, each row run on a fresh `makeFixture()` with Task 1 selected. */
+function rejectionCases(table: RejectionRow[], makeFixture: () => CheckedProject): void {
+  it.each(table)("$name leaves project, selection and replacements unchanged", (row) => {
+    const project = makeFixture();
     const before = structuredClone(project);
     const selectedBefore = project.tasks[0];
     const { result } = renderHook(() => useProject(project, 1, OPTIONS));
@@ -203,8 +306,8 @@ describe("useProject: a rejected edit commits nothing", () => {
     expect(result.current.previousProject).toBeUndefined();
   });
 
-  it.each(rows)("$name followed by an accepted edit in one event applies only the accepted one", (row) => {
-    const project = fixture();
+  it.each(table)("$name followed by an accepted edit in one event applies only the accepted one", (row) => {
+    const project = makeFixture();
     const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     let rejected: EditResult | undefined;
@@ -223,6 +326,10 @@ describe("useProject: a rejected edit commits nothing", () => {
     expect(result.current.selectedTask).toBe(project.tasks[0]);
     expect(result.current.replacements).toBe(0);
   });
+}
+
+describe("useProject: a rejected edit commits nothing", () => {
+  rejectionCases(rows, fixture);
 
   it("createTask on a replaced project at the id ceiling is rejected with task-id-limit-reached", () => {
     // Not a row in the table above: it needs a replaced project, not fixture().
@@ -265,6 +372,36 @@ describe("useProject: a rejected edit commits nothing", () => {
 
     const expected = accepted(setDuration(accepted(setDuration(project, 1, "6", CONTEXT)), 2, "4", CONTEXT));
     expect(result.current.project).toStrictEqual(expected);
+  });
+});
+
+describe("useProject: a rejected Done-rule edit commits nothing", () => {
+  rejectionCases(doneRows, doneFixture);
+});
+
+describe("useProject: setStatus", () => {
+  it("marking a Task Done commits today's date as its completion date and keeps the selection", () => {
+    const project = doneFixture();
+    const { result } = renderHook(() => useProject(project, 3, OPTIONS));
+
+    let edit: EditResult | undefined;
+    act(() => {
+      edit = result.current.setStatus(3, "done");
+    });
+
+    const expected = accepted(setStatus(project, 3, "done", CONTEXT));
+    expect(expected.tasks[2]).toStrictEqual({
+      id: 3,
+      name: "C",
+      predecessors: [],
+      status: "done",
+      completionDate: TODAY,
+    });
+    expect(edit).toStrictEqual({ ok: true, project: expected });
+    expect(result.current.project).toStrictEqual(expected);
+    expect(result.current.selection).toBe(3);
+    expect(result.current.replacements).toBe(0);
+    expect(result.current.previousProject).toBe(project);
   });
 });
 

@@ -11,14 +11,20 @@ import {
   createTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDayCountingMode,
   setDuration,
   setStartDate,
+  setStatus,
 } from "@/lib/services/project";
 import type { DayCountingMode, TaskId } from "@/types";
 
-const TODAY = "2026-09-05";
+/** Today for the edits and, by default, for the forecast: before the START dates below. */
+const TODAY = "2026-08-20";
 const CONTEXT: EditContext = { today: TODAY };
+/** Today for the Done fixtures, edits and forecast alike: a completion date is never after today. */
+const DONE_TODAY = "2026-09-10";
+const DONE_CONTEXT: EditContext = { today: DONE_TODAY };
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
@@ -54,8 +60,29 @@ function singleTask(mode: DayCountingMode): CheckedProject {
   return accepted(setDayCountingMode(accepted(setDuration(withA, 1, "5", CONTEXT)), mode, CONTEXT));
 }
 
-/** The static markup of `ForecastSummary` for the project, forecast as of `today` (by default 2026-08-20, before START). */
-function renderedMarkup(project: CheckedProject, today = "2026-08-20"): string {
+/**
+ * START 2026-09-01, A (id 1) Done on 2026-09-03 → B (id 2), as of DONE_TODAY;
+ * B is Done on 2026-09-08 when `bDone`, else To Do with the given Duration (none when undefined).
+ */
+function doneProject(b: { bDone: true } | { bDone: false; duration?: string }): CheckedProject {
+  const created = accepted(
+    createTask(accepted(createTask(createEmptyProject(DONE_CONTEXT), "A", DONE_CONTEXT)), "B", DONE_CONTEXT),
+  );
+  const dated = accepted(
+    setStartDate(accepted(addPredecessor(created, 2, 1, DONE_CONTEXT)), "2026-09-01", DONE_CONTEXT),
+  );
+  const doneA = accepted(
+    setCompletionDate(accepted(setStatus(dated, 1, "done", DONE_CONTEXT)), 1, "2026-09-03", DONE_CONTEXT),
+  );
+  if (b.bDone)
+    return accepted(
+      setCompletionDate(accepted(setStatus(doneA, 2, "done", DONE_CONTEXT)), 2, "2026-09-08", DONE_CONTEXT),
+    );
+  return b.duration === undefined ? doneA : accepted(setDuration(doneA, 2, b.duration, DONE_CONTEXT));
+}
+
+/** The static markup of `ForecastSummary` for the project, forecast as of `today` (by default TODAY, before START). */
+function renderedMarkup(project: CheckedProject, today = TODAY): string {
   return renderToStaticMarkup(
     createElement(ForecastSummary, {
       forecast: forecast(project, today),
@@ -167,6 +194,40 @@ describe("ForecastSummary", () => {
     expect(text).toContain("Validation Warning");
     expect(text).not.toContain("Critical-path time");
     expect(text).not.toContain("Total-work time");
+  });
+
+  it("asks for a Duration only from the Tasks that are not Done", () => {
+    // A is Done without a Duration and needs none; B is To Do without one.
+    const text = textOf(renderedMarkup(doneProject({ bDone: false }), DONE_TODAY));
+
+    expect(text).toContain("Validation Warning: 1 Task without Duration.");
+    expect(text).toContain("Forecast not possible until every Task that is not Done has one.");
+    expect(text).not.toContain("Project Finish Date");
+  });
+
+  it("once every Task is Done, shows the latest completion date as both Project Finish Dates, says so, and has no swatch", () => {
+    const markup = renderedMarkup(doneProject({ bDone: true }), DONE_TODAY);
+    const text = textOf(markup);
+
+    expect(text).toContain("Resource-Unconstrained Project Finish Date 2026-09-08");
+    expect(text).toContain("Resource-Constrained Project Finish Date 2026-09-08");
+    expect(text).toContain("Critical-path time 0 days · Total-work time 0 days");
+    expect(text).toContain("Every Task is Done.");
+    // No other base-date note, and the real today is never named.
+    expect(text).not.toContain("forecasting from today");
+    expect(text).not.toContain(DONE_TODAY);
+    // Nothing is highlighted on the diagram, so the legend swatch would explain a colour that is not drawn.
+    expect(markup).not.toContain("bg-critical-path");
+  });
+
+  it("says the forecast starts from today once the Tasks that follow START are Done", () => {
+    // START 2026-09-01 is in the past, but A, its only successor, is Done: B (3 days) runs from today, 2026-09-10.
+    const text = textOf(renderedMarkup(doneProject({ bDone: false, duration: "3" }), DONE_TODAY));
+
+    expect(text).toContain("Resource-Unconstrained Project Finish Date 2026-09-13");
+    expect(text).toContain("The Tasks that follow START are Done: forecasting from today, 2026-09-10.");
+    expect(text).not.toContain("is in the past");
+    expect(text).not.toContain("Every Task is Done.");
   });
 
   it("shows neither time for an empty project", () => {

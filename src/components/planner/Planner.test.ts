@@ -8,14 +8,17 @@ import { Planner } from "@/components/planner/Planner";
 import { type Download, stubDialog, stubDownloads } from "@/components/planner/test-stubs";
 import { serializeProject } from "@/lib/services/project-file";
 import {
+  addPredecessor,
   type CheckedProject,
   createEmptyProject,
   createTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDuration,
   setProjectName,
   setStartDate,
+  setStatus,
   validateProject,
 } from "@/lib/services/project";
 
@@ -105,7 +108,7 @@ describe("Planner: the forecast follows the committed project", () => {
 
     const withheld = forecastRegion();
     expect(textOf(withheld)).toContain("Validation Warning");
-    expect(textOf(withheld)).toContain("Forecast not possible");
+    expect(textOf(withheld)).toContain("Forecast not possible until every Task that is not Done has one.");
     expect(textOf(withheld)).not.toContain("Project Finish Date");
     // Over the whole markup, so a date in an attribute such as `dateTime` counts too.
     expect(withheld.outerHTML).not.toMatch(/\d{4}-\d{2}-\d{2}/);
@@ -158,6 +161,116 @@ describe("Planner: the forecast follows the committed project", () => {
     expect(weekdays).not.toContain("2999-01-09");
     expect(await screen.findByRole("button", { name: "A, 5 weekdays, on the critical path" })).toBeDefined();
     expect(screen.getByLabelText("Duration (weekdays)")).toBeDefined();
+  });
+});
+
+/**
+ * START 2026-09-01, A (id 1) Done on 2026-09-03 → B (id 2, 3 days), To Do or
+ * Done on 2026-09-04. A past START date, as any Done project needs, so these
+ * tests assert only clock-free text: Planner reads the real clock for the
+ * edits, the Completion date's max and the forecast.
+ */
+function doneFixture(bDone: boolean): CheckedProject {
+  const created = accepted(
+    setDuration(
+      accepted(createTask(accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT)), "B", CONTEXT)),
+      2,
+      "3",
+      CONTEXT,
+    ),
+  );
+  const dated = accepted(setStartDate(accepted(addPredecessor(created, 2, A_ID, CONTEXT)), "2026-09-01", CONTEXT));
+  const doneA = accepted(
+    setCompletionDate(accepted(setStatus(dated, A_ID, "done", CONTEXT)), A_ID, "2026-09-03", CONTEXT),
+  );
+  return bDone
+    ? accepted(setCompletionDate(accepted(setStatus(doneA, 2, "done", CONTEXT)), 2, "2026-09-04", CONTEXT))
+    : doneA;
+}
+
+/** A's node: Done, so neither warned for its missing Duration nor on the critical path. */
+const A_DONE_NODE = "A";
+
+function statusSelect(): HTMLSelectElement {
+  return screen.getByLabelText<HTMLSelectElement>("Status");
+}
+
+function completionDateField(): HTMLInputElement | null {
+  return screen.queryByLabelText<HTMLInputElement>("Completion date");
+}
+
+/** Types a Completion date draft and commits it on blur; the key press first, so the typed-draft path is taken. */
+function commitCompletionDate(value: string): void {
+  const field = completionDateField();
+  if (field === null) throw new Error("Expected the Completion date field");
+  fireEvent.keyDown(field, { key: "2" });
+  fireEvent.change(field, { target: { value } });
+  fireEvent.blur(field);
+}
+
+// The Diagram node names carry no Status yet, so the committed Status and
+// completion date are read from the panel: the Status select shows the
+// committed Status, and Escape restores the committed completion date.
+describe("Planner: Status and completion date", () => {
+  it("shows a Done Task's Status and completion date in the panel", async () => {
+    renderPlanner(A_ID, doneFixture(false));
+    await screen.findByRole("button", { name: A_DONE_NODE });
+
+    expect(statusSelect().value).toBe("done");
+    expect(completionDateField()?.value).toBe("2026-09-03");
+    expect(completionDateField()?.min).toBe("2026-09-01");
+  });
+
+  it("names the after-today rule for a completion date in the future and keeps the committed date", async () => {
+    renderPlanner(A_ID, doneFixture(false));
+    await screen.findByRole("button", { name: A_DONE_NODE });
+
+    commitCompletionDate("2999-01-01");
+
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Task 1: A has the completion date 2999-01-01, which is after today");
+    expect(alert.textContent).not.toMatch(/invalid|conflict|blocked/i);
+    expect(statusSelect().value).toBe("done");
+    expect(await screen.findByRole("button", { name: A_DONE_NODE })).toBeDefined();
+    const field = completionDateField();
+    if (field === null) throw new Error("Expected the Completion date field");
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(field.value).toBe("2026-09-03");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("refuses to revert A to To Do while its successor B is Done, naming B, and keeps A Done", async () => {
+    renderPlanner(A_ID, doneFixture(true));
+    await screen.findByRole("button", { name: A_DONE_NODE });
+
+    fireEvent.change(statusSelect(), { target: { value: "to-do" } });
+
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toBe("Task 2: B cannot be Done while its predecessor 1: A is not Done.");
+    expect(statusSelect().value).toBe("done");
+    expect(completionDateField()?.value).toBe("2026-09-03");
+    expect(await screen.findByRole("button", { name: A_DONE_NODE })).toBeDefined();
+  });
+
+  it("marks a To Do Task Done with today's date in the field, and removes the date once it leaves Done", async () => {
+    renderPlanner(2, doneFixture(false));
+    await screen.findByRole("button", { name: /^B, 3 days/ });
+    expect(completionDateField()).toBeNull();
+
+    fireEvent.change(statusSelect(), { target: { value: "done" } });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(statusSelect().value).toBe("done");
+    // The real today, so only its shape is asserted; the draft follows the committed date.
+    const field = completionDateField();
+    expect(field?.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(field?.max).toBe(field?.value);
+
+    fireEvent.change(statusSelect(), { target: { value: "in-progress" } });
+
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(statusSelect().value).toBe("in-progress");
+    expect(completionDateField()).toBeNull();
   });
 });
 
