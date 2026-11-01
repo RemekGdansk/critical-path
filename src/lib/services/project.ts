@@ -401,7 +401,7 @@ interface ProjectIndex {
 }
 
 type TaskCheck = (task: Task, index: ProjectIndex, wording: Wording) => ValidationError | undefined;
-type ProjectCheck = (project: Project, context: EditContext, wording: Wording) => ValidationError | undefined;
+type ProjectCheck = (index: ProjectIndex, wording: Wording) => ValidationError | undefined;
 
 /**
  * The rules about one Task, run Task by Task in array order. A new Validation
@@ -436,10 +436,11 @@ const TASK_CHECKS: readonly TaskCheck[] = [
  * Validation Error rule about the project is one entry here, in reporting order.
  */
 const PROJECT_CHECKS: readonly ProjectCheck[] = [
-  (project) => (project.start.date === undefined || isIsoDate(project.start.date) ? undefined : startDateNotADate()),
-  (project) => (project.name === undefined ? undefined : checkName(project.name, PROJECT_NAME_RULES)),
+  ({ project }) =>
+    project.start.date === undefined || isIsoDate(project.start.date) ? undefined : startDateNotADate(),
+  ({ project }) => (project.name === undefined ? undefined : checkName(project.name, PROJECT_NAME_RULES)),
   // Only createTask reaches it: import's shape stage rejects a file above the ceiling first.
-  (project) =>
+  ({ project }) =>
     project.nextTaskId <= MAX_NEXT_TASK_ID
       ? undefined
       : {
@@ -447,7 +448,7 @@ const PROJECT_CHECKS: readonly ProjectCheck[] = [
           message: `Task ids go up to ${MAX_TASK_ID} and this project has reached that limit, so no more Tasks can be created.`,
         },
   // Last, since `findCycle` ignores the unknown ids the Task checks report.
-  (project) => {
+  ({ project }) => {
     const cycle = findCycle(project);
     return cycle === undefined
       ? undefined
@@ -468,7 +469,7 @@ function firstValidationError(project: Project, context: EditContext, wording: W
     }
   }
   for (const check of PROJECT_CHECKS) {
-    const error = check(project, context, wording);
+    const error = check(index, wording);
     if (error) return error;
   }
   return undefined;
