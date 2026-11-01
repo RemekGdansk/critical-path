@@ -6,12 +6,16 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   setDuration,
   setStartDate,
   toCheckedProject,
 } from "@/lib/services/project";
 import type { TaskId, TaskStatus } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
@@ -21,16 +25,16 @@ function accepted(result: EditResult): CheckedProject {
 /** A project with one Task per [name, Duration] pair, ids 1..n; an empty Duration leaves it unset. */
 function projectWith(startDate: string, ...tasks: [string, string][]): CheckedProject {
   const project = tasks.reduce((current, [name, duration]) => {
-    const created = accepted(createTask(current, name));
-    return accepted(setDuration(created, created.nextTaskId - 1, duration));
-  }, createEmptyProject());
-  return accepted(setStartDate(project, startDate));
+    const created = accepted(createTask(current, name, CONTEXT));
+    return accepted(setDuration(created, created.nextTaskId - 1, duration, CONTEXT));
+  }, createEmptyProject(CONTEXT));
+  return accepted(setStartDate(project, startDate, CONTEXT));
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
 function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
-    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId, CONTEXT)),
     project,
   );
 }
@@ -45,22 +49,25 @@ function finishDates(result: Forecast): [string, string] {
 
 /** START 2026-09-01, A → B (3) with B To Do and A's Status, completion date and Duration as given: built by hand, since no edit sets a Status yet, then checked by the guardian. */
 function aWithStatus(status: TaskStatus, completionDate: string | undefined, aDuration?: number): CheckedProject {
-  return toCheckedProject({
-    ...createEmptyProject(),
-    start: { date: "2026-09-01" },
-    nextTaskId: 3,
-    tasks: [
-      {
-        id: 1,
-        name: "A",
-        predecessors: [],
-        status,
-        ...(completionDate === undefined ? {} : { completionDate }),
-        ...(aDuration === undefined ? {} : { duration: aDuration }),
-      },
-      { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
-    ],
-  });
+  return toCheckedProject(
+    {
+      ...createEmptyProject(CONTEXT),
+      start: { date: "2026-09-01" },
+      nextTaskId: 3,
+      tasks: [
+        {
+          id: 1,
+          name: "A",
+          predecessors: [],
+          status,
+          ...(completionDate === undefined ? {} : { completionDate }),
+          ...(aDuration === undefined ? {} : { duration: aDuration }),
+        },
+        { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
+      ],
+    },
+    CONTEXT,
+  );
 }
 
 /** START → A (5) → B (3), both To Do, built through the edit functions; an empty START date leaves it unset. */
@@ -334,14 +341,14 @@ describe("forecast", () => {
       expect(finishDates(forecast(chain, "2026-08-20"))).toEqual(["2026-09-11", "2026-09-11"]);
 
       // A → D → C next to A → B → C.
-      const withD = withDependencies(accepted(createTask(chain, "D")), [1, 4], [4, 3]);
+      const withD = withDependencies(accepted(createTask(chain, "D", CONTEXT)), [1, 4], [4, 3]);
       expect(forecast(withD, "2026-08-20")).toEqual({
         kind: "withheld",
         warnings: [{ rule: "duration-missing", taskId: 4, message: "D has no Duration." }],
       });
 
       // A (5) → D (4) → C (2) is now the longest chain, 11 days against 10 through B; all four Tasks take 14.
-      const estimated = forecast(accepted(setDuration(withD, 4, "4")), "2026-08-20");
+      const estimated = forecast(accepted(setDuration(withD, 4, "4", CONTEXT)), "2026-08-20");
       expect(finishDates(estimated)).toEqual(["2026-09-12", "2026-09-15"]);
       expect(estimated).toMatchObject({
         criticalPathTime: { kind: "days", days: 11 },

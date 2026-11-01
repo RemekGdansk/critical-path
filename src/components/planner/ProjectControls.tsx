@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import type { ProjectActions } from "@/hooks/useProject";
 import { downloadTextFile } from "@/lib/download";
+import { todayIsoDate } from "@/lib/services/calendar-date";
 import { parseProjectFile, projectFileName, serializeProject } from "@/lib/services/project-file";
 import {
   type CheckedProject,
@@ -148,14 +149,14 @@ export function ProjectControls({
       setPending({ kind: "new" });
       return;
     }
-    replaceWith(createEmptyProject());
+    replaceWith(createEmptyProject({ today: todayIsoDate(new Date()) }));
   }
 
   function handleConfirm() {
     const confirmed = pending;
     if (confirmed === null) return;
     closeDialog();
-    replaceWith(confirmed.kind === "new" ? createEmptyProject() : confirmed.project);
+    replaceWith(confirmed.kind === "new" ? createEmptyProject({ today: todayIsoDate(new Date()) }) : confirmed.project);
   }
 
   // Focus goes back explicitly: the Import button may not hold focus after the file picker.
@@ -188,7 +189,7 @@ export function ProjectControls({
       // So picking the same file again fires `change` again.
       input.value = "";
     }
-    const result = parseProjectFile(text);
+    const result = parseProjectFile(text, { today: todayIsoDate(new Date()) });
     if (!result.ok) {
       // The current project stays as it was.
       setFileError(`${file.name} was not imported. ${result.error.message}`);

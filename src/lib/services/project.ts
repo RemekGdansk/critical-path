@@ -52,6 +52,14 @@ export type CheckedProject = Project & { readonly [checked]: true };
 
 export type EditResult = { ok: true; project: CheckedProject } | { ok: false; error: ValidationError };
 
+/**
+ * What an edit or door needs from outside the project: today, as an ISO date
+ * (yyyy-mm-dd) of the local day. Passed in, never read from the clock here.
+ */
+export interface EditContext {
+  today: string;
+}
+
 /** Words a rule's message for the edit that broke it; undefined keeps the rule's own message. */
 type Explanations = Partial<Record<ValidationErrorRule, () => string | undefined>>;
 
@@ -61,9 +69,14 @@ type Explanations = Partial<Record<ValidationErrorRule, () => string | undefined
  * edit held no Validation Error, so the first one the candidate holds is the
  * edit's doing. Throws ProjectInvariantBreach on a broken model shape.
  */
-function accept(candidate: Project, explain?: Explanations, wording: Wording = "edit"): EditResult {
+function accept(
+  candidate: Project,
+  context: EditContext,
+  explain?: Explanations,
+  wording: Wording = "edit",
+): EditResult {
   assertModelShape(candidate);
-  const error = firstValidationError(candidate, wording);
+  const error = firstValidationError(candidate, context, wording);
   if (error === undefined) return { ok: true, project: candidate as CheckedProject };
   return rejectWith({ ...error, message: explain?.[error.rule]?.() ?? error.message });
 }
@@ -159,35 +172,38 @@ function replaceTask(project: Project, updated: Task): Project {
   return { ...project, tasks: project.tasks.map((task) => (task.id === updated.id ? updated : task)) };
 }
 
-export function createEmptyProject(): CheckedProject {
-  return toCheckedProject({ start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId: 1, tasks: [] });
+export function createEmptyProject(context: EditContext): CheckedProject {
+  return toCheckedProject(
+    { start: {}, finish: {}, dayCountingMode: "calendar-days", nextTaskId: 1, tasks: [] },
+    context,
+  );
 }
 
 /**
  * Import's door: the guardian on a project no edit built, in file wording.
  * Throws ProjectInvariantBreach on a broken model shape.
  */
-export function checkProject(project: Project): EditResult {
-  return accept(project, undefined, "file");
+export function checkProject(project: Project, context: EditContext): EditResult {
+  return accept(project, context, undefined, "file");
 }
 
 /** For hand-built fixtures: throws ProjectInvariantBreach unless the guardian accepts the project. */
-export function toCheckedProject(project: Project): CheckedProject {
-  const result = checkProject(project);
+export function toCheckedProject(project: Project, context: EditContext): CheckedProject {
+  const result = checkProject(project, context);
   if (!result.ok) throw new ProjectInvariantBreach(result.error);
   return result.project;
 }
 
-export function createTask(project: CheckedProject, name: string): EditResult {
+export function createTask(project: CheckedProject, name: string, context: EditContext): EditResult {
   const task: Task = { id: project.nextTaskId, name: name.trim(), predecessors: [], status: "to-do" };
-  return accept({ ...project, nextTaskId: project.nextTaskId + 1, tasks: [...project.tasks, task] });
+  return accept({ ...project, nextTaskId: project.nextTaskId + 1, tasks: [...project.tasks, task] }, context);
 }
 
-export function renameTask(project: CheckedProject, taskId: TaskId, name: string): EditResult {
+export function renameTask(project: CheckedProject, taskId: TaskId, name: string, context: EditContext): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
 
-  return accept(replaceTask(project, { ...task, name: name.trim() }));
+  return accept(replaceTask(project, { ...task, name: name.trim() }), context);
 }
 
 /**
@@ -195,7 +211,7 @@ export function renameTask(project: CheckedProject, taskId: TaskId, name: string
  * predecessors are not bridged to its successors, and `nextTaskId` is kept so
  * the id is never reused.
  */
-export function deleteTask(project: CheckedProject, taskId: TaskId): EditResult {
+export function deleteTask(project: CheckedProject, taskId: TaskId, context: EditContext): EditResult {
   if (findTask(project, taskId) === undefined) return unknownTask(taskId);
 
   const tasks = project.tasks
@@ -205,18 +221,23 @@ export function deleteTask(project: CheckedProject, taskId: TaskId): EditResult 
         ? { ...task, predecessors: task.predecessors.filter((id) => id !== taskId) }
         : task,
     );
-  return accept({ ...project, tasks });
+  return accept({ ...project, tasks }, context);
 }
 
-export function addPredecessor(project: CheckedProject, taskId: TaskId, predecessorId: TaskId): EditResult {
+export function addPredecessor(
+  project: CheckedProject,
+  taskId: TaskId,
+  predecessorId: TaskId,
+  context: EditContext,
+): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
   const predecessor = findTask(project, predecessorId);
   if (predecessor === undefined) return unknownTask(predecessorId);
-  if (task.predecessors.includes(predecessorId)) return accept(project);
+  if (task.predecessors.includes(predecessorId)) return accept(project, context);
 
   const predecessors = [...task.predecessors, predecessorId].toSorted((a, b) => a - b);
-  return accept(replaceTask(project, { ...task, predecessors }), {
+  return accept(replaceTask(project, { ...task, predecessors }), context, {
     // The shortest cycle through the new dependency, starting at the Task (US-01).
     cycle: () => {
       const cycle = cyclePathFor(project, taskId, predecessorId);
@@ -227,25 +248,31 @@ export function addPredecessor(project: CheckedProject, taskId: TaskId, predeces
   });
 }
 
-export function removePredecessor(project: CheckedProject, taskId: TaskId, predecessorId: TaskId): EditResult {
+export function removePredecessor(
+  project: CheckedProject,
+  taskId: TaskId,
+  predecessorId: TaskId,
+  context: EditContext,
+): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
-  if (!task.predecessors.includes(predecessorId)) return accept(project);
+  if (!task.predecessors.includes(predecessorId)) return accept(project, context);
 
   return accept(
     replaceTask(project, { ...task, predecessors: task.predecessors.filter((id) => id !== predecessorId) }),
+    context,
   );
 }
 
 /** Sets the project name, trimmed, under the project name rules (the Task name rules, worded for the project); empty input clears it by removing the field. */
-export function setProjectName(project: CheckedProject, input: string): EditResult {
+export function setProjectName(project: CheckedProject, input: string, context: EditContext): EditResult {
   const trimmed = input.trim();
   if (trimmed === "") {
     const cleared = { ...project };
     delete cleared.name;
-    return accept(cleared);
+    return accept(cleared, context);
   }
-  return accept({ ...project, name: trimmed });
+  return accept({ ...project, name: trimmed }, context);
 }
 
 const DURATION_MESSAGE = "A Duration must be a positive whole number of days.";
@@ -268,7 +295,7 @@ const DIGITS_ONLY = /^[0-9]+$/;
  * only, a positive whole number of days. Empty input clears the Duration,
  * which is allowed and raises a Validation Warning instead.
  */
-export function setDuration(project: CheckedProject, taskId: TaskId, input: string): EditResult {
+export function setDuration(project: CheckedProject, taskId: TaskId, input: string, context: EditContext): EditResult {
   const task = findTask(project, taskId);
   if (task === undefined) return unknownTask(taskId);
 
@@ -276,22 +303,22 @@ export function setDuration(project: CheckedProject, taskId: TaskId, input: stri
   if (trimmed === "") {
     const cleared = { ...task };
     delete cleared.duration;
-    return accept(replaceTask(project, cleared));
+    return accept(replaceTask(project, cleared), context);
   }
   // Parsing only: "0" or a 20-digit number parse, and the rule list rejects them.
   if (!DIGITS_ONLY.test(trimmed)) return reject("duration-not-positive-whole-number", DURATION_MESSAGE);
-  return accept(replaceTask(project, { ...task, duration: Number(trimmed) }));
+  return accept(replaceTask(project, { ...task, duration: Number(trimmed) }), context);
 }
 
 /** Sets the START date from an ISO date (yyyy-mm-dd); empty input clears it, so the forecast starts from today. */
-export function setStartDate(project: CheckedProject, input: string): EditResult {
+export function setStartDate(project: CheckedProject, input: string, context: EditContext): EditResult {
   const trimmed = input.trim();
   if (trimmed === "") {
     const start = { ...project.start };
     delete start.date;
-    return accept({ ...project, start });
+    return accept({ ...project, start }, context);
   }
-  return accept({ ...project, start: { ...project.start, date: trimmed } });
+  return accept({ ...project, start: { ...project.start, date: trimmed } }, context);
 }
 
 /** Every day-counting mode, in the order the planner's Day counting control lists them. */
@@ -302,9 +329,9 @@ export function isDayCountingMode(value: string): value is DayCountingMode {
 }
 
 /** Sets how Durations count: calendar days or weekdays (Mon–Fri). Any mode suits any project. */
-export function setDayCountingMode(project: CheckedProject, mode: DayCountingMode): EditResult {
-  if (project.dayCountingMode === mode) return accept(project);
-  return accept({ ...project, dayCountingMode: mode });
+export function setDayCountingMode(project: CheckedProject, mode: DayCountingMode, context: EditContext): EditResult {
+  if (project.dayCountingMode === mode) return accept(project, context);
+  return accept({ ...project, dayCountingMode: mode }, context);
 }
 
 /** A model invariant the project breaks, named for the first violation found. */
@@ -366,14 +393,15 @@ function assertModelShape(project: Project): void {
  */
 type Wording = "edit" | "file";
 
-/** The project under check and its Task lookup, built once per walk. */
+/** The project under check, its Task lookup and today, built once per walk. */
 interface ProjectIndex {
   project: Project;
   tasksById: ReadonlyMap<TaskId, Task>;
+  today: string;
 }
 
 type TaskCheck = (task: Task, index: ProjectIndex, wording: Wording) => ValidationError | undefined;
-type ProjectCheck = (project: Project, wording: Wording) => ValidationError | undefined;
+type ProjectCheck = (project: Project, context: EditContext, wording: Wording) => ValidationError | undefined;
 
 /**
  * The rules about one Task, run Task by Task in array order. A new Validation
@@ -427,8 +455,12 @@ const PROJECT_CHECKS: readonly ProjectCheck[] = [
   },
 ];
 
-function firstValidationError(project: Project, wording: Wording): ValidationError | undefined {
-  const index: ProjectIndex = { project, tasksById: new Map(project.tasks.map((task) => [task.id, task])) };
+function firstValidationError(project: Project, context: EditContext, wording: Wording): ValidationError | undefined {
+  const index: ProjectIndex = {
+    project,
+    tasksById: new Map(project.tasks.map((task) => [task.id, task])),
+    today: context.today,
+  };
   for (const task of project.tasks) {
     for (const check of TASK_CHECKS) {
       const error = check(task, index, wording);
@@ -436,7 +468,7 @@ function firstValidationError(project: Project, wording: Wording): ValidationErr
     }
   }
   for (const check of PROJECT_CHECKS) {
-    const error = check(project, wording);
+    const error = check(project, context, wording);
     if (error) return error;
   }
   return undefined;
@@ -449,6 +481,6 @@ function firstValidationError(project: Project, wording: Wording): ValidationErr
  * the model invariants (unique ascending ids, sorted and unique predecessors);
  * import establishes them first.
  */
-export function validateProject(project: Project): ValidationError | undefined {
-  return firstValidationError(project, "file");
+export function validateProject(project: Project, context: EditContext): ValidationError | undefined {
+  return firstValidationError(project, context, "file");
 }

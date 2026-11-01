@@ -7,11 +7,15 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   setDayCountingMode,
   setStartDate,
 } from "@/lib/services/project";
 import type { DayCountingMode, Project } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
@@ -20,8 +24,10 @@ function accepted(result: EditResult): CheckedProject {
 
 /** A alone, without a Duration: the note does not wait for the forecast, which this project withholds. */
 function project(mode: DayCountingMode, startDate?: string): Project {
-  const withA = accepted(setDayCountingMode(accepted(createTask(createEmptyProject(), "A")), mode));
-  return startDate === undefined ? withA : accepted(setStartDate(withA, startDate));
+  const withA = accepted(
+    setDayCountingMode(accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT)), mode, CONTEXT),
+  );
+  return startDate === undefined ? withA : accepted(setStartDate(withA, startDate, CONTEXT));
 }
 
 /** The panel's text as of `today`, tags replaced by spaces. */

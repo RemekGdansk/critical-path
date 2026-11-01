@@ -6,8 +6,9 @@
 // started new, against which `hasUnexportedChanges` compares the file text.
 import { useCallback, useRef, useState } from "react";
 
+import { todayIsoDate } from "@/lib/services/calendar-date";
 import * as edits from "@/lib/services/project";
-import type { CheckedProject, EditResult } from "@/lib/services/project";
+import type { CheckedProject, EditContext, EditResult } from "@/lib/services/project";
 import { serializeProject } from "@/lib/services/project-file";
 import type { DayCountingMode, Project, Task, TaskId } from "@/types";
 
@@ -48,6 +49,15 @@ export interface ProjectActions {
   markExported: (project: Project) => void;
 }
 
+export interface UseProjectOptions {
+  /** Today as an ISO date (yyyy-mm-dd), read when each edit is applied; the local day from the clock by default. */
+  today?: () => string;
+}
+
+function clockToday(): string {
+  return todayIsoDate(new Date());
+}
+
 export interface ProjectState extends ProjectActions {
   project: CheckedProject;
   /** As selected: a deleted Task's id is kept here, and `selectedTask` resolves it to undefined. */
@@ -66,12 +76,17 @@ export interface ProjectState extends ProjectActions {
 /**
  * `initial` may be a lazy initializer, as with `useState`, so a costly project is built once.
  * `initialSelection` is what is selected on first render; nothing by default.
+ * `options.today` is read on first render only, so every action stays stable.
  */
 export function useProject(
   initial?: CheckedProject | (() => CheckedProject),
   initialSelection: Selection = null,
+  options?: UseProjectOptions,
 ): ProjectState {
-  const [project, setProject] = useState<CheckedProject>(initial ?? edits.createEmptyProject);
+  const [today] = useState(() => options?.today ?? clockToday);
+  const [project, setProject] = useState<CheckedProject>(
+    initial ?? (() => edits.createEmptyProject({ today: today() })),
+  );
   // Stored as given and resolved on read: a deleted Task simply resolves to
   // "nothing selected", and a START selection survives every Task edit.
   const [selection, setSelection] = useState<Selection>(initialSelection);
@@ -97,45 +112,56 @@ export function useProject(
     setProject(next);
   }, []);
 
+  // Today is read when the edit is applied, not when the action was created.
   const apply = useCallback(
-    (edit: (current: CheckedProject) => EditResult): EditResult => {
-      const result = edit(latest.current);
+    (edit: (current: CheckedProject, context: EditContext) => EditResult): EditResult => {
+      const result = edit(latest.current, { today: today() });
       if (result.ok) commit(result.project, latest.current);
       return result;
     },
-    [commit],
+    [commit, today],
   );
 
   const select = useCallback((target: Selection) => {
     setSelection(target);
   }, []);
-  const createTask = useCallback((name: string) => apply((current) => edits.createTask(current, name)), [apply]);
-  const renameTask = useCallback(
-    (taskId: TaskId, name: string) => apply((current) => edits.renameTask(current, taskId, name)),
+  const createTask = useCallback(
+    (name: string) => apply((current, context) => edits.createTask(current, name, context)),
     [apply],
   );
-  const deleteTask = useCallback((taskId: TaskId) => apply((current) => edits.deleteTask(current, taskId)), [apply]);
+  const renameTask = useCallback(
+    (taskId: TaskId, name: string) => apply((current, context) => edits.renameTask(current, taskId, name, context)),
+    [apply],
+  );
+  const deleteTask = useCallback(
+    (taskId: TaskId) => apply((current, context) => edits.deleteTask(current, taskId, context)),
+    [apply],
+  );
   const addPredecessor = useCallback(
-    (taskId: TaskId, predecessorId: TaskId) => apply((current) => edits.addPredecessor(current, taskId, predecessorId)),
+    (taskId: TaskId, predecessorId: TaskId) =>
+      apply((current, context) => edits.addPredecessor(current, taskId, predecessorId, context)),
     [apply],
   );
   const removePredecessor = useCallback(
     (taskId: TaskId, predecessorId: TaskId) =>
-      apply((current) => edits.removePredecessor(current, taskId, predecessorId)),
+      apply((current, context) => edits.removePredecessor(current, taskId, predecessorId, context)),
     [apply],
   );
 
   const setDuration = useCallback(
-    (taskId: TaskId, input: string) => apply((current) => edits.setDuration(current, taskId, input)),
+    (taskId: TaskId, input: string) => apply((current, context) => edits.setDuration(current, taskId, input, context)),
     [apply],
   );
-  const setStartDate = useCallback((input: string) => apply((current) => edits.setStartDate(current, input)), [apply]);
+  const setStartDate = useCallback(
+    (input: string) => apply((current, context) => edits.setStartDate(current, input, context)),
+    [apply],
+  );
   const setProjectName = useCallback(
-    (input: string) => apply((current) => edits.setProjectName(current, input)),
+    (input: string) => apply((current, context) => edits.setProjectName(current, input, context)),
     [apply],
   );
   const setDayCountingMode = useCallback(
-    (mode: DayCountingMode) => apply((current) => edits.setDayCountingMode(current, mode)),
+    (mode: DayCountingMode) => apply((current, context) => edits.setDayCountingMode(current, mode, context)),
     [apply],
   );
 

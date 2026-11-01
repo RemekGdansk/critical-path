@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createPerfProject } from "@/lib/services/fixtures";
+import type { EditContext } from "@/lib/services/project";
 import {
   cyclePathFor,
   findCycle,
@@ -9,6 +10,9 @@ import {
   topologicalOrder,
 } from "@/lib/services/task-graph";
 import type { Project, TaskId } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 /** Builds a project from `[id, predecessors]` pairs; Task names are "T<id>". */
 function projectOf(tasks: [TaskId, TaskId[]][]): Project {
@@ -205,7 +209,7 @@ describe("successorsOf", () => {
 });
 
 describe("cycle checks on the 100-Task fixture", () => {
-  const project = createPerfProject();
+  const project = createPerfProject(CONTEXT);
   const ids = project.tasks.map((task) => task.id);
 
   it("starts acyclic", () => {

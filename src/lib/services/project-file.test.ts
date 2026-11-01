@@ -9,6 +9,7 @@ import {
   createEmptyProject,
   createTask,
   deleteTask,
+  type EditContext,
   type EditResult,
   setDayCountingMode,
   setDuration,
@@ -29,6 +30,7 @@ import type { Project, TaskId } from "@/types";
 
 // "Today" is always passed in, never read from the clock.
 const TODAY = "2026-10-11";
+const CONTEXT: EditContext = { today: TODAY };
 
 // Read as raw bytes from disk: the committed file is the oracle, never regenerated from the exporter.
 const GOLDEN = readFileSync(new URL("./golden/project-file-0.1.json", import.meta.url), "utf8");
@@ -94,13 +96,13 @@ function expectRejected(result: ImportResult, rule: ValidationErrorRule | Projec
 
 /** A project with one Task per name, ids 1..n in order. */
 function projectWith(...names: string[]): CheckedProject {
-  return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
+  return names.reduce((project, name) => accepted(createTask(project, name, CONTEXT)), createEmptyProject(CONTEXT));
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
 function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
-    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId, CONTEXT)),
     project,
   );
 }
@@ -108,7 +110,7 @@ function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][])
 /** Exports, imports and re-exports: the project and the text must both come back unchanged. */
 function expectRoundTrip(project: Project): void {
   const text = serializeProject(deepFreeze(project));
-  const back = imported(parseProjectFile(text));
+  const back = imported(parseProjectFile(text, CONTEXT));
   expect(back).toStrictEqual(project);
   expect(serializeProject(back)).toBe(text);
 }
@@ -167,7 +169,7 @@ function projectWithChange(change: (project: Project) => void): Project {
 
 describe("the golden file (format 0.1)", () => {
   it("imports to the project it holds", () => {
-    expect(imported(parseProjectFile(GOLDEN))).toStrictEqual(GOLDEN_PROJECT);
+    expect(imported(parseProjectFile(GOLDEN, CONTEXT))).toStrictEqual(GOLDEN_PROJECT);
   });
 
   it("is what serializeProject writes for that project, byte for byte", () => {
@@ -175,13 +177,13 @@ describe("the golden file (format 0.1)", () => {
   });
 
   it("keeps its Validation Warning through import", () => {
-    expect(validationWarnings(imported(parseProjectFile(GOLDEN)))).toStrictEqual([
+    expect(validationWarnings(imported(parseProjectFile(GOLDEN, CONTEXT)))).toStrictEqual([
       { rule: "duration-missing", taskId: 5, message: "Launch has no Duration." },
     ]);
   });
 
   it("mints nextTaskId for the next Task, never a deleted id", () => {
-    const project = accepted(createTask(imported(parseProjectFile(GOLDEN)), "Retro"));
+    const project = accepted(createTask(imported(parseProjectFile(GOLDEN, CONTEXT)), "Retro", CONTEXT));
     expect(project.tasks.map((task) => task.id)).toEqual([1, 2, 4, 5, 7]);
     expect(project.nextTaskId).toBe(8);
   });
@@ -189,7 +191,7 @@ describe("the golden file (format 0.1)", () => {
 
 describe("the weekdays golden file (format 0.1)", () => {
   it("imports to the project it holds", () => {
-    expect(imported(parseProjectFile(GOLDEN_WEEKDAYS))).toStrictEqual(GOLDEN_WEEKDAYS_PROJECT);
+    expect(imported(parseProjectFile(GOLDEN_WEEKDAYS, CONTEXT))).toStrictEqual(GOLDEN_WEEKDAYS_PROJECT);
   });
 
   it("is what serializeProject writes for that project, byte for byte", () => {
@@ -200,7 +202,7 @@ describe("the weekdays golden file (format 0.1)", () => {
 describe("serializeProject", () => {
   it("writes the empty project with empty START, FINISH and Task list", () => {
     expect(PROJECT_FILE_VERSION).toBe("0.1");
-    expect(serializeProject(createEmptyProject())).toBe(
+    expect(serializeProject(createEmptyProject(CONTEXT))).toBe(
       [
         "{",
         '  "version": "0.1",',
@@ -226,14 +228,14 @@ describe("export then import", () => {
       [2, 5],
       [4, 5],
     );
-    project = accepted(setDuration(project, 1, "3"));
-    project = accepted(setDuration(project, 2, "5"));
-    project = accepted(setDuration(project, 3, "2"));
-    project = accepted(setDuration(project, 5, "8"));
-    project = accepted(setDuration(project, 5, ""));
-    project = accepted(deleteTask(project, 4));
-    project = accepted(setStartDate(project, "2026-11-02"));
-    return accepted(setProjectName(project, "Website relaunch – QA ✓"));
+    project = accepted(setDuration(project, 1, "3", CONTEXT));
+    project = accepted(setDuration(project, 2, "5", CONTEXT));
+    project = accepted(setDuration(project, 3, "2", CONTEXT));
+    project = accepted(setDuration(project, 5, "8", CONTEXT));
+    project = accepted(setDuration(project, 5, "", CONTEXT));
+    project = accepted(deleteTask(project, 4, CONTEXT));
+    project = accepted(setStartDate(project, "2026-11-02", CONTEXT));
+    return accepted(setProjectName(project, "Website relaunch – QA ✓", CONTEXT));
   }
 
   it("gives back every field, and a second export is byte-identical", () => {
@@ -241,18 +243,18 @@ describe("export then import", () => {
   });
 
   it("keeps names with emoji and surrogate pairs", () => {
-    const project = accepted(setProjectName(projectWith("👩‍💻 Design", "Build 😀"), "🚀 Launch 𝄞"));
+    const project = accepted(setProjectName(projectWith("👩‍💻 Design", "Build 😀"), "🚀 Launch 𝄞", CONTEXT));
     expectRoundTrip(project);
   });
 
   it("keeps 200-character names", () => {
     const name = `${"a".repeat(198)}😀`;
     expect(name).toHaveLength(200);
-    expectRoundTrip(accepted(setProjectName(projectWith(name), name)));
+    expectRoundTrip(accepted(setProjectName(projectWith(name), name, CONTEXT)));
   });
 
   it("keeps the weekdays day-counting mode", () => {
-    expectRoundTrip(accepted(setDayCountingMode(fullProject(), "weekdays")));
+    expectRoundTrip(accepted(setDayCountingMode(fullProject(), "weekdays", CONTEXT)));
   });
 
   it("keeps a project without a START date or a name", () => {
@@ -260,19 +262,19 @@ describe("export then import", () => {
   });
 
   it("keeps the empty project and the 100-Task performance project", () => {
-    expectRoundTrip(createEmptyProject());
-    expectRoundTrip(createPerfProject());
+    expectRoundTrip(createEmptyProject(CONTEXT));
+    expectRoundTrip(createPerfProject(CONTEXT));
   });
 
   it("mints nextTaskId after import, never the id of the deleted last Task", () => {
-    const project = accepted(deleteTask(projectWith("A", "B", "C"), 3));
-    const back = imported(parseProjectFile(serializeProject(project)));
-    expect(accepted(createTask(back, "D")).tasks.map((task) => task.id)).toEqual([1, 2, 4]);
+    const project = accepted(deleteTask(projectWith("A", "B", "C"), 3, CONTEXT));
+    const back = imported(parseProjectFile(serializeProject(project), CONTEXT));
+    expect(accepted(createTask(back, "D", CONTEXT)).tasks.map((task) => task.id)).toEqual([1, 2, 4]);
   });
 
   it("keeps the Validation Warnings (US-03)", () => {
     const project = fullProject();
-    const back = imported(parseProjectFile(serializeProject(project)));
+    const back = imported(parseProjectFile(serializeProject(project), CONTEXT));
     expect(validationWarnings(back)).toStrictEqual([
       { rule: "duration-missing", taskId: 5, message: "Launch has no Duration." },
     ]);
@@ -282,11 +284,25 @@ describe("export then import", () => {
 
 describe("parseProjectFile", () => {
   it("accepts the base file of the rejection table", () => {
-    expect(imported(parseProjectFile(fileWith(() => undefined)))).toStrictEqual(baseProject());
+    expect(
+      imported(
+        parseProjectFile(
+          fileWith(() => undefined),
+          CONTEXT,
+        ),
+      ),
+    ).toStrictEqual(baseProject());
   });
 
   it("accepts a file that counts weekdays", () => {
-    expect(imported(parseProjectFile(fileWith((file) => (file.dayCountingMode = "weekdays"))))).toStrictEqual({
+    expect(
+      imported(
+        parseProjectFile(
+          fileWith((file) => (file.dayCountingMode = "weekdays")),
+          CONTEXT,
+        ),
+      ),
+    ).toStrictEqual({
       ...baseProject(),
       dayCountingMode: "weekdays",
     });
@@ -705,11 +721,11 @@ describe("parseProjectFile", () => {
   ];
 
   it.each([...validationErrorRows, ...fileRuleRows])("rejects $case", ({ text, rule, fragment }) => {
-    expectRejected(parseProjectFile(text), rule, fragment);
+    expectRejected(parseProjectFile(text, CONTEXT), rule, fragment);
   });
 
   it("passes the engine's message through for text that is not JSON", () => {
-    const result = parseProjectFile("{");
+    const result = parseProjectFile("{", CONTEXT);
     if (result.ok) throw new Error("Expected a rejection");
     expect(result.error.message).toMatch(/^The file is not valid JSON: .+/);
   });
@@ -719,29 +735,35 @@ describe("parseProjectFile", () => {
       file.tasks[0].colour = "red";
       file.tasks[2].predecessors = ["x", "FINISH"];
     });
-    expectRejected(parseProjectFile(finish), "task-depends-on-finish", "Task 3 depends on FINISH");
+    expectRejected(parseProjectFile(finish, CONTEXT), "task-depends-on-finish", "Task 3 depends on FINISH");
     const start = fileWith((file) => {
       file.colour = "red";
       file.start.predecessors = [1];
     });
-    expectRejected(parseProjectFile(start), "start-has-predecessor", "START cannot have predecessors");
+    expectRejected(parseProjectFile(start, CONTEXT), "start-has-predecessor", "START cannot have predecessors");
   });
 
   it("does not let a __proto__ key through", () => {
     const text = fileWith(() => undefined).replace('"finish": {}', '"finish": { "__proto__": { "date": "x" } }');
-    expectRejected(parseProjectFile(text), "file-not-a-project", "finish.__proto__ is not a known field");
+    expectRejected(parseProjectFile(text, CONTEXT), "file-not-a-project", "finish.__proto__ is not a known field");
   });
 
   it("rejects a name of ten million invisible characters instead of throwing", () => {
     // An anchored ^[…]*$ check exhausts V8's regexp stack on a run this long (about 30 MB of file).
     const invisible = "​".repeat(10_000_000);
     expectRejected(
-      parseProjectFile(fileWith((file) => (file.tasks[1].name = invisible))),
+      parseProjectFile(
+        fileWith((file) => (file.tasks[1].name = invisible)),
+        CONTEXT,
+      ),
       "task-name-empty",
       "Task 2: A Task name cannot be empty.",
     );
     expectRejected(
-      parseProjectFile(fileWith((file) => (file.name = invisible))),
+      parseProjectFile(
+        fileWith((file) => (file.name = invisible)),
+        CONTEXT,
+      ),
       "project-name-empty",
       "A project name cannot be empty.",
     );
@@ -752,7 +774,7 @@ describe("parseProjectFile", () => {
       file.version = "0.2";
       file.colour = "red";
     });
-    expectRejected(parseProjectFile(text), "file-version-newer", "0.2");
+    expectRejected(parseProjectFile(text, CONTEXT), "file-version-newer", "0.2");
   });
 
   it("checks unique ids before the pre-S-07 limits, and those before the Validation Errors", () => {
@@ -760,12 +782,12 @@ describe("parseProjectFile", () => {
       file.tasks[2].id = 2;
       file.tasks[1].status = "in-progress";
     });
-    expectRejected(parseProjectFile(duplicate), "duplicate-task-id", "Two Tasks have the id 2.");
+    expectRejected(parseProjectFile(duplicate, CONTEXT), "duplicate-task-id", "Two Tasks have the id 2.");
     const inProgress = fileWith((file) => {
       file.tasks[1].status = "in-progress";
       file.tasks[0].predecessors = [7];
     });
-    expectRejected(parseProjectFile(inProgress), "task-status-not-supported-yet", "Task 2 is In Progress");
+    expectRejected(parseProjectFile(inProgress, CONTEXT), "task-status-not-supported-yet", "Task 2 is In Progress");
   });
 
   describe("normalises without loss", () => {
@@ -811,27 +833,32 @@ describe("parseProjectFile", () => {
     ];
 
     it.each(rows)("accepts $case", ({ text, project }) => {
-      expect(imported(parseProjectFile(text))).toStrictEqual(project);
+      expect(imported(parseProjectFile(text, CONTEXT))).toStrictEqual(project);
     });
 
     it("keeps a higher nextTaskId as it is", () => {
       const text = fileWith((file) => (file.nextTaskId = 10));
-      expect(imported(parseProjectFile(text)).nextTaskId).toBe(10);
+      expect(imported(parseProjectFile(text, CONTEXT)).nextTaskId).toBe(10);
     });
 
     it("accepts the largest Task id, raises nextTaskId to its cap, and round-trips", () => {
       const text = fileWith((file) => (file.tasks[2].id = 2147483646));
-      const project = imported(parseProjectFile(text));
+      const project = imported(parseProjectFile(text, CONTEXT));
       expect(project.nextTaskId).toBe(2147483647);
       expect(project.tasks.map((task) => task.id)).toStrictEqual([1, 2, 2147483646]);
-      expect(imported(parseProjectFile(serializeProject(project)))).toStrictEqual(project);
+      expect(imported(parseProjectFile(serializeProject(project), CONTEXT))).toStrictEqual(project);
     });
 
     it("at the id ceiling, refuses createTask, so the project's export still imports", () => {
-      const project = imported(parseProjectFile(fileWith((file) => (file.nextTaskId = 2147483647))));
+      const project = imported(
+        parseProjectFile(
+          fileWith((file) => (file.nextTaskId = 2147483647)),
+          CONTEXT,
+        ),
+      );
       const before = structuredClone(project);
 
-      const result = createTask(project, "One more");
+      const result = createTask(project, "One more", CONTEXT);
       if (result.ok) throw new Error("Expected createTask to be rejected at the id ceiling");
       expect(result.error).toStrictEqual({
         rule: "task-id-limit-reached",
@@ -839,7 +866,7 @@ describe("parseProjectFile", () => {
           "Task ids go up to 2147483646 and this project has reached that limit, so no more Tasks can be created.",
       });
       expect(project).toStrictEqual(before);
-      expect(imported(parseProjectFile(serializeProject(project)))).toStrictEqual(project);
+      expect(imported(parseProjectFile(serializeProject(project), CONTEXT))).toStrictEqual(project);
     });
 
     it("leaves out an absent START date and Duration rather than writing undefined", () => {
@@ -847,7 +874,7 @@ describe("parseProjectFile", () => {
         file.start = {};
         delete file.tasks[2].duration;
       });
-      const project = imported(parseProjectFile(text));
+      const project = imported(parseProjectFile(text, CONTEXT));
       expect(project.start).toStrictEqual({});
       expect(project.tasks[2]).toStrictEqual({ id: 3, name: "Test", predecessors: [2], status: "to-do" });
     });

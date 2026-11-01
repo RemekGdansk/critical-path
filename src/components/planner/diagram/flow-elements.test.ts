@@ -24,10 +24,14 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   setDuration,
 } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
@@ -37,17 +41,17 @@ function accepted(result: EditResult): CheckedProject {
 
 /** A project with one Task per name, ids 1..n in order. */
 function projectWith(...names: string[]): CheckedProject {
-  return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
+  return names.reduce((project, name) => accepted(createTask(project, name, CONTEXT)), createEmptyProject(CONTEXT));
 }
 
 /** A project with one Task per [name, Duration] pair, ids 1..n, and `predecessorId → taskId` for each pair. */
 function scheduledProject(tasks: [string, string][], ...pairs: [TaskId, TaskId][]): CheckedProject {
   const withTasks = tasks.reduce((current, [name, duration]) => {
-    const created = accepted(createTask(current, name));
-    return accepted(setDuration(created, created.nextTaskId - 1, duration));
-  }, createEmptyProject());
+    const created = accepted(createTask(current, name, CONTEXT));
+    return accepted(setDuration(created, created.nextTaskId - 1, duration, CONTEXT));
+  }, createEmptyProject(CONTEXT));
   return pairs.reduce(
-    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId, CONTEXT)),
     withTasks,
   );
 }
@@ -96,7 +100,7 @@ describe("toFlowNodes", () => {
   });
 
   it("hands the custom nodes the domain node in data.node", () => {
-    const diagram = laidOut(accepted(setDuration(projectWith("A"), 1, "5")));
+    const diagram = laidOut(accepted(setDuration(projectWith("A"), 1, "5", CONTEXT)));
     const nodes = toFlowNodes(diagram);
 
     for (const node of diagram.nodes) expect(flowNodeById(nodes, node.id).data.node).toEqual(node);
@@ -125,7 +129,7 @@ describe("toFlowNodes", () => {
   });
 
   it("names START by the date withStartDate adds, and carries the date to the node", () => {
-    const start = laidOut(createEmptyProject()).nodes.find((node) => node.kind === "start");
+    const start = laidOut(createEmptyProject(CONTEXT)).nodes.find((node) => node.kind === "start");
     if (start === undefined) throw new Error("No START node in the diagram");
     const dated = { ...withStartDate(start, "2030-01-07"), position: start.position };
 
@@ -151,7 +155,7 @@ describe("toFlowNodes", () => {
 
 describe("toFlowEdges", () => {
   it("draws an empty project's one edge with a closed arrowhead, and no edge kind", () => {
-    expect(toFlowEdges(laidOut(createEmptyProject()))).toEqual([
+    expect(toFlowEdges(laidOut(createEmptyProject(CONTEXT)))).toEqual([
       { id: "start->finish", source: "start", target: "finish", markerEnd: { type: MarkerType.ArrowClosed } },
     ]);
   });

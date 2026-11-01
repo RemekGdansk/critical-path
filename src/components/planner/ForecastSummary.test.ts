@@ -9,12 +9,16 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   setDayCountingMode,
   setDuration,
   setStartDate,
 } from "@/lib/services/project";
 import type { DayCountingMode, TaskId } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
@@ -24,7 +28,7 @@ function accepted(result: EditResult): CheckedProject {
 /** Adds `predecessorId → taskId` for each pair. */
 function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
-    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId, CONTEXT)),
     project,
   );
 }
@@ -37,17 +41,17 @@ function us02WithoutDDuration(): CheckedProject {
     ["C", "2"],
   ];
   const tasks = chain.reduce((current, [name, duration]) => {
-    const created = accepted(createTask(current, name));
-    return accepted(setDuration(created, created.nextTaskId - 1, duration));
-  }, createEmptyProject());
-  const withD = accepted(createTask(accepted(setStartDate(tasks, "2026-09-01")), "D"));
+    const created = accepted(createTask(current, name, CONTEXT));
+    return accepted(setDuration(created, created.nextTaskId - 1, duration, CONTEXT));
+  }, createEmptyProject(CONTEXT));
+  const withD = accepted(createTask(accepted(setStartDate(tasks, "2026-09-01", CONTEXT)), "D", CONTEXT));
   return withDependencies(withD, [1, 2], [2, 3], [1, 4], [4, 3]);
 }
 
 /** A (id 1, 5 days or weekdays) alone, in the given mode. */
 function singleTask(mode: DayCountingMode): CheckedProject {
-  const withA = accepted(createTask(createEmptyProject(), "A"));
-  return accepted(setDayCountingMode(accepted(setDuration(withA, 1, "5")), mode));
+  const withA = accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT));
+  return accepted(setDayCountingMode(accepted(setDuration(withA, 1, "5", CONTEXT)), mode, CONTEXT));
 }
 
 /** The static markup of `ForecastSummary` for the project, forecast as of `today` (by default 2026-08-20, before START). */
@@ -82,7 +86,7 @@ describe("ForecastSummary", () => {
   });
 
   it("shows both Project Finish Dates once the Duration is set (US-02 AC 2)", () => {
-    const text = textOf(renderedMarkup(accepted(setDuration(us02WithoutDDuration(), 4, "4"))));
+    const text = textOf(renderedMarkup(accepted(setDuration(us02WithoutDDuration(), 4, "4", CONTEXT))));
 
     expect(text).toContain("Resource-Unconstrained Project Finish Date 2026-09-12");
     expect(text).toContain("Resource-Constrained Project Finish Date 2026-09-15");
@@ -91,7 +95,7 @@ describe("ForecastSummary", () => {
 
   it("names a weekend START date and the Monday the weekdays forecast starts on", () => {
     // START Sat 2026-10-17, today Thu 2026-10-01: A (5 weekdays) runs Mon 10-19 to Mon 10-26.
-    const project = accepted(setStartDate(singleTask("weekdays"), "2026-10-17"));
+    const project = accepted(setStartDate(singleTask("weekdays"), "2026-10-17", CONTEXT));
     const text = textOf(renderedMarkup(project, "2026-10-01"));
 
     expect(text).toContain("Resource-Unconstrained Project Finish Date 2026-10-26");
@@ -121,7 +125,7 @@ describe("ForecastSummary", () => {
 
   it("shows the critical-path time and the total-work time under the Project Finish Dates (FR-011)", () => {
     // A (5) → B (3) → C (2) and A → D (4) → C: the longest chain is A → D → C, 5 + 4 + 2 = 11; all work is 5 + 3 + 2 + 4 = 14.
-    const markup = renderedMarkup(accepted(setDuration(us02WithoutDDuration(), 4, "4")));
+    const markup = renderedMarkup(accepted(setDuration(us02WithoutDDuration(), 4, "4", CONTEXT)));
     const text = textOf(markup);
 
     expect(text).toContain("Critical-path time 11 days · Total-work time 14 days");
@@ -133,7 +137,9 @@ describe("ForecastSummary", () => {
   });
 
   it("counts both times in weekdays in weekdays mode", () => {
-    const project = accepted(setDayCountingMode(accepted(setDuration(us02WithoutDDuration(), 4, "4")), "weekdays"));
+    const project = accepted(
+      setDayCountingMode(accepted(setDuration(us02WithoutDDuration(), 4, "4", CONTEXT)), "weekdays", CONTEXT),
+    );
     const text = textOf(renderedMarkup(project));
 
     expect(text).toContain("Critical-path time 11 weekdays · Total-work time 14 weekdays");
@@ -145,8 +151,10 @@ describe("ForecastSummary", () => {
     // A → B, each 9007199254740991 days: both the chain and the sum pass the largest safe integer,
     // so the diagram highlights nothing and the swatch would explain a colour that is not drawn.
     const max = String(Number.MAX_SAFE_INTEGER);
-    const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), 1, max));
-    const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, max));
+    const withA = accepted(
+      setDuration(accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT)), 1, max, CONTEXT),
+    );
+    const withB = accepted(setDuration(accepted(createTask(withA, "B", CONTEXT)), 2, max, CONTEXT));
     const markup = renderedMarkup(withDependencies(withB, [1, 2]));
 
     expect(textOf(markup)).toContain("Critical-path time Too large to count · Total-work time Too large to count");
@@ -162,7 +170,7 @@ describe("ForecastSummary", () => {
   });
 
   it("shows neither time for an empty project", () => {
-    const markup = renderedMarkup(createEmptyProject());
+    const markup = renderedMarkup(createEmptyProject(CONTEXT));
     const text = textOf(markup);
 
     expect(text).toContain("Add Tasks to see a forecast.");

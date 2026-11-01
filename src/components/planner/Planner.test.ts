@@ -11,12 +11,16 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   setDuration,
   setProjectName,
   setStartDate,
   validateProject,
 } from "@/lib/services/project";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 // React Flow's jsdom shim, applied for this file only.
 beforeAll(() => {
@@ -41,9 +45,11 @@ const A_ID = 1;
 
 /** START 2999-01-01 (far ahead of any real today), A (id 1, 5 days) and B (id 2, 3 days), independent: A alone is the critical path. */
 function fixture(): CheckedProject {
-  const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), A_ID, "5"));
-  const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, "3"));
-  return accepted(setStartDate(withB, "2999-01-01"));
+  const withA = accepted(
+    setDuration(accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT)), A_ID, "5", CONTEXT),
+  );
+  const withB = accepted(setDuration(accepted(createTask(withA, "B", CONTEXT)), 2, "3", CONTEXT));
+  return accepted(setStartDate(withB, "2999-01-01", CONTEXT));
 }
 
 type PlannerProps = NonNullable<Parameters<typeof Planner>[0]>;
@@ -190,7 +196,7 @@ describe("Planner: an unreadable START date keeps the previous one", () => {
   });
 
   it("names the START date rule and keeps the START date unset", async () => {
-    renderPlanner("start", accepted(setStartDate(fixture(), "")));
+    renderPlanner("start", accepted(setStartDate(fixture(), "", CONTEXT)));
     await screen.findByRole("button", { name: "START, today" });
 
     commitStartDate("2026-02-30", "blur", { badInput: true });
@@ -269,7 +275,7 @@ describe("Planner: a render crash keeps the project exportable", () => {
     expect(downloads[0].fileName).toBe("Cyclic plan.json");
     expect(await downloads[0].blob.text()).toBe(serializeProject(project));
 
-    const validationError = validateProject(project);
+    const validationError = validateProject(project, CONTEXT);
     expect(validationError).toBeDefined();
     expect(alert.textContent).toContain("Validation Error");
     expect(alert.textContent).toContain(validationError?.message);
@@ -300,7 +306,7 @@ describe("Planner: a render crash keeps the project exportable", () => {
       ...malformed,
       tasks: malformed.tasks.map((task) => (task.id === 1 ? { ...task, name: null as unknown as string } : task)),
     };
-    expect(() => validateProject(project)).toThrow(TypeError);
+    expect(() => validateProject(project, CONTEXT)).toThrow(TypeError);
     renderCrashing(project);
 
     const alert = screen.getByRole("alert");
@@ -338,8 +344,9 @@ describe("Planner: unexported changes are confirmed before they are replaced", (
   function importedFile(): File {
     const project = accepted(
       setProjectName(
-        accepted(setDuration(accepted(createTask(createEmptyProject(), "Imported")), 1, "2")),
+        accepted(setDuration(accepted(createTask(createEmptyProject(CONTEXT), "Imported", CONTEXT)), 1, "2", CONTEXT)),
         "Imported plan",
+        CONTEXT,
       ),
     );
     return new File([serializeProject(project)], "imported-plan.json", { type: "application/json" });

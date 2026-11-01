@@ -707,15 +707,15 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [ ] 1.1 Lint passes: `npm run lint`
-- [ ] 1.2 Type check passes: `npx astro check`
-- [ ] 1.3 All unit tests pass with no expected value changed: `npm test`
-- [ ] 1.4 Build and CSP check pass: `npm run build && npm run check:csp`
-- [ ] 1.5 No module under `src/lib/services/` reads the clock
+- [x] 1.1 Lint passes: `npm run lint`
+- [x] 1.2 Type check passes: `npx astro check`
+- [x] 1.3 All unit tests pass with no expected value changed: `npm test`
+- [x] 1.4 Build and CSP check pass: `npm run build && npm run check:csp`
+- [x] 1.5 No module under `src/lib/services/` reads the clock
 
 #### Manual
 
-- [ ] 1.6 Under `npm run dev`, creating, editing, importing and starting a new project behave as before
+- [x] 1.6 Under `npm run dev`, creating, editing, importing and starting a new project behave as before
 
 ### Phase 2: Done rules and Status edits
 

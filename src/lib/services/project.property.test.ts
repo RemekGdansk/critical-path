@@ -8,6 +8,7 @@ import {
   createTask,
   DAY_COUNTING_MODES,
   deleteTask,
+  type EditContext,
   type EditResult,
   removePredecessor,
   renameTask,
@@ -18,6 +19,9 @@ import {
   validateProject,
 } from "@/lib/services/project";
 import { parseProjectFile, serializeProject } from "@/lib/services/project-file";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 function deepFreeze<T>(value: T): T {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
@@ -65,23 +69,23 @@ type Step = typeof steps extends fc.Arbitrary<infer S> ? S : never;
 function apply(project: CheckedProject, step: Step): EditResult {
   switch (step.edit) {
     case "createTask":
-      return createTask(project, step.name);
+      return createTask(project, step.name, CONTEXT);
     case "renameTask":
-      return renameTask(project, step.taskId, step.name);
+      return renameTask(project, step.taskId, step.name, CONTEXT);
     case "deleteTask":
-      return deleteTask(project, step.taskId);
+      return deleteTask(project, step.taskId, CONTEXT);
     case "addPredecessor":
-      return addPredecessor(project, step.taskId, step.predecessorId);
+      return addPredecessor(project, step.taskId, step.predecessorId, CONTEXT);
     case "removePredecessor":
-      return removePredecessor(project, step.taskId, step.predecessorId);
+      return removePredecessor(project, step.taskId, step.predecessorId, CONTEXT);
     case "setProjectName":
-      return setProjectName(project, step.name);
+      return setProjectName(project, step.name, CONTEXT);
     case "setDuration":
-      return setDuration(project, step.taskId, step.input);
+      return setDuration(project, step.taskId, step.input, CONTEXT);
     case "setStartDate":
-      return setStartDate(project, step.input);
+      return setStartDate(project, step.input, CONTEXT);
     case "setDayCountingMode":
-      return setDayCountingMode(project, step.mode);
+      return setDayCountingMode(project, step.mode, CONTEXT);
   }
 }
 
@@ -93,15 +97,15 @@ describe("edit sequences", () => {
       // `size: "max"`: fast-check's default size would keep sequences near 10
       // edits, too short to build the Tasks a cycle attempt needs.
       fc.property(fc.array(steps, { maxLength: 40, size: "max" }), (sequence) => {
-        let project = createEmptyProject();
+        let project = createEmptyProject(CONTEXT);
         for (const step of sequence) {
           const before = structuredClone(project);
           const result = apply(deepFreeze(project), step);
           if (result.ok) {
-            expect(validateProject(result.project)).toBeUndefined();
+            expect(validateProject(result.project, CONTEXT)).toBeUndefined();
             // The file module's shape stage is a second check of the model shape and the Task id caps,
             // independent of the guardian, and the round-trip pins the serializer for every reachable Project.
-            expect(parseProjectFile(serializeProject(result.project))).toStrictEqual({
+            expect(parseProjectFile(serializeProject(result.project), CONTEXT)).toStrictEqual({
               ok: true,
               project: result.project,
             });

@@ -8,6 +8,7 @@ import {
   createEmptyProject,
   createTask,
   deleteTask,
+  type EditContext,
   type EditResult,
   isPositiveWholeDays,
   PROJECT_NAME_MAX_LENGTH,
@@ -27,6 +28,9 @@ import {
 } from "@/lib/services/project";
 import type { Project, Task, TaskId } from "@/types";
 
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
+
 function deepFreeze<T>(value: T): T {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
     Object.freeze(value);
@@ -37,15 +41,16 @@ function deepFreeze<T>(value: T): T {
 
 /**
  * Runs an edit on a deep-frozen input (any write throws in strict mode) and
- * checks the input is still deep-equal to a copy taken before the call.
+ * checks the input is still deep-equal to a copy taken before the call. The
+ * edit gets the file's fixed `CONTEXT` as its last argument.
  */
 function edit<A extends unknown[]>(
-  fn: (project: CheckedProject, ...args: A) => EditResult,
+  fn: (project: CheckedProject, ...args: [...A, EditContext]) => EditResult,
   project: CheckedProject,
   ...args: A
 ): EditResult {
   const before = structuredClone(project);
-  const result = fn(deepFreeze(project), ...args);
+  const result = fn(deepFreeze(project), ...args, CONTEXT);
   expect(project).toEqual(before);
   return result;
 }
@@ -64,13 +69,13 @@ function expectRejected(result: EditResult, rule: ValidationErrorRule): void {
 
 /** A project with one Task per name, ids 1..n in order. */
 function projectWith(...names: string[]): CheckedProject {
-  return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
+  return names.reduce((project, name) => accepted(createTask(project, name, CONTEXT)), createEmptyProject(CONTEXT));
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
 function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
-    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId, CONTEXT)),
     project,
   );
 }
@@ -92,7 +97,7 @@ function projectOf(tasks: Task[], extra: Partial<Project> = {}): Project {
 
 describe("createEmptyProject", () => {
   it("has no Tasks, starts ids at 1 and counts calendar days", () => {
-    expect(createEmptyProject()).toEqual({
+    expect(createEmptyProject(CONTEXT)).toEqual({
       start: {},
       finish: {},
       dayCountingMode: "calendar-days",
@@ -104,7 +109,7 @@ describe("createEmptyProject", () => {
 
 describe("createTask", () => {
   it("trims the name, assigns ids 1, 2, … and increments the counter", () => {
-    const first = accepted(edit(createTask, createEmptyProject(), "  Design  "));
+    const first = accepted(edit(createTask, createEmptyProject(CONTEXT), "  Design  "));
     const second = accepted(edit(createTask, first, "Build"));
 
     expect(second.tasks).toEqual([
@@ -115,48 +120,50 @@ describe("createTask", () => {
   });
 
   it("rejects an empty or whitespace-only name", () => {
-    expectRejected(edit(createTask, createEmptyProject(), ""), "task-name-empty");
-    expectRejected(edit(createTask, createEmptyProject(), " \t\n "), "task-name-empty");
+    expectRejected(edit(createTask, createEmptyProject(CONTEXT), ""), "task-name-empty");
+    expectRejected(edit(createTask, createEmptyProject(CONTEXT), " \t\n "), "task-name-empty");
   });
 
   it("rejects a name made only of invisible characters as empty", () => {
-    expectRejected(edit(createTask, createEmptyProject(), "\u200B\u200B"), "task-name-empty");
-    expectRejected(edit(createTask, createEmptyProject(), " \u200B\uFEFF "), "task-name-empty");
+    expectRejected(edit(createTask, createEmptyProject(CONTEXT), "\u200B\u200B"), "task-name-empty");
+    expectRejected(edit(createTask, createEmptyProject(CONTEXT), " \u200B\uFEFF "), "task-name-empty");
   });
 
   it("rejects a name with a line break or other control character", () => {
     for (const name of ["A\nB", "A\tB", "A\u2028B", "A\u0000B"]) {
-      expectRejected(edit(createTask, createEmptyProject(), name), "task-name-control-character");
+      expectRejected(edit(createTask, createEmptyProject(CONTEXT), name), "task-name-control-character");
     }
   });
 
   it("accepts an emoji sequence joined by zero-width joiners", () => {
     const name = "👩‍💻 Design";
-    expect(accepted(edit(createTask, createEmptyProject(), name)).tasks[0]?.name).toBe(name);
+    expect(accepted(edit(createTask, createEmptyProject(CONTEXT), name)).tasks[0]?.name).toBe(name);
   });
 
   it("accepts 200 code units and rejects 201", () => {
     expect(TASK_NAME_MAX_LENGTH).toBe(200);
-    expect(accepted(edit(createTask, createEmptyProject(), "a".repeat(200))).tasks[0]?.name).toHaveLength(200);
-    expectRejected(edit(createTask, createEmptyProject(), "a".repeat(201)), "task-name-too-long");
+    expect(accepted(edit(createTask, createEmptyProject(CONTEXT), "a".repeat(200))).tasks[0]?.name).toHaveLength(200);
+    expectRejected(edit(createTask, createEmptyProject(CONTEXT), "a".repeat(201)), "task-name-too-long");
   });
 
   it("counts the length after trimming", () => {
-    expect(accepted(edit(createTask, createEmptyProject(), `  ${"a".repeat(200)}  `)).tasks[0]?.name).toHaveLength(200);
+    expect(
+      accepted(edit(createTask, createEmptyProject(CONTEXT), `  ${"a".repeat(200)}  `)).tasks[0]?.name,
+    ).toHaveLength(200);
   });
 
   it("counts a surrogate pair as 2 code units", () => {
     const at200 = `${"a".repeat(198)}😀`;
     expect(at200).toHaveLength(200);
-    expect(accepted(edit(createTask, createEmptyProject(), at200)).tasks[0]?.name).toBe(at200);
-    expectRejected(edit(createTask, createEmptyProject(), `${"a".repeat(199)}😀`), "task-name-too-long");
+    expect(accepted(edit(createTask, createEmptyProject(CONTEXT), at200)).tasks[0]?.name).toBe(at200);
+    expectRejected(edit(createTask, createEmptyProject(CONTEXT), `${"a".repeat(199)}😀`), "task-name-too-long");
   });
 
   it("rejects a name with a lone surrogate", () => {
-    const result = edit(createTask, createEmptyProject(), "A\uD83D");
+    const result = edit(createTask, createEmptyProject(CONTEXT), "A\uD83D");
     expectRejected(result, "task-name-malformed");
     if (!result.ok) expect(result.error.message).toBe("A Task name must be well-formed Unicode.");
-    expectRejected(edit(createTask, createEmptyProject(), "\uDE00B"), "task-name-malformed");
+    expectRejected(edit(createTask, createEmptyProject(CONTEXT), "\uDE00B"), "task-name-malformed");
   });
 
   it("allows duplicate names", () => {
@@ -311,14 +318,14 @@ describe("setDuration", () => {
   });
 
   it("clears the Duration on empty input by removing the field", () => {
-    const project = accepted(setDuration(projectWith("A"), 1, "5"));
+    const project = accepted(setDuration(projectWith("A"), 1, "5", CONTEXT));
     const cleared = accepted(edit(setDuration, project, 1, "  "));
     expect(cleared.tasks[0]).toEqual({ id: 1, name: "A", predecessors: [], status: "to-do" });
     expect(cleared.tasks[0]).not.toHaveProperty("duration");
   });
 
   it("rejects anything but a positive whole number of days", () => {
-    const project = accepted(setDuration(projectWith("A"), 1, "5"));
+    const project = accepted(setDuration(projectWith("A"), 1, "5", CONTEXT));
     for (const input of ["0", "-1", "2.5", "1e3", "+5", "abc", "5 days", "٥", "9007199254740992"]) {
       expectRejected(edit(setDuration, project, 1, input), "duration-not-positive-whole-number");
     }
@@ -354,29 +361,33 @@ describe("isPositiveWholeDays", () => {
 
 describe("setStartDate", () => {
   it("sets an ISO date, trimmed", () => {
-    expect(accepted(edit(setStartDate, createEmptyProject(), " 2026-09-01 ")).start).toEqual({ date: "2026-09-01" });
-    expect(accepted(edit(setStartDate, createEmptyProject(), "0002-01-01")).start).toEqual({ date: "0002-01-01" });
+    expect(accepted(edit(setStartDate, createEmptyProject(CONTEXT), " 2026-09-01 ")).start).toEqual({
+      date: "2026-09-01",
+    });
+    expect(accepted(edit(setStartDate, createEmptyProject(CONTEXT), "0002-01-01")).start).toEqual({
+      date: "0002-01-01",
+    });
   });
 
   it("clears the START date on empty input by removing the field", () => {
-    const project = accepted(setStartDate(createEmptyProject(), "2026-09-01"));
+    const project = accepted(setStartDate(createEmptyProject(CONTEXT), "2026-09-01", CONTEXT));
     expect(accepted(edit(setStartDate, project, "")).start).toEqual({});
   });
 
   it("rejects anything but a calendar date from 0001-01-01 to 9999-12-31", () => {
     for (const input of ["2026-02-29", "0000-01-01", "10000-01-01", "2026-9-1", "1 Sep 2026", "today"]) {
-      expectRejected(edit(setStartDate, createEmptyProject(), input), "start-date-not-a-date");
+      expectRejected(edit(setStartDate, createEmptyProject(CONTEXT), input), "start-date-not-a-date");
     }
   });
 
   it("names the rule in the message", () => {
-    const result = edit(setStartDate, createEmptyProject(), "2026-02-30");
+    const result = edit(setStartDate, createEmptyProject(CONTEXT), "2026-02-30");
     if (result.ok) throw new Error("Expected a rejection");
     expect(result.error.message).toBe("The START date must be a calendar date from 0001-01-01 to 9999-12-31.");
   });
 
   it("rejects with the same Validation Error the view shows for a date the browser cannot read", () => {
-    const result = edit(setStartDate, createEmptyProject(), "2026-02-30");
+    const result = edit(setStartDate, createEmptyProject(CONTEXT), "2026-02-30");
     if (result.ok) throw new Error("Expected a rejection");
     expect(result.error).toStrictEqual(startDateNotADate());
     expect(result.error.message).not.toMatch(/invalid|conflict|blocked/i);
@@ -392,48 +403,50 @@ describe("setDayCountingMode", () => {
   });
 
   it("returns the same project when the mode is already set", () => {
-    const project = createEmptyProject();
+    const project = createEmptyProject(CONTEXT);
     expect(accepted(edit(setDayCountingMode, project, "calendar-days"))).toBe(project);
-    const weekdays = accepted(setDayCountingMode(project, "weekdays"));
+    const weekdays = accepted(setDayCountingMode(project, "weekdays", CONTEXT));
     expect(accepted(edit(setDayCountingMode, weekdays, "weekdays"))).toBe(weekdays);
   });
 });
 
 describe("setProjectName", () => {
   it("sets the name, trimmed", () => {
-    expect(accepted(edit(setProjectName, createEmptyProject(), "  Website relaunch ")).name).toBe("Website relaunch");
+    expect(accepted(edit(setProjectName, createEmptyProject(CONTEXT), "  Website relaunch ")).name).toBe(
+      "Website relaunch",
+    );
   });
 
   it("clears the name on empty input by removing the field", () => {
-    const project = accepted(setProjectName(createEmptyProject(), "Website relaunch"));
+    const project = accepted(setProjectName(createEmptyProject(CONTEXT), "Website relaunch", CONTEXT));
     const cleared = accepted(edit(setProjectName, project, "   "));
-    expect(cleared).toEqual(createEmptyProject());
+    expect(cleared).toEqual(createEmptyProject(CONTEXT));
     expect(cleared).not.toHaveProperty("name");
   });
 
   it("rejects a name made only of invisible characters as empty", () => {
-    const result = edit(setProjectName, createEmptyProject(), "\u200B\u200B");
+    const result = edit(setProjectName, createEmptyProject(CONTEXT), "\u200B\u200B");
     expectRejected(result, "project-name-empty");
     if (!result.ok) expect(result.error.message).toBe("A project name cannot be empty.");
   });
 
   it("accepts 200 code units and rejects 201", () => {
     expect(PROJECT_NAME_MAX_LENGTH).toBe(200);
-    expect(accepted(edit(setProjectName, createEmptyProject(), "a".repeat(200))).name).toHaveLength(200);
-    const result = edit(setProjectName, createEmptyProject(), "a".repeat(201));
+    expect(accepted(edit(setProjectName, createEmptyProject(CONTEXT), "a".repeat(200))).name).toHaveLength(200);
+    const result = edit(setProjectName, createEmptyProject(CONTEXT), "a".repeat(201));
     expectRejected(result, "project-name-too-long");
     if (!result.ok) expect(result.error.message).toBe("A project name can be at most 200 characters.");
   });
 
   it("rejects a name with a lone surrogate", () => {
-    const result = edit(setProjectName, createEmptyProject(), "Q3\uD83D");
+    const result = edit(setProjectName, createEmptyProject(CONTEXT), "Q3\uD83D");
     expectRejected(result, "project-name-malformed");
     if (!result.ok) expect(result.error.message).toBe("A project name must be well-formed Unicode.");
   });
 
   it("rejects a name with a line break or other control character", () => {
     for (const name of ["A\nB", "A\tB", "A\u2028B", "A\u0000B"]) {
-      const result = edit(setProjectName, createEmptyProject(), name);
+      const result = edit(setProjectName, createEmptyProject(CONTEXT), name);
       expectRejected(result, "project-name-control-character");
       if (!result.ok) {
         expect(result.error.message).toBe("A project name cannot contain a line break or other control character.");
@@ -442,7 +455,7 @@ describe("setProjectName", () => {
   });
 
   it("keeps the current name when the new one is rejected", () => {
-    const project = accepted(setProjectName(createEmptyProject(), "Website relaunch"));
+    const project = accepted(setProjectName(createEmptyProject(CONTEXT), "Website relaunch", CONTEXT));
     expectRejected(edit(setProjectName, project, "A\nB"), "project-name-control-character");
     expect(project.name).toBe("Website relaunch");
   });
@@ -450,30 +463,30 @@ describe("setProjectName", () => {
 
 describe("validateProject", () => {
   function expectValidationError(project: Project, rule: ValidationErrorRule, message: string): void {
-    const error = validateProject(project);
+    const error = validateProject(project, CONTEXT);
     expect(error).toEqual({ rule, message });
     expect(message).not.toMatch(/invalid|conflict|blocked/i);
   }
 
   it("accepts the empty project and every edit-built fixture", () => {
-    expect(validateProject(createEmptyProject())).toBeUndefined();
-    expect(validateProject(createPerfProject())).toBeUndefined();
+    expect(validateProject(createEmptyProject(CONTEXT), CONTEXT)).toBeUndefined();
+    expect(validateProject(createPerfProject(CONTEXT), CONTEXT)).toBeUndefined();
 
     let project = withDependencies(projectWith("Design", "Build", "Test", "Docs"), [1, 2], [2, 3], [1, 4]);
-    project = accepted(setDuration(project, 1, "3"));
-    project = accepted(setDuration(project, 2, "5"));
-    project = accepted(setStartDate(project, "2026-09-01"));
-    project = accepted(setProjectName(project, "Website relaunch – QA ✓"));
-    expect(validateProject(project)).toBeUndefined();
-    expect(validateProject(accepted(setDuration(project, 2, "")))).toBeUndefined();
-    expect(validateProject(accepted(deleteTask(project, 2)))).toBeUndefined();
-    expect(validateProject(accepted(createTask(projectWith("Review"), "👩‍💻 Review")))).toBeUndefined();
+    project = accepted(setDuration(project, 1, "3", CONTEXT));
+    project = accepted(setDuration(project, 2, "5", CONTEXT));
+    project = accepted(setStartDate(project, "2026-09-01", CONTEXT));
+    project = accepted(setProjectName(project, "Website relaunch – QA ✓", CONTEXT));
+    expect(validateProject(project, CONTEXT)).toBeUndefined();
+    expect(validateProject(accepted(setDuration(project, 2, "", CONTEXT)), CONTEXT)).toBeUndefined();
+    expect(validateProject(accepted(deleteTask(project, 2, CONTEXT)), CONTEXT)).toBeUndefined();
+    expect(validateProject(accepted(createTask(projectWith("Review"), "👩‍💻 Review", CONTEXT)), CONTEXT)).toBeUndefined();
   });
 
   it("does not mutate the project", () => {
     const project = deepFreeze(projectOf([task(1, "A", [2]), task(2, "B", [1])]));
     const before = structuredClone(project);
-    validateProject(project);
+    validateProject(project, CONTEXT);
     expect(project).toEqual(before);
   });
 
@@ -553,7 +566,7 @@ describe("validateProject", () => {
       "task-id-limit-reached",
       "Task ids go up to 2147483646 and this project has reached that limit, so no more Tasks can be created.",
     );
-    expect(validateProject(projectOf([task(1, "Design")], { nextTaskId: 2147483647 }))).toBeUndefined();
+    expect(validateProject(projectOf([task(1, "Design")], { nextTaskId: 2147483647 }), CONTEXT)).toBeUndefined();
   });
 
   it("names the cycle the project holds", () => {
@@ -579,26 +592,26 @@ describe("validateProject", () => {
     const badName = { name: "" };
     const pastCeiling = { nextTaskId: 2147483648 };
 
-    expect(validateProject(projectOf(cycle, { ...badName, ...pastCeiling }))?.rule).toBe("project-name-empty");
-    expect(validateProject(projectOf(cycle, pastCeiling))?.rule).toBe("task-id-limit-reached");
+    expect(validateProject(projectOf(cycle, { ...badName, ...pastCeiling }), CONTEXT)?.rule).toBe("project-name-empty");
+    expect(validateProject(projectOf(cycle, pastCeiling), CONTEXT)?.rule).toBe("task-id-limit-reached");
 
-    expect(validateProject(projectOf([...cycle, task(3, "")], { ...badStart, ...badName }))?.rule).toBe(
+    expect(validateProject(projectOf([...cycle, task(3, "")], { ...badStart, ...badName }), CONTEXT)?.rule).toBe(
       "task-name-empty",
     );
-    expect(validateProject(projectOf([task(1, "A", [], { duration: 0 }), task(2, "")]))?.rule).toBe(
+    expect(validateProject(projectOf([task(1, "A", [], { duration: 0 }), task(2, "")]), CONTEXT)?.rule).toBe(
       "duration-not-positive-whole-number",
     );
-    expect(validateProject(projectOf([task(1, "", [9])]))?.rule).toBe("task-name-empty");
-    expect(validateProject(projectOf([task(1, "A", [9], { duration: 0 })]))?.rule).toBe(
+    expect(validateProject(projectOf([task(1, "", [9])]), CONTEXT)?.rule).toBe("task-name-empty");
+    expect(validateProject(projectOf([task(1, "A", [9], { duration: 0 })]), CONTEXT)?.rule).toBe(
       "duration-not-positive-whole-number",
     );
-    expect(validateProject(projectOf([...cycle, task(3, "C", [9])], badStart))?.rule).toBe("unknown-task");
-    expect(validateProject(projectOf(cycle, { ...badStart, ...badName }))?.rule).toBe("start-date-not-a-date");
-    expect(validateProject(projectOf(cycle, badName))?.rule).toBe("project-name-empty");
+    expect(validateProject(projectOf([...cycle, task(3, "C", [9])], badStart), CONTEXT)?.rule).toBe("unknown-task");
+    expect(validateProject(projectOf(cycle, { ...badStart, ...badName }), CONTEXT)?.rule).toBe("start-date-not-a-date");
+    expect(validateProject(projectOf(cycle, badName), CONTEXT)?.rule).toBe("project-name-empty");
   });
 
   it("checks every rule of a Task before the next Task: name, Duration, then predecessor ids", () => {
-    expect(validateProject(projectOf([task(1, "", [], { duration: 0 })]))?.rule).toBe("task-name-empty");
+    expect(validateProject(projectOf([task(1, "", [], { duration: 0 })]), CONTEXT)?.rule).toBe("task-name-empty");
     // A walk rule by rule over all Tasks would report Task 2's empty name first.
     expectValidationError(
       projectOf([task(1, "Design", [9]), task(2, "")]),
@@ -631,11 +644,11 @@ describe("the guardian", () => {
   const cycleMessage = "The project contains the cycle 1: A → 2: B → 1: A.";
 
   it.each([
-    ["setDuration", (project: CheckedProject) => setDuration(project, 3, "5")],
-    ["renameTask", (project: CheckedProject) => renameTask(project, 3, "Ship")],
-    ["setProjectName", (project: CheckedProject) => setProjectName(project, "Website")],
-    ["setDayCountingMode", (project: CheckedProject) => setDayCountingMode(project, "weekdays")],
-    ["addPredecessor", (project: CheckedProject) => addPredecessor(project, 3, 1)],
+    ["setDuration", (project: CheckedProject) => setDuration(project, 3, "5", CONTEXT)],
+    ["renameTask", (project: CheckedProject) => renameTask(project, 3, "Ship", CONTEXT)],
+    ["setProjectName", (project: CheckedProject) => setProjectName(project, "Website", CONTEXT)],
+    ["setDayCountingMode", (project: CheckedProject) => setDayCountingMode(project, "weekdays", CONTEXT)],
+    ["addPredecessor", (project: CheckedProject) => addPredecessor(project, 3, 1, CONTEXT)],
   ])("rejects %s when the resulting project holds a cycle, not only the rule the edit can break", (_name, apply) => {
     const result = apply(deepFreeze(structuredClone(cyclic)));
 
@@ -660,7 +673,7 @@ describe("the guardian", () => {
       "The predecessors of Task 2 must be strictly ascending: 1 follows 1.",
     ],
   ])("throws ProjectInvariantBreach when createTask meets %s", (_name, project, message) => {
-    expect(() => createTask(project as CheckedProject, "New")).toThrow(
+    expect(() => createTask(project as CheckedProject, "New", CONTEXT)).toThrow(
       expect.objectContaining({ name: "ProjectInvariantBreach", fault: { rule: "model-shape", message } }),
     );
   });
@@ -669,7 +682,7 @@ describe("the guardian", () => {
     // Not createTask: it would mint the duplicate id 2 and report that first.
     const project = projectOf([task(1, "A"), task(2, "B")], { nextTaskId: 2 });
 
-    expect(() => renameTask(project as CheckedProject, 1, "Design")).toThrow(
+    expect(() => renameTask(project as CheckedProject, 1, "Design", CONTEXT)).toThrow(
       expect.objectContaining({
         name: "ProjectInvariantBreach",
         fault: { rule: "model-shape", message: "nextTaskId must be above every Task id: it is 2, and Task 2 exists." },
@@ -684,18 +697,18 @@ describe("the doors for a project no edit built", () => {
   it("checkProject accepts a project with no Validation Error, as it is", () => {
     const project = projectOf([task(1, "Design", [], { duration: 3 }), task(2, "Build", [1])], { name: "Website" });
 
-    expect(checkProject(project)).toEqual({ ok: true, project });
+    expect(checkProject(project, CONTEXT)).toEqual({ ok: true, project });
   });
 
   it("checkProject rejects a project's first Validation Error, worded for a file", () => {
-    expect(checkProject(projectOf([task(1, "Design"), task(2, " ")]))).toEqual({
+    expect(checkProject(projectOf([task(1, "Design"), task(2, " ")]), CONTEXT)).toEqual({
       ok: false,
       error: { rule: "task-name-empty", message: "Task 2: A Task name cannot be empty." },
     });
   });
 
   it("toCheckedProject throws ProjectInvariantBreach carrying the Validation Error of a cyclic project", () => {
-    expect(() => toCheckedProject(cyclic)).toThrow(
+    expect(() => toCheckedProject(cyclic, CONTEXT)).toThrow(
       expect.objectContaining({
         name: "ProjectInvariantBreach",
         fault: { rule: "cycle", message: "The project contains the cycle 1: A → 2: B → 1: A." },
@@ -704,7 +717,7 @@ describe("the doors for a project no edit built", () => {
   });
 
   it("toCheckedProject throws ProjectInvariantBreach with a model-shape fault for duplicate Task ids", () => {
-    expect(() => toCheckedProject(projectOf([task(1, "A"), task(1, "B")]))).toThrow(
+    expect(() => toCheckedProject(projectOf([task(1, "A"), task(1, "B")]), CONTEXT)).toThrow(
       expect.objectContaining({
         name: "ProjectInvariantBreach",
         fault: { rule: "model-shape", message: "Task ids must be strictly ascending: Task 1 follows Task 1." },

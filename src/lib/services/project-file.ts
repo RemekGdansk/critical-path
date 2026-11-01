@@ -10,6 +10,7 @@ import {
   checkProject,
   type CheckedProject,
   DAY_COUNTING_MODES,
+  type EditContext,
   MAX_NEXT_TASK_ID,
   MAX_TASK_ID,
   type ValidationErrorRule,
@@ -368,14 +369,14 @@ function checkSupportedYet(project: Project): void {
   }
 }
 
-function importProject(data: unknown): CheckedProject {
+function importProject(data: unknown, context: EditContext): CheckedProject {
   if (!isObject(data)) notAProject(`it must hold a JSON object, not ${jsonType(data)}`);
   checkVersion(data);
   checkStartAndFinish(data);
   const project = normalise(readProject(data));
   checkUniqueIds(project);
   checkSupportedYet(project);
-  const result = checkProject(project);
+  const result = checkProject(project, context);
   if (!result.ok) fail(result.error.rule, result.error.message);
   return result.project;
 }
@@ -386,7 +387,7 @@ function importProject(data: unknown): CheckedProject {
  * ids in ascending order, sorted and unique predecessors, `nextTaskId` above
  * every id) and no Validation Error; it may hold Validation Warnings.
  */
-export function parseProjectFile(text: string): ImportResult {
+export function parseProjectFile(text: string, context: EditContext): ImportResult {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -395,7 +396,7 @@ export function parseProjectFile(text: string): ImportResult {
     return { ok: false, error: { rule: "file-not-json", message: `The file is not valid JSON: ${detail}` } };
   }
   try {
-    return { ok: true, project: importProject(data) };
+    return { ok: true, project: importProject(data, context) };
   } catch (error) {
     if (error instanceof ImportRejection) return { ok: false, error: error.importError };
     throw error;

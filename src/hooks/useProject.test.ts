@@ -8,6 +8,7 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   PROJECT_NAME_MAX_LENGTH,
   setDuration,
@@ -18,6 +19,11 @@ import {
 } from "@/lib/services/project";
 import { parseProjectFile, serializeProject } from "@/lib/services/project-file";
 import type { Project } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
+/** The hook reads today from here, never from the clock. */
+const OPTIONS = { today: () => TODAY };
 
 afterEach(() => {
   cleanup();
@@ -39,10 +45,12 @@ function accepted(result: EditResult): CheckedProject {
 
 /** "Q3 plan", START 2026-09-01, A (id 1, 5 days) → B (id 2, 3 days); deep-frozen, so any write throws. */
 function fixture(): CheckedProject {
-  const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), 1, "5"));
-  const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, "3"));
-  const dependent = accepted(addPredecessor(withB, 2, 1));
-  return deepFreeze(accepted(setProjectName(accepted(setStartDate(dependent, "2026-09-01")), "Q3 plan")));
+  const withA = accepted(setDuration(accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT)), 1, "5", CONTEXT));
+  const withB = accepted(setDuration(accepted(createTask(withA, "B", CONTEXT)), 2, "3", CONTEXT));
+  const dependent = accepted(addPredecessor(withB, 2, 1, CONTEXT));
+  return deepFreeze(
+    accepted(setProjectName(accepted(setStartDate(dependent, "2026-09-01", CONTEXT)), "Q3 plan", CONTEXT)),
+  );
 }
 
 const UNKNOWN_ID = 99;
@@ -178,7 +186,7 @@ describe("useProject: a rejected edit commits nothing", () => {
     const project = fixture();
     const before = structuredClone(project);
     const selectedBefore = project.tasks[0];
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     let edit: EditResult | undefined;
     act(() => {
@@ -197,7 +205,7 @@ describe("useProject: a rejected edit commits nothing", () => {
 
   it.each(rows)("$name followed by an accepted edit in one event applies only the accepted one", (row) => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     let rejected: EditResult | undefined;
     let next: EditResult | undefined;
@@ -208,7 +216,7 @@ describe("useProject: a rejected edit commits nothing", () => {
 
     if (rejected === undefined || next === undefined) throw new Error("The actions did not run");
     expectRejected(rejected, row);
-    const expected = accepted(setDuration(project, 2, "4"));
+    const expected = accepted(setDuration(project, 2, "4", CONTEXT));
     expect(next).toStrictEqual({ ok: true, project: expected });
     expect(result.current.project).toStrictEqual(expected);
     expect(result.current.selection).toBe(1);
@@ -224,10 +232,13 @@ describe("useProject: a rejected edit commits nothing", () => {
       rule: "task-id-limit-reached",
       fragment: "no more Tasks can be created",
     };
-    const parsed = parseProjectFile(serializeProject({ ...createEmptyProject(), nextTaskId: 2147483647 }));
+    const parsed = parseProjectFile(
+      serializeProject({ ...createEmptyProject(CONTEXT), nextTaskId: 2147483647 }),
+      CONTEXT,
+    );
     if (!parsed.ok) throw new Error(`Expected the file to import, got ${parsed.error.rule}`);
     const before = structuredClone(parsed.project);
-    const { result } = renderHook(() => useProject());
+    const { result } = renderHook(() => useProject(undefined, null, OPTIONS));
 
     act(() => {
       result.current.replaceProject(parsed.project);
@@ -245,14 +256,14 @@ describe("useProject: a rejected edit commits nothing", () => {
 
   it("two accepted edits in one event apply in sequence, the second to the first's result", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(1, "6");
       result.current.setDuration(2, "4");
     });
 
-    const expected = accepted(setDuration(accepted(setDuration(project, 1, "6")), 2, "4"));
+    const expected = accepted(setDuration(accepted(setDuration(project, 1, "6", CONTEXT)), 2, "4", CONTEXT));
     expect(result.current.project).toStrictEqual(expected);
   });
 });
@@ -260,7 +271,7 @@ describe("useProject: a rejected edit commits nothing", () => {
 describe("useProject: setDayCountingMode", () => {
   it("commits the mode and keeps the selection", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     let edit: EditResult | undefined;
     act(() => {
@@ -278,7 +289,7 @@ describe("useProject: setDayCountingMode", () => {
 describe("useProject: the previous project", () => {
   it("an accepted edit records the project it replaced", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -289,22 +300,22 @@ describe("useProject: the previous project", () => {
 
   it("two accepted edits in one event leave the first edit's result as previous", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(1, "6");
       result.current.setDuration(2, "4");
     });
 
-    expect(result.current.previousProject).toStrictEqual(accepted(setDuration(project, 1, "6")));
+    expect(result.current.previousProject).toStrictEqual(accepted(setDuration(project, 1, "6", CONTEXT)));
   });
 
   it("replaceProject records the replaced project", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
 
     expect(result.current.previousProject).toBe(project);
@@ -312,10 +323,10 @@ describe("useProject: the previous project", () => {
 
   it("restorePreviousProject brings back the replaced project, selects nothing and clears the previous one", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
     act(() => {
       result.current.select(1);
@@ -333,7 +344,7 @@ describe("useProject: the previous project", () => {
 
   it("restorePreviousProject with no previous project changes nothing", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.restorePreviousProject();
@@ -353,16 +364,16 @@ describe("useProject: only a checked project gets in", () => {
 
   it("takes a parsed file or a new empty project, never a plain Project", () => {
     // @ts-expect-error -- a plain Project is not checked
-    renderHook(() => useProject(plain));
-    const { result } = renderHook(() => useProject());
-    const parsed = parseProjectFile(serializeProject(fixture()));
+    renderHook(() => useProject(plain, null, OPTIONS));
+    const { result } = renderHook(() => useProject(undefined, null, OPTIONS));
+    const parsed = parseProjectFile(serializeProject(fixture()), CONTEXT);
     if (!parsed.ok) throw new Error(`Expected the fixture to import, got ${parsed.error.rule}`);
 
     act(() => {
       result.current.replaceProject(parsed.project);
     });
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
     act(() => {
       // @ts-expect-error -- a plain Project is not checked
@@ -375,19 +386,19 @@ describe("useProject: only a checked project gets in", () => {
 describe("useProject: unexported changes", () => {
   /** The fixture renamed "Q4 plan", exported and imported: a parsed file unlike the fixture. */
   function parsedOther(): CheckedProject {
-    const parsed = parseProjectFile(serializeProject(accepted(setProjectName(fixture(), "Q4 plan"))));
+    const parsed = parseProjectFile(serializeProject(accepted(setProjectName(fixture(), "Q4 plan", CONTEXT))), CONTEXT);
     if (!parsed.ok) throw new Error(`Expected the file to import, got ${parsed.error.rule}`);
     return parsed.project;
   }
 
   it("the project the planner opened with has none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     expect(result.current.hasUnexportedChanges()).toBe(false);
   });
 
   it("hasUnexportedChanges and markExported keep their identity across commits", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
     const { hasUnexportedChanges, markExported } = result.current;
 
     act(() => {
@@ -399,7 +410,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("one accepted edit makes them unexported", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -409,7 +420,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("a rejected edit leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.addPredecessor(1, 2);
@@ -419,7 +430,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("an edit committed earlier in the same event counts", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     let unexported: boolean | undefined;
     act(() => {
@@ -431,7 +442,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("a rename and back leaves none, since the file text is the same", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.renameTask(1, "A renamed");
@@ -446,7 +457,7 @@ describe("useProject: unexported changes", () => {
 
   it("a Task created and deleted is unexported, since nextTaskId moved", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.createTask("C");
@@ -461,7 +472,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("a Day counting switch is unexported, and switching back leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDayCountingMode("weekdays");
@@ -475,7 +486,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("markExported of the current project leaves none, and a later edit is unexported again", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -492,7 +503,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("replaceProject with a parsed file leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -505,13 +516,13 @@ describe("useProject: unexported changes", () => {
   });
 
   it("replaceProject with a new empty project leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
     });
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
 
     expect(result.current.hasUnexportedChanges()).toBe(false);
@@ -519,7 +530,7 @@ describe("useProject: unexported changes", () => {
 
   it("restorePreviousProject leaves the baseline where it was: a restored project unlike the replacement is unexported", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.replaceProject(parsedOther());
@@ -534,7 +545,7 @@ describe("useProject: unexported changes", () => {
 
   it("a restored project that was the one last passed to markExported has none", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.replaceProject(parsedOther());
@@ -553,7 +564,7 @@ describe("useProject: unexported changes", () => {
   it("a baseline that cannot be serialized counts as unexported", () => {
     const malformed = { ...fixture(), tasks: null } as unknown as Project;
     expect(() => serializeProject(malformed)).toThrow();
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.markExported(malformed);

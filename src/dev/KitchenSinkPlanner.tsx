@@ -7,11 +7,13 @@ import { useState } from "react";
 
 import { Planner } from "@/components/planner/Planner";
 import type { Selection } from "@/hooks/useProject";
+import { todayIsoDate } from "@/lib/services/calendar-date";
 import {
   addPredecessor,
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   setDayCountingMode,
   setDuration,
@@ -35,44 +37,46 @@ const WRITE_DOCS: TaskId = 4;
  * docs (2): every other Task depends on Design. No START date, so it forecasts
  * from today.
  */
-function smallProject(): CheckedProject {
-  let project = accepted(setProjectName(createEmptyProject(), "Website relaunch"));
-  for (const name of ["Design", "Build", "Test", "Write docs"]) project = accepted(createTask(project, name));
-  project = accepted(addPredecessor(project, BUILD, DESIGN));
-  project = accepted(addPredecessor(project, TEST, BUILD));
-  project = accepted(addPredecessor(project, WRITE_DOCS, DESIGN));
+function smallProject(context: EditContext): CheckedProject {
+  let project = accepted(setProjectName(createEmptyProject(context), "Website relaunch", context));
+  for (const name of ["Design", "Build", "Test", "Write docs"]) project = accepted(createTask(project, name, context));
+  project = accepted(addPredecessor(project, BUILD, DESIGN, context));
+  project = accepted(addPredecessor(project, TEST, BUILD, context));
+  project = accepted(addPredecessor(project, WRITE_DOCS, DESIGN, context));
   for (const [taskId, days] of [
     [DESIGN, "3"],
     [BUILD, "5"],
     [TEST, "2"],
     [WRITE_DOCS, "2"],
   ] as const) {
-    project = accepted(setDuration(project, taskId, days));
+    project = accepted(setDuration(project, taskId, days, context));
   }
   return project;
 }
 
 /** Design alone: no other Task can become its predecessor. */
-function onlyTaskProject(): CheckedProject {
-  return accepted(createTask(createEmptyProject(), "Design"));
+function onlyTaskProject(context: EditContext): CheckedProject {
+  return accepted(createTask(createEmptyProject(context), "Design", context));
 }
 
 /** The small project with Test's Duration cleared: a Validation Warning withholds the forecast. */
-function warnedProject(): CheckedProject {
-  return accepted(setDuration(smallProject(), TEST, ""));
+function warnedProject(context: EditContext): CheckedProject {
+  return accepted(setDuration(smallProject(context), TEST, "", context));
 }
 
 /** The small project with a START date fixed in the past, so the forecast starts from today. */
-function pastStartProject(): CheckedProject {
-  return accepted(setStartDate(smallProject(), "2020-01-01"));
+function pastStartProject(context: EditContext): CheckedProject {
+  return accepted(setStartDate(smallProject(context), "2020-01-01", context));
 }
 
 /**
  * The small project counting weekdays, with START on Saturday 2999-01-05 (far
  * ahead of any real today): the forecast moves it to Monday 2999-01-07.
  */
-function weekdaysWeekendStartProject(): CheckedProject {
-  return accepted(setStartDate(accepted(setDayCountingMode(smallProject(), "weekdays")), "2999-01-05"));
+function weekdaysWeekendStartProject(context: EditContext): CheckedProject {
+  return accepted(
+    setStartDate(accepted(setDayCountingMode(smallProject(context), "weekdays", context)), "2999-01-05", context),
+  );
 }
 
 /**
@@ -82,11 +86,11 @@ function weekdaysWeekendStartProject(): CheckedProject {
  * (Ship starts on day 4, after Build), and Design → Write docs (2) is a shorter
  * branch: neither is highlighted.
  */
-function criticalPathProject(): CheckedProject {
+function criticalPathProject(context: EditContext): CheckedProject {
   const [design, build, ship, research, prototype, writeDocs] = [1, 2, 3, 4, 5, 6] as const;
-  let project = accepted(setProjectName(createEmptyProject(), "Launch plan"));
+  let project = accepted(setProjectName(createEmptyProject(context), "Launch plan", context));
   for (const name of ["Design", "Build", "Ship", "Research", "Prototype", "Write docs"])
-    project = accepted(createTask(project, name));
+    project = accepted(createTask(project, name, context));
   for (const [taskId, predecessorId] of [
     [build, design],
     [ship, build],
@@ -94,7 +98,7 @@ function criticalPathProject(): CheckedProject {
     [prototype, research],
     [writeDocs, design],
   ] as const) {
-    project = accepted(addPredecessor(project, taskId, predecessorId));
+    project = accepted(addPredecessor(project, taskId, predecessorId, context));
   }
   for (const [taskId, days] of [
     [design, "3"],
@@ -104,7 +108,7 @@ function criticalPathProject(): CheckedProject {
     [prototype, "3"],
     [writeDocs, "2"],
   ] as const) {
-    project = accepted(setDuration(project, taskId, days));
+    project = accepted(setDuration(project, taskId, days, context));
   }
   return project;
 }
@@ -148,13 +152,13 @@ const FIXTURES = {
   empty: { project: createEmptyProject, initialSelection: null },
   /** A cyclic project the render throws on: the crash fallback, with nothing to go back to. */
   "render-crash": { project: renderCrashProject, initialSelection: null },
-} satisfies Record<string, { project: () => CheckedProject; initialSelection: Selection }>;
+} satisfies Record<string, { project: (context: EditContext) => CheckedProject; initialSelection: Selection }>;
 
 export type KitchenSinkFixture = keyof typeof FIXTURES;
 
 export function KitchenSinkPlanner({ fixture }: { fixture: KitchenSinkFixture }) {
   const { project: build, initialSelection } = FIXTURES[fixture];
   // Built once: the Planner reads its initial project on the first render only.
-  const [project] = useState(build);
+  const [project] = useState(() => build({ today: todayIsoDate(new Date()) }));
   return <Planner initialProject={project} initialSelection={initialSelection} />;
 }

@@ -22,10 +22,11 @@ import type { Project, TaskId } from "@/types";
  * production build, so the branch and the fixture module are eliminated from it.
  */
 function initialProject(): CheckedProject {
+  const context = { today: todayIsoDate(new Date()) };
   if (import.meta.env.DEV) {
-    if (new URLSearchParams(window.location.search).get("fixture") === "perf100") return createPerfProject();
+    if (new URLSearchParams(window.location.search).get("fixture") === "perf100") return createPerfProject(context);
   }
-  return createEmptyProject();
+  return createEmptyProject(context);
 }
 
 interface PlannerProps {

@@ -24,10 +24,14 @@ import {
   createEmptyProject,
   createTask,
   deleteTask,
+  type EditContext,
   type EditResult,
   setDuration,
 } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok)
@@ -37,13 +41,13 @@ function accepted(result: EditResult): CheckedProject {
 
 /** A project with one Task per name, ids 1..n in order. */
 function projectWith(...names: string[]): CheckedProject {
-  return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
+  return names.reduce((project, name) => accepted(createTask(project, name, CONTEXT)), createEmptyProject(CONTEXT));
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
 function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
-    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId, CONTEXT)),
     project,
   );
 }
@@ -73,7 +77,7 @@ function startNodeOf(diagram: Diagram): StartDiagramNode {
 
 describe("projectDiagram", () => {
   it("draws an empty project as START and FINISH joined by one edge, which feeds FINISH", () => {
-    const { nodes, edges } = projectDiagram(createEmptyProject());
+    const { nodes, edges } = projectDiagram(createEmptyProject(CONTEXT));
     expect(nodes.map((node) => [node.id, node.kind])).toEqual([
       [START_NODE_ID, "start"],
       [FINISH_NODE_ID, "finish"],
@@ -123,7 +127,7 @@ describe("projectDiagram", () => {
 
   it("has one node per Task plus START and FINISH, and no edge to a deleted Task", () => {
     const project = withDependencies(projectWith("A", "B", "C"), [1, 2], [2, 3]);
-    const afterDelete = accepted(deleteTask(project, 2));
+    const afterDelete = accepted(deleteTask(project, 2, CONTEXT));
     const { nodes, edges } = projectDiagram(afterDelete);
 
     expect(nodes).toHaveLength(afterDelete.tasks.length + 2);
@@ -138,7 +142,7 @@ describe("projectDiagram", () => {
   });
 
   it("gives every edge the id <source>-><target> and the same Diagram on every call", () => {
-    const project = createPerfProject(30);
+    const project = createPerfProject(CONTEXT, 30);
     const { edges } = projectDiagram(project);
     for (const edge of edges) expect(edge.id).toBe(`${edge.source}->${edge.target}`);
     expect(new Set(edges.map((edge) => edge.id)).size).toBe(edges.length);
@@ -157,14 +161,16 @@ describe("projectDiagram", () => {
   });
 
   it("leaves the START date out and names START for today", () => {
-    const project = { ...createEmptyProject(), start: { date: "2030-01-07" } };
+    const project = { ...createEmptyProject(CONTEXT), start: { date: "2030-01-07" } };
     const start = startNodeOf(projectDiagram(project));
     expect(start).not.toHaveProperty("date");
     expect(start.accessibleName).toBe("START, today");
   });
 
   it("carries the Duration as text, or flags its absence as a Validation Warning, in the node and its accessible name", () => {
-    const project = accepted(setDuration(accepted(setDuration(projectWith("A", "B", "C"), 1, "5")), 2, "1"));
+    const project = accepted(
+      setDuration(accepted(setDuration(projectWith("A", "B", "C"), 1, "5", CONTEXT)), 2, "1", CONTEXT),
+    );
     const { nodes } = projectDiagram(project);
 
     expect(nodeById(nodes, "1")).toMatchObject({
@@ -187,7 +193,7 @@ describe("projectDiagram", () => {
   it("raises no warning on a Done Task without a Duration", () => {
     // Built by hand: no edit sets Done yet (S-07).
     const project: Project = {
-      ...createEmptyProject(),
+      ...createEmptyProject(CONTEXT),
       nextTaskId: 2,
       tasks: [{ id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03" }],
     };
@@ -197,7 +203,9 @@ describe("projectDiagram", () => {
   });
 
   it("shows the weekday unit in the Duration text and accessible name in weekdays mode", () => {
-    const project = accepted(setDuration(accepted(setDuration(projectWith("A", "B"), 1, "5")), 2, "1"));
+    const project = accepted(
+      setDuration(accepted(setDuration(projectWith("A", "B"), 1, "5", CONTEXT)), 2, "1", CONTEXT),
+    );
     const { nodes } = projectDiagram({ ...project, dayCountingMode: "weekdays" });
 
     // A (5) and B (1) are independent: A alone is the longest chain.
@@ -219,9 +227,9 @@ describe("projectDiagram", () => {
 /** A project with one Task per [name, Duration] pair, ids 1..n; an empty Duration leaves it unset. */
 function projectWithDurations(...tasks: [string, string][]): CheckedProject {
   return tasks.reduce((current, [name, duration]) => {
-    const created = accepted(createTask(current, name));
-    return accepted(setDuration(created, created.nextTaskId - 1, duration));
-  }, createEmptyProject());
+    const created = accepted(createTask(current, name, CONTEXT));
+    return accepted(setDuration(created, created.nextTaskId - 1, duration, CONTEXT));
+  }, createEmptyProject(CONTEXT));
 }
 
 /** Each edge as `[id, critical]`, in the order the Diagram lists them. */
@@ -303,7 +311,7 @@ describe("critical path", () => {
   it("never marks a Done Task or an edge from it", () => {
     // Built by hand: no edit sets Done yet (S-07). A (5) Done → B (3): only B remains.
     const project: Project = {
-      ...createEmptyProject(),
+      ...createEmptyProject(CONTEXT),
       nextTaskId: 3,
       tasks: [
         { id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03", duration: 5 },
@@ -329,7 +337,7 @@ describe("START date", () => {
   });
 
   it("adds the START date and its accessible name to the START node, and nothing else", () => {
-    const start = startNodeOf(projectDiagram(createEmptyProject()));
+    const start = startNodeOf(projectDiagram(createEmptyProject(CONTEXT)));
     const before = structuredClone(start);
 
     expect(withStartDate(start, "2030-01-07")).toEqual({
@@ -341,7 +349,7 @@ describe("START date", () => {
   });
 
   it("drops the START date when it is cleared", () => {
-    const dated = withStartDate(startNodeOf(projectDiagram(createEmptyProject())), "2030-01-07");
+    const dated = withStartDate(startNodeOf(projectDiagram(createEmptyProject(CONTEXT))), "2030-01-07");
     const cleared = withStartDate(dated, undefined);
 
     expect(cleared).not.toHaveProperty("date");
@@ -406,7 +414,7 @@ describe("layoutDiagram", () => {
 
 describe("createPerfProject", () => {
   it("builds the requested number of Tasks with branches, joins and Tasks feeding FINISH", () => {
-    const project = createPerfProject();
+    const project = createPerfProject(CONTEXT);
     expect(project.tasks.map((task) => task.id)).toEqual(Array.from({ length: 100 }, (_, index) => index + 1));
 
     const { edges } = projectDiagram(project);
@@ -419,11 +427,11 @@ describe("createPerfProject", () => {
   });
 
   it("is deterministic", () => {
-    expect(createPerfProject()).toEqual(createPerfProject());
-    expect(createPerfProject(7).tasks).toHaveLength(7);
+    expect(createPerfProject(CONTEXT)).toEqual(createPerfProject(CONTEXT));
+    expect(createPerfProject(CONTEXT, 7).tasks).toHaveLength(7);
   });
 
   it("gives every Task a Duration, so the fixture forecasts", () => {
-    expect(createPerfProject().tasks.every((task) => task.duration !== undefined)).toBe(true);
+    expect(createPerfProject(CONTEXT).tasks.every((task) => task.duration !== undefined)).toBe(true);
   });
 });
