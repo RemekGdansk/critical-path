@@ -592,7 +592,7 @@ const PROJECT_CHECKS: readonly ProjectCheck[] = [
       message: `Task ${taskLabel(task)} cannot be Done while its predecessor ${taskLabel(predecessor)} is not Done.`,
     };
   },
-  // A Task is ready to start only once all its predecessors are Done (PRD Business Logic).
+  // A Task can be In Progress only once all its predecessors are Done (PRD FR-005 and Business Logic).
   (index) => {
     const found = findPredecessor(index, "in-progress", (_task, predecessor) => predecessor.status !== "done");
     if (found === undefined) return undefined;

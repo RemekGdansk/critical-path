@@ -1,4 +1,4 @@
-// risk: roadmap S-07 / US-04, browser side — marking a Task Done must take the browser's local
+// risk: roadmap S-07 / US-04 / test-plan.md #4, browser side — marking a Task Done must take the browser's local
 // today as its completion date, in the user's time zone, and both Project Finish Dates must then
 // count from today once every Task that follows START is Done. The Done rules, `setStatus` and the
 // progress-aware forecast are unit-tested in src/lib/services/, and the hook and panels in jsdom
