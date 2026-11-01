@@ -9,7 +9,7 @@ main_goal: quality
 top_blocker: time
 milestone_id: first-usable-planner
 milestone_seq: 1
-milestone_status: open
+milestone_status: done
 ---
 
 # Roadmap: Critical Path
@@ -20,7 +20,7 @@ milestone_status: open
 
 ## Milestone
 
-**M-1: First usable planner** — Status: open
+**M-1: First usable planner** — Status: done
 
 - **Intent:** Deliver the PRD's MVP: a planner can capture a task graph with no friction, is prevented from ever saving an invalid project, sees both finish-date forecasts (withheld while warnings exist), tracks progress, and round-trips the project through a plain-text file into another browser.
 - **Source materials:** `context/foundation/prd.md` (v1)
@@ -224,6 +224,8 @@ None open. The PRD's `## Open Questions` has none; the one cross-cutting decisio
 - **Mobile / small-screen support** — Why parked: PRD §Non-Goals (non-functional).
 
 ## Milestone History
+
+- **M-1: First usable planner** (`first-usable-planner`) — closed 2026-11-01. The PRD MVP shipped: all nine items (F-01, S-01–S-08) done, the project file at version `"1.0"`, and the MVP flow (Success Criteria → Primary, steps 1–9) checked end to end on the deployed build with Playwright on 2026-11-01. Released as app version 1.0.0, tag [`v1.0.0`](https://github.com/RemekGdansk/critical-path/releases/tag/v1.0.0) (independent of the project file version `"1.0"`).
 
 ## Done
 
