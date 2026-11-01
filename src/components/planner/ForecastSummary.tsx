@@ -14,6 +14,15 @@ interface ForecastSummaryProps {
   startDate: string | undefined;
 }
 
+type BaseDateReason = Extract<Forecast, { kind: "forecast" }>["baseDateReason"];
+
+/** The base-date reasons whose base date is today. */
+const TODAY_BASED_REASONS: ReadonlySet<BaseDateReason> = new Set([
+  "start-date-unset",
+  "start-date-in-past",
+  "start-successors-done",
+]);
+
 function ForecastDateValue({ value }: { value: ForecastDate }) {
   return value.kind === "date" ? <time dateTime={value.date}>{value.date}</time> : <>Beyond year 9999</>;
 }
@@ -26,8 +35,8 @@ function RemainingWorkTimeValue({ time, mode }: { time: RemainingWorkTime; mode:
  * The critical-path time and the total-work time of the remaining work, on one
  * line, as label and value pairs like the Project Finish Dates above them. The
  * swatch is the diagram's legend: it is the colour the critical path is drawn
- * in. A critical-path time too large to count highlights nothing on the
- * diagram, so it has no swatch either.
+ * in. A critical-path time too large to count, or of 0 days once every Task is
+ * Done, highlights nothing on the diagram, so it has no swatch either.
  */
 function RemainingWorkTimes({ forecast }: { forecast: Extract<Forecast, { kind: "forecast" }> }) {
   const mode = forecast.dayCountingMode;
@@ -35,7 +44,7 @@ function RemainingWorkTimes({ forecast }: { forecast: Extract<Forecast, { kind: 
     <dl className="flex flex-wrap items-center justify-end gap-x-1.5">
       <div className="flex items-center gap-x-1.5">
         <dt className="text-muted-foreground flex items-center gap-x-1.5">
-          {forecast.criticalPathTime.kind === "days" && (
+          {forecast.criticalPathTime.kind === "days" && forecast.criticalPathTime.days > 0 && (
             <span aria-hidden="true" className="bg-critical-path size-2.5 shrink-0 rounded-sm" />
           )}
           Critical-path time
@@ -114,7 +123,7 @@ export function ForecastSummary({ forecast, tasks, startDate }: ForecastSummaryP
       ) : forecast.kind === "withheld" ? (
         <>
           <WithheldWarning forecast={forecast} tasks={tasks} />
-          <p className="text-warning">Forecast not possible until every Task has one.</p>
+          <p className="text-warning">Forecast not possible until every Task that is not Done has one.</p>
         </>
       ) : (
         <ForecastDates forecast={forecast} startDate={startDate} />
@@ -136,8 +145,11 @@ function ForecastDates({
   forecast: Extract<Forecast, { kind: "forecast" }>;
   startDate: string | undefined;
 }) {
-  const { movedFromWeekend } = forecast;
-  const today = movedFromWeekend ?? forecast.baseDate;
+  const { movedFromWeekend, baseDateReason } = forecast;
+  // The real today, defined only for the reasons whose base date is today (before
+  // any weekend move). Not under start-date (the START date) or all-tasks-done
+  // (the latest completion date).
+  const today = TODAY_BASED_REASONS.has(baseDateReason) ? (movedFromWeekend ?? forecast.baseDate) : undefined;
   return (
     <>
       <dl className="flex flex-col gap-0.5">
@@ -155,13 +167,19 @@ function ForecastDates({
         </div>
       </dl>
       <RemainingWorkTimes forecast={forecast} />
-      {forecast.baseDateReason === "start-date-in-past" && startDate !== undefined && (
+      {baseDateReason === "all-tasks-done" && <p className="text-muted-foreground text-xs">Every Task is Done.</p>}
+      {baseDateReason === "start-date-in-past" && startDate !== undefined && (
         <p className="text-muted-foreground text-xs">
           START date {startDate} is in the past: forecasting from today, {today}.
         </p>
       )}
-      {forecast.baseDateReason === "start-date-unset" && (
+      {baseDateReason === "start-date-unset" && (
         <p className="text-muted-foreground text-xs">START date not set: forecasting from today, {today}.</p>
+      )}
+      {baseDateReason === "start-successors-done" && (
+        <p className="text-muted-foreground text-xs">
+          The Tasks that follow START are Done: forecasting from today, {today}.
+        </p>
       )}
       {movedFromWeekend !== undefined && (
         <p className="text-muted-foreground text-xs">

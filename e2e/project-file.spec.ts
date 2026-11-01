@@ -93,7 +93,7 @@ test.describe("project file round-trip in the built app", () => {
       name: string;
       tasks: { name: string }[];
     };
-    expect(file.version).toBe("0.1");
+    expect(file.version).toBe("1.0");
     expect(file.name).toBe(projectName);
     expect(file.tasks.map((task) => task.name)).toEqual(["Alpha", "Beta"]);
     expect(consoleErrors).toEqual([]);

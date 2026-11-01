@@ -8,6 +8,8 @@ type: refactor-plan
 
 A refactoring plan, not an implementation. It changes no production code; the change happens later through `/10x-plan` → `/10x-implement` (or `/10x-tdd` for the test-first phases). Terms follow `context/domain/glossary.md`. Every `file:line` below was checked against branch `invariant-aggregate-refactor` at `b9533b0`. Invariant ids `INV-NN`, drift ids `DR-NN` and ranking ids `RK-NN` refer to `context/domain/01-domain-distillation.md`.
 
+> **Point-in-time snapshot, not updated as slices land.** It records the design as planned at `b9533b0`; the refactor (`context/archive/2026-10-19-invariant-aggregate-refactor/`) and S-07 implemented it, and some names and line references have since moved. For the current terms and Validation Errors, read `context/domain/glossary.md` and `context/foundation/prd.md`.
+
 ## Step 0: Context
 
 **Documents read.** `context/foundation/prd.md` (v1: Success Criteria → Guardrails, US-01–US-04, FR-001–FR-019, Business Logic), `context/foundation/roadmap.md` (M-1, slices S-01–S-08), `context/foundation/test-plan.md` (§6.1–§6.3, the test patterns), `context/foundation/lessons.md`, `PROJECT_RULES.md`, and the domain map and glossary in `context/domain/`.

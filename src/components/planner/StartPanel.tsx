@@ -53,6 +53,15 @@ export function StartPanel({ project, today, setStartDate, focusRequest }: Start
     base.baseDateReason === "start-date-in-past"
       ? `This date is in the past: the forecast starts from today, ${today}.`
       : undefined,
+    base.baseDateReason === "start-successors-done"
+      ? `The Tasks that follow START are Done, so this date no longer affects the forecast: it starts from today, ${today}.`
+      : undefined,
+    // Decided before start-date-unset, so it also says when the date is not set.
+    base.baseDateReason === "all-tasks-done"
+      ? date === undefined
+        ? "Not set. Every Task is Done, so the START date does not affect the forecast."
+        : "Every Task is Done, so this date no longer affects the forecast."
+      : undefined,
     base.movedFromWeekend === undefined
       ? undefined
       : weekendMoveNote({ baseDate: base.baseDate, movedFromWeekend: base.movedFromWeekend }),

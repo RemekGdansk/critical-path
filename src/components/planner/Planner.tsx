@@ -22,10 +22,11 @@ import type { Project, TaskId } from "@/types";
  * production build, so the branch and the fixture module are eliminated from it.
  */
 function initialProject(): CheckedProject {
+  const context = { today: todayIsoDate(new Date()) };
   if (import.meta.env.DEV) {
-    if (new URLSearchParams(window.location.search).get("fixture") === "perf100") return createPerfProject();
+    if (new URLSearchParams(window.location.search).get("fixture") === "perf100") return createPerfProject(context);
   }
-  return createEmptyProject();
+  return createEmptyProject(context);
 }
 
 interface PlannerProps {
@@ -111,6 +112,8 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
     addPredecessor,
     removePredecessor,
     setDuration,
+    setStatus,
+    setCompletionDate,
     setStartDate,
     setDayCountingMode,
     setProjectName,
@@ -230,7 +233,16 @@ function PlannerView({ state, focusNewTaskOnMount }: { state: ProjectState; focu
               key={selectedTask.id}
               task={selectedTask}
               project={project}
-              actions={{ renameTask, deleteTask: handleDeleteTask, addPredecessor, removePredecessor, setDuration }}
+              today={today}
+              actions={{
+                renameTask,
+                deleteTask: handleDeleteTask,
+                addPredecessor,
+                removePredecessor,
+                setDuration,
+                setStatus,
+                setCompletionDate,
+              }}
               focusRequest={focusRequest?.target === selectedTask.id ? focusRequest.id : undefined}
             />
           )}

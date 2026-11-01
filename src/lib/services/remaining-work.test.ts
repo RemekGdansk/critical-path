@@ -6,13 +6,18 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
+  setCompletionDate,
   setDuration,
   setStartDate,
-  toCheckedProject,
+  setStatus,
 } from "@/lib/services/project";
 import { remainingWork } from "@/lib/services/remaining-work";
 import type { TaskId } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 function accepted(result: EditResult): CheckedProject {
   if (!result.ok) throw new Error(`Expected the edit to be accepted, got ${result.error.rule}`);
@@ -22,15 +27,15 @@ function accepted(result: EditResult): CheckedProject {
 /** A project with one Task per [name, Duration] pair, ids 1..n; an empty Duration leaves it unset. */
 function projectWith(...tasks: [string, string][]): CheckedProject {
   return tasks.reduce((current, [name, duration]) => {
-    const created = accepted(createTask(current, name));
-    return accepted(setDuration(created, created.nextTaskId - 1, duration));
-  }, createEmptyProject());
+    const created = accepted(createTask(current, name, CONTEXT));
+    return accepted(setDuration(created, created.nextTaskId - 1, duration, CONTEXT));
+  }, createEmptyProject(CONTEXT));
 }
 
 /** Adds `predecessorId → taskId` for each pair. */
 function withDependencies(project: CheckedProject, ...pairs: [TaskId, TaskId][]): CheckedProject {
   return pairs.reduce(
-    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId)),
+    (current, [predecessorId, taskId]) => accepted(addPredecessor(current, taskId, predecessorId, CONTEXT)),
     project,
   );
 }
@@ -65,7 +70,7 @@ describe("remainingWork", () => {
   it("gives the critical-path time the forecast adds to the base date for the Resource-Unconstrained Project Finish Date", () => {
     // The same tie from START 1 Sep: 5 days later is 6 Sep; all 10 days of work one after another end 11 Sep.
     const tie = withDependencies(projectWith(["A", "2"], ["B", "3"], ["C", "4"], ["D", "1"]), [1, 2], [3, 4]);
-    const result = forecast(accepted(setStartDate(tie, "2026-09-01")), "2026-08-20");
+    const result = forecast(accepted(setStartDate(tie, "2026-09-01", CONTEXT)), "2026-08-20");
     expect(result).toMatchObject({
       baseDate: "2026-09-01",
       resourceUnconstrainedProjectFinishDate: { kind: "date", date: "2026-09-06" },
@@ -112,16 +117,11 @@ describe("remainingWork", () => {
   });
 
   it("excludes a Done predecessor, so its successor starts at 0", () => {
-    // Built by hand, since no edit sets a Status yet: A (5) Done → B (3) To Do. Only B remains: 0–3.
-    const project = toCheckedProject({
-      ...createEmptyProject(),
-      start: { date: "2026-09-01" },
-      nextTaskId: 3,
-      tasks: [
-        { id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03", duration: 5 },
-        { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
-      ],
-    });
+    // A (5) Done → B (3) To Do. Only B remains: 0–3.
+    let project = withDependencies(projectWith(["A", "5"], ["B", "3"]), [1, 2]);
+    project = accepted(setStartDate(project, "2026-09-01", CONTEXT));
+    project = accepted(setStatus(project, 1, "done", CONTEXT));
+    project = accepted(setCompletionDate(project, 1, "2026-09-03", CONTEXT));
     expect(remainingWork(project)).toStrictEqual({
       kind: "scheduled",
       criticalPathTime: { kind: "days", days: 3 },
@@ -137,7 +137,7 @@ describe("remainingWork", () => {
   });
 
   it("gives 0 days and nothing critical for a project without Tasks", () => {
-    expect(remainingWork(createEmptyProject())).toStrictEqual({
+    expect(remainingWork(createEmptyProject(CONTEXT))).toStrictEqual({
       kind: "scheduled",
       criticalPathTime: { kind: "days", days: 0 },
       totalWorkTime: { kind: "days", days: 0 },

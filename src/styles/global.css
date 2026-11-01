@@ -40,10 +40,14 @@
      context/archive/2026-10-04-forecast-finish-dates/tokens.md. */
   --warning: oklch(0.555 0.13 60);
   /* On the critical path: Task borders and rings, edges and their arrowheads.
-     Blue, apart from --warning (amber), --destructive (red), the grey edges and
-     the near-black selection; contrast in
-     context/changes/critical-path-highlight/tokens.md. */
+     Blue, apart from --warning (amber), --destructive (red) and the grey edges;
+     a selected critical Task keeps it and thickens its ring. Contrast in
+     context/archive/2026-10-31-critical-path-highlight/tokens.md. */
   --critical-path: oklch(0.55 0.22 264);
+  /* A Done Task: its node border, selected ring and check icon. Green, apart
+     from --warning (amber), --critical-path (blue) and --destructive (red);
+     contrast in context/changes/progress-aware-forecast/tokens.md. */
+  --done: oklch(0.52 0.14 150);
   /* The dots on the diagram canvas: decorative, but visible (2.38:1 on --muted);
      contrast in context/archive/2026-10-04-forecast-finish-dates/tokens.md. */
   --canvas-pattern: oklch(0.708 0 0);
@@ -85,6 +89,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --warning: oklch(0.82 0.16 80);
   --critical-path: oklch(0.7 0.15 264);
+  --done: oklch(0.72 0.17 150);
   --canvas-pattern: oklch(0.5 0 0);
   --overlay: oklch(0 0 0 / 70%);
   --border: oklch(1 0 0 / 10%);
@@ -127,6 +132,7 @@
   --color-destructive: var(--destructive);
   --color-warning: var(--warning);
   --color-critical-path: var(--critical-path);
+  --color-done: var(--done);
   --color-canvas-pattern: var(--canvas-pattern);
   --color-overlay: var(--overlay);
   --color-border: var(--border);

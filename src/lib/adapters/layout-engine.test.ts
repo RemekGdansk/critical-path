@@ -15,8 +15,17 @@ import {
   TASK_NODE_SIZE,
 } from "@/lib/services/diagram";
 import { createPerfProject } from "@/lib/services/fixtures";
-import { type CheckedProject, createEmptyProject, createTask, type EditResult } from "@/lib/services/project";
+import {
+  type CheckedProject,
+  createEmptyProject,
+  createTask,
+  type EditContext,
+  type EditResult,
+} from "@/lib/services/project";
 import type { Project } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 type LaidOutNode = LaidOutDiagram["nodes"][number];
 
@@ -28,7 +37,7 @@ function accepted(result: EditResult): CheckedProject {
 
 /** A project with one Task per name, ids 1..n in order. */
 function projectWith(...names: string[]): Project {
-  return names.reduce((project, name) => accepted(createTask(project, name)), createEmptyProject());
+  return names.reduce((project, name) => accepted(createTask(project, name, CONTEXT)), createEmptyProject(CONTEXT));
 }
 
 function laidOut(project: Project): LaidOutDiagram {
@@ -69,7 +78,7 @@ describe("layoutEngine", () => {
   });
 
   it("places START left of every Task and FINISH right of every Task", () => {
-    const { nodes } = laidOut(createPerfProject());
+    const { nodes } = laidOut(createPerfProject(CONTEXT));
     const start = rectOf(nodeById(nodes, START_NODE_ID));
     const finish = rectOf(nodeById(nodes, FINISH_NODE_ID));
     for (const node of nodes.filter((candidate) => candidate.kind === "task")) {
@@ -98,7 +107,7 @@ describe("layoutEngine", () => {
   });
 
   it("lays out the 100-Task fixture without overlapping node rectangles", () => {
-    const project = createPerfProject();
+    const project = createPerfProject(CONTEXT);
     expect(project.tasks).toHaveLength(100);
 
     const rects = laidOut(project).nodes.map(rectOf);

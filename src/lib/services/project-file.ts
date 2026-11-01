@@ -1,25 +1,28 @@
-// The project file, version 0.1: the only place that knows the file format.
-// Export writes JSON whose every byte the app controls, in a fixed key order,
-// so a re-export is byte-identical, and Prettier leaves it as it is while each
-// predecessors list fits in 120 columns (see taskLines). Import runs a pipeline
-// of stages, each assuming the previous one passed: parse, version,
-// shape, normalise, unique ids, the pre-S-07 limits, then the aggregate's
-// guardian (checkProject). Only a project that passes every stage is returned,
-// as a CheckedProject.
+// The project file: the only place that knows the file format. Export writes
+// version 1.0, the MVP schema; import reads 1.0 and 0.1, which share one schema
+// (1.0 adds, removes and reorders no key). Export writes JSON whose every byte
+// the app controls, in a fixed key order, so a re-export is byte-identical, and
+// Prettier leaves it as it is while each predecessors list fits in 120 columns
+// (see taskLines). Import runs a pipeline of stages, each assuming the previous
+// one passed: parse, version, shape, normalise, unique ids, then the aggregate's
+// guardian (checkProject), the only judge of Validation Errors, Statuses and
+// completion dates included.
+// Only a project that passes every stage is returned, as a CheckedProject.
 import {
   checkProject,
   type CheckedProject,
   DAY_COUNTING_MODES,
+  type EditContext,
   MAX_NEXT_TASK_ID,
   MAX_TASK_ID,
+  TASK_STATUSES,
   type ValidationErrorRule,
 } from "@/lib/services/project";
-import type { Finish, Project, Start, Task, TaskId, TaskStatus } from "@/types";
+import type { Finish, Project, Start, Task, TaskId } from "@/types";
 
-export const PROJECT_FILE_VERSION = "0.1";
+export const PROJECT_FILE_VERSION = "1.0";
 
-export type ProjectFileRule =
-  "file-not-json" | "file-not-a-project" | "file-version-newer" | "duplicate-task-id" | "task-status-not-supported-yet";
+export type ProjectFileRule = "file-not-json" | "file-not-a-project" | "file-version-newer" | "duplicate-task-id";
 
 export interface ImportError {
   rule: ValidationErrorRule | ProjectFileRule;
@@ -66,7 +69,7 @@ function taskLines(task: Task, indent: string): string[] {
 }
 
 /**
- * The project as version-0.1 JSON: keys in the fixed file order, absent fields
+ * The project as version-1.0 JSON: keys in the fixed file order, absent fields
  * left out, two-space indentation, LF line endings and one trailing newline.
  * Non-ASCII characters are written as they are (the file is UTF-8).
  */
@@ -169,19 +172,36 @@ function keyPath(path: string, key: string): string {
 
 // --- Stage 2: version
 
+// Every version an app build has written, all with the one schema below; no other spelling is read.
+const READ_VERSIONS: readonly string[] = ["0.1", PROJECT_FILE_VERSION];
+
 // A canonical `major` or `major.minor`: digits only, no leading zeros.
 const VERSION = /^(0|[1-9][0-9]*)(?:\.(0|[1-9][0-9]*))?$/;
+
+/** A canonical version's major and minor; a missing minor is 0. */
+function versionParts(version: string): readonly [number, number] | undefined {
+  const match = VERSION.exec(version);
+  if (match === null) return undefined;
+  const [, major, minor = "0"] = match;
+  return [Number(major), Number(minor)];
+}
+
+// The version written, which a newer one is compared against; the version rows fail at once if it is not canonical.
+const WRITTEN_VERSION_PARTS = versionParts(PROJECT_FILE_VERSION) ?? [Infinity, Infinity];
 
 function checkVersion(root: JsonObject): void {
   if (!Object.hasOwn(root, "version")) notAProject("version is missing");
   const version = root.version;
   if (typeof version !== "string") notAProject(`version must be text, not ${jsonType(version)}`);
-  if (version === PROJECT_FILE_VERSION) return;
+  if (READ_VERSIONS.includes(version)) return;
 
-  const match = VERSION.exec(version);
-  if (match !== null) {
-    const [, major, minor = "0"] = match;
-    if (Number(major) > 0 || Number(minor) > 1) {
+  // Numerically above the written version is newer. Anything else is not a version this
+  // app reads, including a canonical one no build wrote ("1", "0.2", "0.0").
+  const parts = versionParts(version);
+  if (parts !== undefined) {
+    const [major, minor] = parts;
+    const [writtenMajor, writtenMinor] = WRITTEN_VERSION_PARTS;
+    if (major > writtenMajor || (major === writtenMajor && minor > writtenMinor)) {
       fail(
         "file-version-newer",
         `The file has version ${shortened(version)}, newer than version ${PROJECT_FILE_VERSION} that this app reads; open it in a newer version of the app.`,
@@ -232,7 +252,6 @@ function checkStartAndFinish(root: JsonObject): void {
 const ROOT_KEYS = ["version", "name", "start", "finish", "dayCountingMode", "nextTaskId", "tasks"];
 const START_KEYS = ["date"];
 const TASK_KEYS = ["id", "name", "predecessors", "duration", "status", "completionDate"];
-const TASK_STATUSES: readonly TaskStatus[] = ["to-do", "in-progress", "done"];
 
 function readObject(value: unknown, path: string, keys: readonly string[]): JsonObject {
   if (!isObject(value)) notAProject(`${path} must be an object, not ${jsonType(value)}`);
@@ -340,7 +359,7 @@ function normalise(project: Project): Project {
   return normalised;
 }
 
-// --- Stages 5 and 6: unique ids, and what S-07 has not built yet
+// --- Stage 5: unique ids
 
 function checkUniqueIds(project: Project): void {
   // Tasks are ordered by id, so a duplicate sits next to its twin.
@@ -348,45 +367,25 @@ function checkUniqueIds(project: Project): void {
   if (duplicate !== undefined) fail("duplicate-task-id", `Two Tasks have the id ${duplicate.id}.`);
 }
 
-const STATUS_NAMES: Record<TaskStatus, string> = { "to-do": "To Do", "in-progress": "In Progress", done: "Done" };
-
-function checkSupportedYet(project: Project): void {
-  // By id only: the name rules run later, in the guardian, so the name may not be fit to show yet.
-  for (const task of project.tasks) {
-    if (task.status !== "to-do") {
-      fail(
-        "task-status-not-supported-yet",
-        `Task ${task.id} is ${STATUS_NAMES[task.status]}, and this version of the app can import only To Do Tasks.`,
-      );
-    }
-    if (task.completionDate !== undefined) {
-      fail(
-        "task-status-not-supported-yet",
-        `Task ${task.id} has a completion date, and this version of the app cannot import completion dates yet.`,
-      );
-    }
-  }
-}
-
-function importProject(data: unknown): CheckedProject {
+function importProject(data: unknown, context: EditContext): CheckedProject {
   if (!isObject(data)) notAProject(`it must hold a JSON object, not ${jsonType(data)}`);
   checkVersion(data);
   checkStartAndFinish(data);
   const project = normalise(readProject(data));
   checkUniqueIds(project);
-  checkSupportedYet(project);
-  const result = checkProject(project);
+  const result = checkProject(project, context);
   if (!result.ok) fail(result.error.rule, result.error.message);
   return result.project;
 }
 
 /**
- * The project a version-0.1 file holds, or the first error that stops it from
- * being imported. An accepted project holds every model invariant (unique Task
- * ids in ascending order, sorted and unique predecessors, `nextTaskId` above
- * every id) and no Validation Error; it may hold Validation Warnings.
+ * The project a version-1.0 or version-0.1 file holds (one schema), or the
+ * first error that stops it from being imported. An accepted project holds
+ * every model invariant (unique Task ids in ascending order, sorted and unique
+ * predecessors, `nextTaskId` above every id) and no Validation Error; it may
+ * hold Validation Warnings.
  */
-export function parseProjectFile(text: string): ImportResult {
+export function parseProjectFile(text: string, context: EditContext): ImportResult {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -395,7 +394,7 @@ export function parseProjectFile(text: string): ImportResult {
     return { ok: false, error: { rule: "file-not-json", message: `The file is not valid JSON: ${detail}` } };
   }
   try {
-    return { ok: true, project: importProject(data) };
+    return { ok: true, project: importProject(data, context) };
   } catch (error) {
     if (error instanceof ImportRejection) return { ok: false, error: error.importError };
     throw error;

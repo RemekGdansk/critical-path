@@ -8,16 +8,24 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   PROJECT_NAME_MAX_LENGTH,
+  setCompletionDate,
   setDuration,
   setProjectName,
   setStartDate,
+  setStatus,
   TASK_NAME_MAX_LENGTH,
   type ValidationErrorRule,
 } from "@/lib/services/project";
 import { parseProjectFile, serializeProject } from "@/lib/services/project-file";
 import type { Project } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
+/** The hook reads today from here, never from the clock. */
+const OPTIONS = { today: () => TODAY };
 
 afterEach(() => {
   cleanup();
@@ -39,10 +47,28 @@ function accepted(result: EditResult): CheckedProject {
 
 /** "Q3 plan", START 2026-09-01, A (id 1, 5 days) → B (id 2, 3 days); deep-frozen, so any write throws. */
 function fixture(): CheckedProject {
-  const withA = accepted(setDuration(accepted(createTask(createEmptyProject(), "A")), 1, "5"));
-  const withB = accepted(setDuration(accepted(createTask(withA, "B")), 2, "3"));
-  const dependent = accepted(addPredecessor(withB, 2, 1));
-  return deepFreeze(accepted(setProjectName(accepted(setStartDate(dependent, "2026-09-01")), "Q3 plan")));
+  const withA = accepted(setDuration(accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT)), 1, "5", CONTEXT));
+  const withB = accepted(setDuration(accepted(createTask(withA, "B", CONTEXT)), 2, "3", CONTEXT));
+  const dependent = accepted(addPredecessor(withB, 2, 1, CONTEXT));
+  return deepFreeze(
+    accepted(setProjectName(accepted(setStartDate(dependent, "2026-09-01", CONTEXT)), "Q3 plan", CONTEXT)),
+  );
+}
+
+/**
+ * START 2026-09-01; A (id 1) Done 2026-09-03 → B (id 2) Done 2026-09-04; C (id 3)
+ * To Do → D (id 4) To Do; built through the edits as of TODAY and deep-frozen.
+ */
+function doneFixture(): CheckedProject {
+  const created = ["A", "B", "C", "D"].reduce(
+    (current, name) => accepted(createTask(current, name, CONTEXT)),
+    accepted(setStartDate(createEmptyProject(CONTEXT), "2026-09-01", CONTEXT)),
+  );
+  const linked = accepted(addPredecessor(accepted(addPredecessor(created, 2, 1, CONTEXT)), 4, 3, CONTEXT));
+  const doneA = accepted(setCompletionDate(accepted(setStatus(linked, 1, "done", CONTEXT)), 1, "2026-09-03", CONTEXT));
+  return deepFreeze(
+    accepted(setCompletionDate(accepted(setStatus(doneA, 2, "done", CONTEXT)), 2, "2026-09-04", CONTEXT)),
+  );
 }
 
 const UNKNOWN_ID = 99;
@@ -166,6 +192,96 @@ const rows: RejectionRow[] = [
   },
 ];
 
+/** Rows for the Done rules, run on `doneFixture()` as of TODAY (2026-09-05). */
+const doneRows: RejectionRow[] = [
+  {
+    name: "setStatus reverting A to To Do while its successor B is Done",
+    run: (state) => state.setStatus(1, "to-do"),
+    rule: "done-predecessor-not-done",
+    fragment: "Task 2: B cannot be Done while its predecessor 1: A is not Done.",
+  },
+  {
+    name: "setStatus marking D Done while its predecessor C is To Do",
+    run: (state) => state.setStatus(4, "done"),
+    rule: "done-predecessor-not-done",
+    fragment: "Task 4: D cannot be Done while its predecessor 3: C is not Done.",
+  },
+  {
+    name: "addPredecessor giving Done B the To Do predecessor C",
+    run: (state) => state.addPredecessor(2, 3),
+    rule: "done-predecessor-not-done",
+    fragment: "Task 2: B cannot be Done while its predecessor 3: C is not Done.",
+  },
+  {
+    name: "setStatus marking D In Progress while its predecessor C is To Do",
+    run: (state) => state.setStatus(4, "in-progress"),
+    rule: "in-progress-predecessor-not-done",
+    fragment: "Task 4: D cannot be In Progress while its predecessor 3: C is not Done.",
+  },
+  {
+    name: "setCompletionDate after today",
+    run: (state) => state.setCompletionDate(2, "2026-09-06"),
+    rule: "completion-date-after-today",
+    fragment: "Task 2: B has the completion date 2026-09-06, which is after today, 2026-09-05.",
+  },
+  {
+    name: "setCompletionDate before the START date",
+    run: (state) => state.setCompletionDate(1, "2026-08-31"),
+    rule: "completion-date-before-start-date",
+    fragment: "Task 1: A cannot be completed on 2026-08-31, which is before the START date, 2026-09-01.",
+  },
+  {
+    name: "setStartDate after A's completion date",
+    run: (state) => state.setStartDate("2026-09-04"),
+    rule: "completion-date-before-start-date",
+    fragment: "Task 1: A cannot be completed on 2026-09-03, which is before the START date, 2026-09-04.",
+  },
+  {
+    name: "setCompletionDate of B before its predecessor A's",
+    run: (state) => state.setCompletionDate(2, "2026-09-02"),
+    rule: "completion-date-before-predecessor",
+    fragment:
+      "Task 2: B has the completion date 2026-09-02, which is before the completion date of its predecessor 1: A, 2026-09-03.",
+  },
+  {
+    name: "setCompletionDate of A after its successor B's",
+    run: (state) => state.setCompletionDate(1, "2026-09-05"),
+    rule: "completion-date-before-predecessor",
+    fragment:
+      "Task 2: B has the completion date 2026-09-04, which is before the completion date of its predecessor 1: A, 2026-09-05.",
+  },
+  {
+    name: "setCompletionDate emptying a Done Task's date",
+    run: (state) => state.setCompletionDate(1, " "),
+    rule: "done-without-completion-date",
+    fragment: "A Done Task needs a completion date.",
+  },
+  {
+    name: "setCompletionDate on a To Do Task",
+    run: (state) => state.setCompletionDate(3, "2026-09-03"),
+    rule: "completion-date-without-done",
+    fragment: "Only a Done Task can have a completion date.",
+  },
+  {
+    name: "setCompletionDate to a non-date",
+    run: (state) => state.setCompletionDate(1, "2026-02-30"),
+    rule: "completion-date-not-a-date",
+    fragment: "A completion date must be a calendar date",
+  },
+  {
+    name: "setStatus on an unknown Task",
+    run: (state) => state.setStatus(UNKNOWN_ID, "done"),
+    rule: "unknown-task",
+    fragment: `There is no Task with id ${UNKNOWN_ID}`,
+  },
+  {
+    name: "setCompletionDate on an unknown Task",
+    run: (state) => state.setCompletionDate(UNKNOWN_ID, "2026-09-03"),
+    rule: "unknown-task",
+    fragment: `There is no Task with id ${UNKNOWN_ID}`,
+  },
+];
+
 function expectRejected(result: EditResult, row: RejectionRow): void {
   if (result.ok) throw new Error(`Expected the edit to be rejected with ${row.rule}`);
   expect(result.error.rule).toBe(row.rule);
@@ -173,12 +289,13 @@ function expectRejected(result: EditResult, row: RejectionRow): void {
   expect(result.error.message).not.toMatch(/invalid|conflict|blocked/i);
 }
 
-describe("useProject: a rejected edit commits nothing", () => {
-  it.each(rows)("$name leaves project, selection and replacements unchanged", (row) => {
-    const project = fixture();
+/** The two rejection cases over `table`, each row run on a fresh `makeFixture()` with Task 1 selected. */
+function rejectionCases(table: RejectionRow[], makeFixture: () => CheckedProject): void {
+  it.each(table)("$name leaves project, selection and replacements unchanged", (row) => {
+    const project = makeFixture();
     const before = structuredClone(project);
     const selectedBefore = project.tasks[0];
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     let edit: EditResult | undefined;
     act(() => {
@@ -195,9 +312,9 @@ describe("useProject: a rejected edit commits nothing", () => {
     expect(result.current.previousProject).toBeUndefined();
   });
 
-  it.each(rows)("$name followed by an accepted edit in one event applies only the accepted one", (row) => {
-    const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+  it.each(table)("$name followed by an accepted edit in one event applies only the accepted one", (row) => {
+    const project = makeFixture();
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     let rejected: EditResult | undefined;
     let next: EditResult | undefined;
@@ -208,13 +325,17 @@ describe("useProject: a rejected edit commits nothing", () => {
 
     if (rejected === undefined || next === undefined) throw new Error("The actions did not run");
     expectRejected(rejected, row);
-    const expected = accepted(setDuration(project, 2, "4"));
+    const expected = accepted(setDuration(project, 2, "4", CONTEXT));
     expect(next).toStrictEqual({ ok: true, project: expected });
     expect(result.current.project).toStrictEqual(expected);
     expect(result.current.selection).toBe(1);
     expect(result.current.selectedTask).toBe(project.tasks[0]);
     expect(result.current.replacements).toBe(0);
   });
+}
+
+describe("useProject: a rejected edit commits nothing", () => {
+  rejectionCases(rows, fixture);
 
   it("createTask on a replaced project at the id ceiling is rejected with task-id-limit-reached", () => {
     // Not a row in the table above: it needs a replaced project, not fixture().
@@ -224,10 +345,13 @@ describe("useProject: a rejected edit commits nothing", () => {
       rule: "task-id-limit-reached",
       fragment: "no more Tasks can be created",
     };
-    const parsed = parseProjectFile(serializeProject({ ...createEmptyProject(), nextTaskId: 2147483647 }));
+    const parsed = parseProjectFile(
+      serializeProject({ ...createEmptyProject(CONTEXT), nextTaskId: 2147483647 }),
+      CONTEXT,
+    );
     if (!parsed.ok) throw new Error(`Expected the file to import, got ${parsed.error.rule}`);
     const before = structuredClone(parsed.project);
-    const { result } = renderHook(() => useProject());
+    const { result } = renderHook(() => useProject(undefined, null, OPTIONS));
 
     act(() => {
       result.current.replaceProject(parsed.project);
@@ -245,22 +369,52 @@ describe("useProject: a rejected edit commits nothing", () => {
 
   it("two accepted edits in one event apply in sequence, the second to the first's result", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(1, "6");
       result.current.setDuration(2, "4");
     });
 
-    const expected = accepted(setDuration(accepted(setDuration(project, 1, "6")), 2, "4"));
+    const expected = accepted(setDuration(accepted(setDuration(project, 1, "6", CONTEXT)), 2, "4", CONTEXT));
     expect(result.current.project).toStrictEqual(expected);
+  });
+});
+
+describe("useProject: a rejected Done-rule edit commits nothing", () => {
+  rejectionCases(doneRows, doneFixture);
+});
+
+describe("useProject: setStatus", () => {
+  it("marking a Task Done commits today's date as its completion date and keeps the selection", () => {
+    const project = doneFixture();
+    const { result } = renderHook(() => useProject(project, 3, OPTIONS));
+
+    let edit: EditResult | undefined;
+    act(() => {
+      edit = result.current.setStatus(3, "done");
+    });
+
+    const expected = accepted(setStatus(project, 3, "done", CONTEXT));
+    expect(expected.tasks[2]).toStrictEqual({
+      id: 3,
+      name: "C",
+      predecessors: [],
+      status: "done",
+      completionDate: TODAY,
+    });
+    expect(edit).toStrictEqual({ ok: true, project: expected });
+    expect(result.current.project).toStrictEqual(expected);
+    expect(result.current.selection).toBe(3);
+    expect(result.current.replacements).toBe(0);
+    expect(result.current.previousProject).toBe(project);
   });
 });
 
 describe("useProject: setDayCountingMode", () => {
   it("commits the mode and keeps the selection", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     let edit: EditResult | undefined;
     act(() => {
@@ -278,7 +432,7 @@ describe("useProject: setDayCountingMode", () => {
 describe("useProject: the previous project", () => {
   it("an accepted edit records the project it replaced", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -289,22 +443,22 @@ describe("useProject: the previous project", () => {
 
   it("two accepted edits in one event leave the first edit's result as previous", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(1, "6");
       result.current.setDuration(2, "4");
     });
 
-    expect(result.current.previousProject).toStrictEqual(accepted(setDuration(project, 1, "6")));
+    expect(result.current.previousProject).toStrictEqual(accepted(setDuration(project, 1, "6", CONTEXT)));
   });
 
   it("replaceProject records the replaced project", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
 
     expect(result.current.previousProject).toBe(project);
@@ -312,10 +466,10 @@ describe("useProject: the previous project", () => {
 
   it("restorePreviousProject brings back the replaced project, selects nothing and clears the previous one", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
     act(() => {
       result.current.select(1);
@@ -333,7 +487,7 @@ describe("useProject: the previous project", () => {
 
   it("restorePreviousProject with no previous project changes nothing", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.restorePreviousProject();
@@ -353,16 +507,16 @@ describe("useProject: only a checked project gets in", () => {
 
   it("takes a parsed file or a new empty project, never a plain Project", () => {
     // @ts-expect-error -- a plain Project is not checked
-    renderHook(() => useProject(plain));
-    const { result } = renderHook(() => useProject());
-    const parsed = parseProjectFile(serializeProject(fixture()));
+    renderHook(() => useProject(plain, null, OPTIONS));
+    const { result } = renderHook(() => useProject(undefined, null, OPTIONS));
+    const parsed = parseProjectFile(serializeProject(fixture()), CONTEXT);
     if (!parsed.ok) throw new Error(`Expected the fixture to import, got ${parsed.error.rule}`);
 
     act(() => {
       result.current.replaceProject(parsed.project);
     });
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
     act(() => {
       // @ts-expect-error -- a plain Project is not checked
@@ -375,19 +529,19 @@ describe("useProject: only a checked project gets in", () => {
 describe("useProject: unexported changes", () => {
   /** The fixture renamed "Q4 plan", exported and imported: a parsed file unlike the fixture. */
   function parsedOther(): CheckedProject {
-    const parsed = parseProjectFile(serializeProject(accepted(setProjectName(fixture(), "Q4 plan"))));
+    const parsed = parseProjectFile(serializeProject(accepted(setProjectName(fixture(), "Q4 plan", CONTEXT))), CONTEXT);
     if (!parsed.ok) throw new Error(`Expected the file to import, got ${parsed.error.rule}`);
     return parsed.project;
   }
 
   it("the project the planner opened with has none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     expect(result.current.hasUnexportedChanges()).toBe(false);
   });
 
   it("hasUnexportedChanges and markExported keep their identity across commits", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
     const { hasUnexportedChanges, markExported } = result.current;
 
     act(() => {
@@ -399,7 +553,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("one accepted edit makes them unexported", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -409,7 +563,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("a rejected edit leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.addPredecessor(1, 2);
@@ -419,7 +573,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("an edit committed earlier in the same event counts", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     let unexported: boolean | undefined;
     act(() => {
@@ -431,7 +585,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("a rename and back leaves none, since the file text is the same", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.renameTask(1, "A renamed");
@@ -446,7 +600,7 @@ describe("useProject: unexported changes", () => {
 
   it("a Task created and deleted is unexported, since nextTaskId moved", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.createTask("C");
@@ -461,7 +615,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("a Day counting switch is unexported, and switching back leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDayCountingMode("weekdays");
@@ -475,7 +629,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("markExported of the current project leaves none, and a later edit is unexported again", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -492,7 +646,7 @@ describe("useProject: unexported changes", () => {
   });
 
   it("replaceProject with a parsed file leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
@@ -505,13 +659,13 @@ describe("useProject: unexported changes", () => {
   });
 
   it("replaceProject with a new empty project leaves none", () => {
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.setDuration(2, "4");
     });
     act(() => {
-      result.current.replaceProject(createEmptyProject());
+      result.current.replaceProject(createEmptyProject(CONTEXT));
     });
 
     expect(result.current.hasUnexportedChanges()).toBe(false);
@@ -519,7 +673,7 @@ describe("useProject: unexported changes", () => {
 
   it("restorePreviousProject leaves the baseline where it was: a restored project unlike the replacement is unexported", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.replaceProject(parsedOther());
@@ -534,7 +688,7 @@ describe("useProject: unexported changes", () => {
 
   it("a restored project that was the one last passed to markExported has none", () => {
     const project = fixture();
-    const { result } = renderHook(() => useProject(project, 1));
+    const { result } = renderHook(() => useProject(project, 1, OPTIONS));
 
     act(() => {
       result.current.replaceProject(parsedOther());
@@ -553,7 +707,7 @@ describe("useProject: unexported changes", () => {
   it("a baseline that cannot be serialized counts as unexported", () => {
     const malformed = { ...fixture(), tasks: null } as unknown as Project;
     expect(() => serializeProject(malformed)).toThrow();
-    const { result } = renderHook(() => useProject(fixture(), 1));
+    const { result } = renderHook(() => useProject(fixture(), 1, OPTIONS));
 
     act(() => {
       result.current.markExported(malformed);

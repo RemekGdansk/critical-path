@@ -5,9 +5,12 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 import { RenderCrashFallback } from "@/components/planner/RenderCrashFallback";
 import { type Download, stubDialog, stubDownloads } from "@/components/planner/test-stubs";
-import { createEmptyProject, type CheckedProject } from "@/lib/services/project";
+import { createEmptyProject, type CheckedProject, type EditContext } from "@/lib/services/project";
 import { serializeProject } from "@/lib/services/project-file";
 import type { Project } from "@/types";
+
+const TODAY = "2026-09-05";
+const CONTEXT: EditContext = { today: TODAY };
 
 afterEach(() => {
   cleanup();
@@ -70,7 +73,7 @@ describe("RenderCrashFallback: Go back asks before it discards unexported change
       createElement<FallbackProps>(RenderCrashFallback, {
         error: new Error("The project contains a cycle."),
         project,
-        previousProject: createEmptyProject(),
+        previousProject: createEmptyProject(CONTEXT),
         onGoBack,
         hasUnexportedChanges,
         onExported,

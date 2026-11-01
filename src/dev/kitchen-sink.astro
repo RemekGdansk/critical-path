@@ -112,7 +112,8 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
             Design → Build → Ship and Research → Prototype are two equal 7-day chains: both are highlighted end to end,
             from START through to FINISH, in the critical-path colour, with arrowheads in that colour at their usual
             size. Design → Ship (between two critical Tasks, but not on a longest chain) and the shorter Design → Write
-            docs branch stay grey. Build is selected and keeps the selection style.
+            docs branch stay grey. Build is selected: its border stays in the critical-path colour and its ring
+            thickens.
           </p>
         </figcaption>
         <div class="frame">
@@ -145,6 +146,51 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
         </figcaption>
         <div class="frame">
           <KitchenSinkPlanner client:only="react" fixture="weekdays-weekend-start" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>progress</h2>
+          <p>
+            START 2026-09-01. Design is Done on 2026-09-03 and selected: the panel shows Status Done and the Completion
+            date field, and its node keeps the Done border with a thicker ring in the same colour. Build is In Progress
+            and on the critical path: its node has the critical-path border and a dashed circle before "5 days" in the
+            darker text, with "In Progress" in its tooltip; Write docs is To Do, in grey. The header forecasts from
+            today, since Write docs still follows the past START date.
+          </p>
+          <p class="action">Click away from Design to see its Done border, check icon and "Done 2026-09-03".</p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="progress" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>all-done</h2>
+          <p>
+            Every Task is Done, from 2026-09-03 to 2026-09-10: each node has the Done border, a check icon and its
+            completion date, nothing is on the critical path, and the header shows both Project Finish Dates as
+            2026-09-10 with "Every Task is Done." and no legend swatch beside the critical-path time.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="all-done" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>start-successors-done</h2>
+          <p>
+            START is selected with the past START date 2026-09-01, and Design, the only Task that follows START, is
+            Done: the START panel says the date no longer affects the forecast, and the header says "The Tasks that
+            follow START are Done: forecasting from today".
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="start-successors-done" />
         </div>
       </figure>
 

@@ -4,6 +4,7 @@ import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { downloadTextFile } from "@/lib/download";
+import { todayIsoDate } from "@/lib/services/calendar-date";
 import { projectFileName, serializeProject } from "@/lib/services/project-file";
 import { validateProject } from "@/lib/services/project";
 import type { Project } from "@/types";
@@ -39,7 +40,7 @@ function inspectCrashedProject(
   project: Project,
 ): { validationError: ReturnType<typeof validateProject> } | { checkError: unknown } {
   try {
-    return { validationError: validateProject(project) };
+    return { validationError: validateProject(project, { today: todayIsoDate(new Date()) }) };
   } catch (checkError) {
     return { checkError };
   }

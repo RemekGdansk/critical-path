@@ -1,0 +1,47 @@
+{
+  "version": "1.0",
+  "name": "Shop fit-out – MVP ✓",
+  "start": {
+    "date": "2026-09-01"
+  },
+  "finish": {},
+  "dayCountingMode": "weekdays",
+  "nextTaskId": 8,
+  "tasks": [
+    {
+      "id": 1,
+      "name": "Survey",
+      "predecessors": [],
+      "duration": 2,
+      "status": "done",
+      "completionDate": "2026-09-03"
+    },
+    {
+      "id": 2,
+      "name": "Strip out",
+      "predecessors": [1],
+      "status": "done",
+      "completionDate": "2026-09-08"
+    },
+    {
+      "id": 4,
+      "name": "Wiring",
+      "predecessors": [2],
+      "duration": 5,
+      "status": "in-progress"
+    },
+    {
+      "id": 5,
+      "name": "Paint",
+      "predecessors": [4, 6],
+      "status": "to-do"
+    },
+    {
+      "id": 6,
+      "name": "Order signage",
+      "predecessors": [],
+      "duration": 1,
+      "status": "to-do"
+    }
+  ]
+}

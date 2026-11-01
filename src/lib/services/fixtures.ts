@@ -5,6 +5,7 @@ import {
   type CheckedProject,
   createEmptyProject,
   createTask,
+  type EditContext,
   type EditResult,
   setDuration,
 } from "@/lib/services/project";
@@ -25,8 +26,8 @@ function accepted(result: EditResult): CheckedProject {
  * every fifth one also on a Task two layers back (links that skip a layer).
  * Every Task has a Duration of 1–5 days, so the project forecasts.
  */
-export function createPerfProject(taskCount = 100): CheckedProject {
-  let project = createEmptyProject();
+export function createPerfProject(context: EditContext, taskCount = 100): CheckedProject {
+  let project = createEmptyProject(context);
   const layers: TaskId[][] = [];
 
   for (let layerIndex = 0; project.tasks.length < taskCount; layerIndex++) {
@@ -37,8 +38,8 @@ export function createPerfProject(taskCount = 100): CheckedProject {
 
     for (let position = 0; position < size; position++) {
       const taskId = project.nextTaskId;
-      project = accepted(createTask(project, `Task ${taskId}`));
-      project = accepted(setDuration(project, taskId, String((taskId % 5) + 1)));
+      project = accepted(createTask(project, `Task ${taskId}`, context));
+      project = accepted(setDuration(project, taskId, String((taskId % 5) + 1), context));
       layer.push(taskId);
 
       const predecessorIds = new Set<TaskId>();
@@ -47,7 +48,8 @@ export function createPerfProject(taskCount = 100): CheckedProject {
         if (position % 2 === 1) predecessorIds.add(previous[(position + 1) % previous.length]);
       }
       if (twoBack.length > 0 && position % 5 === 0) predecessorIds.add(twoBack[position % twoBack.length]);
-      for (const predecessorId of predecessorIds) project = accepted(addPredecessor(project, taskId, predecessorId));
+      for (const predecessorId of predecessorIds)
+        project = accepted(addPredecessor(project, taskId, predecessorId, context));
     }
     layers.push(layer);
   }
