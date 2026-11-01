@@ -8,9 +8,10 @@ import {
   createTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDuration,
   setStartDate,
-  toCheckedProject,
+  setStatus,
 } from "@/lib/services/project";
 import { remainingWork } from "@/lib/services/remaining-work";
 import type { TaskId } from "@/types";
@@ -116,19 +117,11 @@ describe("remainingWork", () => {
   });
 
   it("excludes a Done predecessor, so its successor starts at 0", () => {
-    // Built by hand, since no edit sets a Status yet: A (5) Done → B (3) To Do. Only B remains: 0–3.
-    const project = toCheckedProject(
-      {
-        ...createEmptyProject(CONTEXT),
-        start: { date: "2026-09-01" },
-        nextTaskId: 3,
-        tasks: [
-          { id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03", duration: 5 },
-          { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
-        ],
-      },
-      CONTEXT,
-    );
+    // A (5) Done → B (3) To Do. Only B remains: 0–3.
+    let project = withDependencies(projectWith(["A", "5"], ["B", "3"]), [1, 2]);
+    project = accepted(setStartDate(project, "2026-09-01", CONTEXT));
+    project = accepted(setStatus(project, 1, "done", CONTEXT));
+    project = accepted(setCompletionDate(project, 1, "2026-09-03", CONTEXT));
     expect(remainingWork(project)).toStrictEqual({
       kind: "scheduled",
       criticalPathTime: { kind: "days", days: 3 },

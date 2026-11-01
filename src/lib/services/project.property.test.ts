@@ -14,8 +14,11 @@ import {
   renameTask,
   setDayCountingMode,
   setDuration,
+  setCompletionDate,
   setProjectName,
   setStartDate,
+  setStatus,
+  TASK_STATUSES,
   validateProject,
 } from "@/lib/services/project";
 import { parseProjectFile, serializeProject } from "@/lib/services/project-file";
@@ -40,6 +43,18 @@ const names = fc.oneof(
 );
 const durations = fc.constantFrom("", "0", "3", " 7 ", "1.5", "1e3", "-2", "12345678901234567890");
 const startDates = fc.constantFrom("2026-03-02", " 2026-10-19 ", "", "2026-02-30", "26-03-02");
+// Around TODAY (a Saturday) and the START dates above: today, earlier, later, before
+// every START date, empty, and two that are not calendar dates.
+const completionDates = fc.constantFrom(
+  "2026-09-05",
+  " 2026-09-01 ",
+  "2026-08-28",
+  "2026-09-06",
+  "2026-03-01",
+  "",
+  "2026-02-30",
+  "5 Sep",
+);
 // A small range, so both known and unknown Task ids occur (0 never names a Task).
 const taskIds = fc.integer({ min: 0, max: 6 });
 
@@ -58,6 +73,18 @@ const steps = fc.oneof(
   { weight: 1, arbitrary: fc.record({ edit: fc.constant("setProjectName"), name: names }) },
   { weight: 2, arbitrary: fc.record({ edit: fc.constant("setDuration"), taskId: taskIds, input: durations }) },
   { weight: 1, arbitrary: fc.record({ edit: fc.constant("setStartDate"), input: startDates }) },
+  {
+    weight: 2,
+    arbitrary: fc.record({
+      edit: fc.constant("setStatus"),
+      taskId: taskIds,
+      status: fc.constantFrom(...TASK_STATUSES),
+    }),
+  },
+  {
+    weight: 1,
+    arbitrary: fc.record({ edit: fc.constant("setCompletionDate"), taskId: taskIds, input: completionDates }),
+  },
   {
     weight: 1,
     arbitrary: fc.record({ edit: fc.constant("setDayCountingMode"), mode: fc.constantFrom(...DAY_COUNTING_MODES) }),
@@ -86,6 +113,10 @@ function apply(project: CheckedProject, step: Step): EditResult {
       return setStartDate(project, step.input, CONTEXT);
     case "setDayCountingMode":
       return setDayCountingMode(project, step.mode, CONTEXT);
+    case "setStatus":
+      return setStatus(project, step.taskId, step.status, CONTEXT);
+    case "setCompletionDate":
+      return setCompletionDate(project, step.taskId, step.input, CONTEXT);
   }
 }
 
@@ -105,10 +136,13 @@ describe("edit sequences", () => {
             expect(validateProject(result.project, CONTEXT)).toBeUndefined();
             // The file module's shape stage is a second check of the model shape and the Task id caps,
             // independent of the guardian, and the round-trip pins the serializer for every reachable Project.
-            expect(parseProjectFile(serializeProject(result.project), CONTEXT)).toStrictEqual({
-              ok: true,
-              project: result.project,
-            });
+            // Until import lifts its Status gate, a project with a Task that is not To Do is refused there.
+            const imported = parseProjectFile(serializeProject(result.project), CONTEXT);
+            if (result.project.tasks.every((task) => task.status === "to-do")) {
+              expect(imported).toStrictEqual({ ok: true, project: result.project });
+            } else {
+              expect(imported).toMatchObject({ ok: false, error: { rule: "task-status-not-supported-yet" } });
+            }
             project = result.project;
           } else {
             expect(project).toEqual(before);

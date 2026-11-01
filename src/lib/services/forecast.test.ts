@@ -8,9 +8,10 @@ import {
   createTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDuration,
   setStartDate,
-  toCheckedProject,
+  setStatus,
 } from "@/lib/services/project";
 import type { TaskId, TaskStatus } from "@/types";
 
@@ -47,27 +48,18 @@ function finishDates(result: Forecast): [string, string] {
   return [show(result.resourceUnconstrainedProjectFinishDate), show(result.resourceConstrainedProjectFinishDate)];
 }
 
-/** START 2026-09-01, A → B (3) with B To Do and A's Status, completion date and Duration as given: built by hand, since no edit sets a Status yet, then checked by the guardian. */
+/**
+ * START 2026-09-01, A → B (3) with B To Do and A's Status, completion date and
+ * Duration as given, built through the edits. A Done Task is marked on its
+ * completion date, so that date is today for the edits.
+ */
 function aWithStatus(status: TaskStatus, completionDate: string | undefined, aDuration?: number): CheckedProject {
-  return toCheckedProject(
-    {
-      ...createEmptyProject(CONTEXT),
-      start: { date: "2026-09-01" },
-      nextTaskId: 3,
-      tasks: [
-        {
-          id: 1,
-          name: "A",
-          predecessors: [],
-          status,
-          ...(completionDate === undefined ? {} : { completionDate }),
-          ...(aDuration === undefined ? {} : { duration: aDuration }),
-        },
-        { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
-      ],
-    },
-    CONTEXT,
-  );
+  const project = withDependencies(projectWith("2026-09-01", ["A", String(aDuration ?? "")], ["B", "3"]), [1, 2]);
+  const context: EditContext = { today: completionDate ?? TODAY };
+  const withStatus = accepted(setStatus(project, 1, status, context));
+  return completionDate === undefined
+    ? withStatus
+    : accepted(setCompletionDate(withStatus, 1, completionDate, context));
 }
 
 /** START → A (5) → B (3), both To Do, built through the edit functions; an empty START date leaves it unset. */

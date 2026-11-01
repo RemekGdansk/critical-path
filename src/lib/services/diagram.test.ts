@@ -26,7 +26,9 @@ import {
   deleteTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDuration,
+  setStatus,
 } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
 
@@ -191,12 +193,8 @@ describe("projectDiagram", () => {
   });
 
   it("raises no warning on a Done Task without a Duration", () => {
-    // Built by hand: no edit sets Done yet (S-07).
-    const project: Project = {
-      ...createEmptyProject(CONTEXT),
-      nextTaskId: 2,
-      tasks: [{ id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03" }],
-    };
+    const done = accepted(setStatus(projectWith("A"), 1, "done", CONTEXT));
+    const project = accepted(setCompletionDate(done, 1, "2026-09-03", CONTEXT));
     const node = nodeById(projectDiagram(project).nodes, "1");
     expect(node).toMatchObject({ durationMissing: false, accessibleName: "A" });
     expect(node).not.toHaveProperty("durationText");
@@ -309,15 +307,10 @@ describe("critical path", () => {
   });
 
   it("never marks a Done Task or an edge from it", () => {
-    // Built by hand: no edit sets Done yet (S-07). A (5) Done → B (3): only B remains.
-    const project: Project = {
-      ...createEmptyProject(CONTEXT),
-      nextTaskId: 3,
-      tasks: [
-        { id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03", duration: 5 },
-        { id: 2, name: "B", predecessors: [1], status: "to-do", duration: 3 },
-      ],
-    };
+    // A (5) Done → B (3): only B remains.
+    let project = withDependencies(projectWithDurations(["A", "5"], ["B", "3"]), [1, 2]);
+    project = accepted(setStatus(project, 1, "done", CONTEXT));
+    project = accepted(setCompletionDate(project, 1, "2026-09-03", CONTEXT));
     expect(taskCriticality(project)).toEqual([
       ["1", false],
       ["2", true],

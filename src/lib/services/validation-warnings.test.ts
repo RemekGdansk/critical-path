@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  addPredecessor,
   type CheckedProject,
   createEmptyProject,
   createTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDuration,
+  setStatus,
 } from "@/lib/services/project";
 import { validationWarnings } from "@/lib/services/validation-warnings";
 import type { Project } from "@/types";
@@ -42,15 +45,12 @@ describe("validationWarnings", () => {
   });
 
   it("raises none for a Done Task without a Duration", () => {
-    // Built by hand: no edit sets Done yet (S-07).
-    const project: Project = {
-      ...createEmptyProject(CONTEXT),
-      nextTaskId: 3,
-      tasks: [
-        { id: 1, name: "A", predecessors: [], status: "done", completionDate: "2026-09-03" },
-        { id: 2, name: "B", predecessors: [1], status: "in-progress" },
-      ],
-    };
+    // A Done → B In Progress, neither with a Duration.
+    let project = accepted(createTask(accepted(createTask(createEmptyProject(CONTEXT), "A", CONTEXT)), "B", CONTEXT));
+    project = accepted(addPredecessor(project, 2, 1, CONTEXT));
+    project = accepted(setStatus(project, 1, "done", CONTEXT));
+    project = accepted(setCompletionDate(project, 1, "2026-09-03", CONTEXT));
+    project = accepted(setStatus(project, 2, "in-progress", CONTEXT));
     expect(validationWarnings(project).map((warning) => warning.taskId)).toEqual([2]);
   });
 });

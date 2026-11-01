@@ -5,9 +5,9 @@
 // `TASK_CHECKS` and `PROJECT_CHECKS` at the end of this module. Only this module
 // mints a `CheckedProject`: through an accepted edit, `createEmptyProject`, or
 // the two doors for a project no edit built, `checkProject` and `toCheckedProject`.
-import { isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
+import { compareIsoDates, isIsoDate, MAX_ISO_DATE, MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { cyclePathFor, findCycle } from "@/lib/services/task-graph";
-import type { DayCountingMode, Project, Task, TaskId } from "@/types";
+import type { DayCountingMode, Project, Task, TaskId, TaskStatus } from "@/types";
 
 export const TASK_NAME_MAX_LENGTH = 200;
 export const PROJECT_NAME_MAX_LENGTH = TASK_NAME_MAX_LENGTH;
@@ -35,7 +35,14 @@ export type ValidationErrorRule =
   | "start-has-predecessor"
   | "task-depends-on-finish"
   | "duration-not-positive-whole-number"
-  | "start-date-not-a-date";
+  | "start-date-not-a-date"
+  | "done-without-completion-date"
+  | "completion-date-without-done"
+  | "completion-date-not-a-date"
+  | "completion-date-after-today"
+  | "completion-date-before-start-date"
+  | "done-predecessor-not-done"
+  | "completion-date-before-predecessor";
 
 export interface ValidationError {
   rule: ValidationErrorRule;
@@ -277,10 +284,18 @@ export function setProjectName(project: CheckedProject, input: string, context: 
 
 const DURATION_MESSAGE = "A Duration must be a positive whole number of days.";
 const START_DATE_MESSAGE = `The START date must be a calendar date from ${MIN_ISO_DATE} to ${MAX_ISO_DATE}.`;
+const DONE_WITHOUT_COMPLETION_DATE_MESSAGE = "A Done Task needs a completion date.";
+const COMPLETION_DATE_WITHOUT_DONE_MESSAGE = "Only a Done Task can have a completion date.";
+const COMPLETION_DATE_MESSAGE = `A completion date must be a calendar date from ${MIN_ISO_DATE} to ${MAX_ISO_DATE}.`;
 
 /** The Validation Error for a START date that is not a date; the view also shows it for a date the browser cannot read. */
 export function startDateNotADate(): ValidationError {
   return { rule: "start-date-not-a-date", message: START_DATE_MESSAGE };
+}
+
+/** The Validation Error for a completion date that is not a date; the view also shows it for a date the browser cannot read. */
+export function completionDateNotADate(): ValidationError {
+  return { rule: "completion-date-not-a-date", message: COMPLETION_DATE_MESSAGE };
 }
 
 /** True for a Duration the project may hold: a positive whole number of days, exact as a JavaScript number. */
@@ -332,6 +347,58 @@ export function isDayCountingMode(value: string): value is DayCountingMode {
 export function setDayCountingMode(project: CheckedProject, mode: DayCountingMode, context: EditContext): EditResult {
   if (project.dayCountingMode === mode) return accept(project, context);
   return accept({ ...project, dayCountingMode: mode }, context);
+}
+
+/** Every Task Status, in the order the Status select lists them. */
+export const TASK_STATUSES: readonly TaskStatus[] = ["to-do", "in-progress", "done"];
+
+const TASK_STATUS_NAMES = { "to-do": "To Do", "in-progress": "In Progress", done: "Done" } as const;
+
+/** The Status as the PRD and the views name it. */
+export function taskStatusName(status: TaskStatus): (typeof TASK_STATUS_NAMES)[TaskStatus] {
+  return TASK_STATUS_NAMES[status];
+}
+
+/**
+ * Sets the Task's Status. Done takes today as its completion date, so marking
+ * a Task Done is one edit; leaving Done removes the completion date. Setting
+ * the Status a Task already has changes nothing, so a Done Task keeps its date.
+ */
+export function setStatus(
+  project: CheckedProject,
+  taskId: TaskId,
+  status: TaskStatus,
+  context: EditContext,
+): EditResult {
+  const task = findTask(project, taskId);
+  if (task === undefined) return unknownTask(taskId);
+  if (task.status === status) return accept(project, context);
+
+  if (status === "done") {
+    return accept(replaceTask(project, { ...task, status, completionDate: context.today }), context);
+  }
+  const updated = { ...task, status };
+  delete updated.completionDate;
+  return accept(replaceTask(project, updated), context);
+}
+
+/** Sets the Task's completion date from an ISO date (yyyy-mm-dd), trimmed; empty input removes it. */
+export function setCompletionDate(
+  project: CheckedProject,
+  taskId: TaskId,
+  input: string,
+  context: EditContext,
+): EditResult {
+  const task = findTask(project, taskId);
+  if (task === undefined) return unknownTask(taskId);
+
+  const trimmed = input.trim();
+  if (trimmed === "") {
+    const cleared = { ...task };
+    delete cleared.completionDate;
+    return accept(replaceTask(project, cleared), context);
+  }
+  return accept(replaceTask(project, { ...task, completionDate: trimmed }), context);
 }
 
 /** A model invariant the project breaks, named for the first violation found. */
@@ -429,7 +496,62 @@ const TASK_CHECKS: readonly TaskCheck[] = [
           message: `Task ${taskLabel(task)} depends on Task ${unknownId}, which is not in the project.`,
         };
   },
+  // The completion-date rules. Only an edit to the Task itself breaks the first
+  // three, so their edit wording names the rule alone.
+  (task, _index, wording) =>
+    task.status === "done" && task.completionDate === undefined
+      ? inWording(task, wording, "done-without-completion-date", DONE_WITHOUT_COMPLETION_DATE_MESSAGE)
+      : undefined,
+  (task, _index, wording) =>
+    task.status !== "done" && task.completionDate !== undefined
+      ? inWording(task, wording, "completion-date-without-done", COMPLETION_DATE_WITHOUT_DONE_MESSAGE)
+      : undefined,
+  (task, _index, wording) =>
+    task.completionDate === undefined || isIsoDate(task.completionDate)
+      ? undefined
+      : inWording(task, wording, "completion-date-not-a-date", COMPLETION_DATE_MESSAGE),
+  // The clock and the START date edit break these two as well, so both wordings name the Task and the dates.
+  (task, { today }) =>
+    task.completionDate === undefined || compareIsoDates(task.completionDate, today) <= 0
+      ? undefined
+      : {
+          rule: "completion-date-after-today",
+          message: `Task ${taskLabel(task)} has the completion date ${task.completionDate}, which is after today, ${today}.`,
+        },
+  // No bound while the START date is unset, or malformed: `start-date-not-a-date` reports that one.
+  (task, { project }) => {
+    const startDate = project.start.date;
+    return task.completionDate === undefined ||
+      startDate === undefined ||
+      !isIsoDate(startDate) ||
+      compareIsoDates(task.completionDate, startDate) >= 0
+      ? undefined
+      : {
+          rule: "completion-date-before-start-date",
+          message: `Task ${taskLabel(task)} has the completion date ${task.completionDate}, which is before the START date, ${startDate}.`,
+        };
+  },
 ];
+
+/** A rule about the Task alone: the edit wording names the rule, the file wording also names the Task. */
+function inWording(task: Task, wording: Wording, rule: ValidationErrorRule, message: string): ValidationError {
+  return { rule, message: wording === "file" ? `Task ${taskLabel(task)}: ${message}` : message };
+}
+
+/** The first Done Task, in array order, with a predecessor that `breaks` names, and that predecessor. */
+function findDonePredecessor(
+  { project, tasksById }: ProjectIndex,
+  breaks: (task: Task, predecessor: Task) => boolean,
+): [Task, Task] | undefined {
+  for (const task of project.tasks) {
+    if (task.status !== "done") continue;
+    for (const id of task.predecessors) {
+      const predecessor = tasksById.get(id);
+      if (predecessor !== undefined && breaks(task, predecessor)) return [task, predecessor];
+    }
+  }
+  return undefined;
+}
 
 /**
  * The rules about the whole project, run after every Task passed. A new
@@ -447,12 +569,40 @@ const PROJECT_CHECKS: readonly ProjectCheck[] = [
           rule: "task-id-limit-reached",
           message: `Task ids go up to ${MAX_TASK_ID} and this project has reached that limit, so no more Tasks can be created.`,
         },
-  // Last, since `findCycle` ignores the unknown ids the Task checks report.
+  // After every Task check, since `findCycle` ignores the unknown ids the Task checks report.
   ({ project }) => {
     const cycle = findCycle(project);
     return cycle === undefined
       ? undefined
       : { rule: "cycle", message: `The project contains the cycle ${pathLabel(project, cycle)}.` };
+  },
+  // The Done rules about a Task and its predecessors, after the cycle, so a
+  // dependency closing a cycle through a Done Task is reported as the cycle
+  // (US-01). Edits to other Tasks break them too, so both wordings name both Tasks.
+  (index) => {
+    const found = findDonePredecessor(index, (_task, predecessor) => predecessor.status !== "done");
+    if (found === undefined) return undefined;
+    const [task, predecessor] = found;
+    return {
+      rule: "done-predecessor-not-done",
+      message: `Task ${taskLabel(task)} cannot be Done while its predecessor ${taskLabel(predecessor)} is not Done.`,
+    };
+  },
+  // Every Done Task's predecessors are Done by now, and every completion date passed the Task checks, so both are ISO dates.
+  (index) => {
+    const found = findDonePredecessor(
+      index,
+      ({ completionDate }, predecessor) =>
+        completionDate !== undefined &&
+        predecessor.completionDate !== undefined &&
+        compareIsoDates(completionDate, predecessor.completionDate) < 0,
+    );
+    if (found === undefined) return undefined;
+    const [task, predecessor] = found;
+    return {
+      rule: "completion-date-before-predecessor",
+      message: `Task ${taskLabel(task)} has the completion date ${task.completionDate}, which is before the completion date of its predecessor ${taskLabel(predecessor)}, ${predecessor.completionDate}.`,
+    };
   },
 ];
 

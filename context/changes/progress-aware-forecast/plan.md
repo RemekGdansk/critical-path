@@ -721,14 +721,14 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [ ] 2.1 New domain tests were red before the rules and edits existed, and are green now
-- [ ] 2.2 Full suite passes: `npm test`
-- [ ] 2.3 Lint and type check pass: `npm run lint && npx astro check`
+- [x] 2.1 New domain tests were red before the rules and edits existed, and are green now
+- [x] 2.2 Full suite passes: `npm test`
+- [x] 2.3 Lint and type check pass: `npm run lint && npx astro check`
 
 #### Manual
 
-- [ ] 2.4 Review: no Done-rule code in edits; each new rule id produced by exactly one guardian entry, predecessor rules after `cycle`
-- [ ] 2.5 Review: messages use domain terms and name the Task(s) for the four indirect rules
+- [x] 2.4 Review: no Done-rule code in edits; each new rule id produced by exactly one guardian entry, predecessor rules after `cycle`
+- [x] 2.5 Review: messages use domain terms and name the Task(s) for the four indirect rules
 
 ### Phase 3: Import lifts the Status gate
 

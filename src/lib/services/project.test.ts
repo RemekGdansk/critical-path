@@ -5,6 +5,7 @@ import {
   addPredecessor,
   type CheckedProject,
   checkProject,
+  completionDateNotADate,
   createEmptyProject,
   createTask,
   deleteTask,
@@ -15,13 +16,17 @@ import {
   ProjectInvariantBreach,
   removePredecessor,
   renameTask,
+  setCompletionDate,
   setDayCountingMode,
   setDuration,
   setProjectName,
   setStartDate,
+  setStatus,
   startDateNotADate,
   TASK_NAME_MAX_LENGTH,
+  TASK_STATUSES,
   taskLabel,
+  taskStatusName,
   toCheckedProject,
   validateProject,
   type ValidationErrorRule,
@@ -49,8 +54,18 @@ function edit<A extends unknown[]>(
   project: CheckedProject,
   ...args: A
 ): EditResult {
+  return editOn(CONTEXT, fn, project, ...args);
+}
+
+/** `edit` with another context, for a rule that needs a different today. */
+function editOn<A extends unknown[]>(
+  context: EditContext,
+  fn: (project: CheckedProject, ...args: [...A, EditContext]) => EditResult,
+  project: CheckedProject,
+  ...args: A
+): EditResult {
   const before = structuredClone(project);
-  const result = fn(deepFreeze(project), ...args, CONTEXT);
+  const result = fn(deepFreeze(project), ...args, context);
   expect(project).toEqual(before);
   return result;
 }
@@ -65,6 +80,12 @@ function expectRejected(result: EditResult, rule: ValidationErrorRule): void {
   if (result.ok) throw new Error(`Expected the edit to be rejected with ${rule}`);
   expect(result.error.rule).toBe(rule);
   expect(result.error.message).not.toMatch(/invalid|conflict|blocked/i);
+}
+
+/** Rejected with `rule` and exactly `message`. */
+function expectRejectedWith(result: EditResult, rule: ValidationErrorRule, message: string): void {
+  expectRejected(result, rule);
+  if (!result.ok) expect(result.error.message).toBe(message);
 }
 
 /** A project with one Task per name, ids 1..n in order. */
@@ -87,6 +108,30 @@ function predecessorsOf(project: Project, taskId: TaskId): TaskId[] | undefined 
 /** A to-do Task literal, built by hand so it can hold values that break a Validation Error rule. */
 function task(id: TaskId, name: string, predecessors: TaskId[] = [], extra: Partial<Task> = {}): Task {
   return { id, name, predecessors, status: "to-do", ...extra };
+}
+
+/** The `extra` of a hand-built Done Task, with its completion date when given. */
+function done(completionDate?: string): Partial<Task> {
+  return { status: "done", ...(completionDate === undefined ? {} : { completionDate }) };
+}
+
+/**
+ * START 2026-09-01, A → B, built through the edits: A Done on `aDone` and B Done
+ * on `bDone` when given, To Do otherwise. Completion dates must fall between the
+ * START date and TODAY.
+ */
+function aThenB(aDone?: string, bDone?: string): CheckedProject {
+  let project = withDependencies(projectWith("A", "B"), [1, 2]);
+  project = accepted(setStartDate(project, "2026-09-01", CONTEXT));
+  for (const [taskId, completionDate] of [
+    [1, aDone],
+    [2, bDone],
+  ] as const) {
+    if (completionDate === undefined) continue;
+    project = accepted(setStatus(project, taskId, "done", CONTEXT));
+    project = accepted(setCompletionDate(project, taskId, completionDate, CONTEXT));
+  }
+  return project;
 }
 
 /** A hand-built project literal with `nextTaskId` above every id. */
@@ -461,6 +506,224 @@ describe("setProjectName", () => {
   });
 });
 
+describe("TASK_STATUSES and taskStatusName", () => {
+  it("lists the Statuses in the order the Status select shows them, with their names", () => {
+    expect(TASK_STATUSES.map(taskStatusName)).toEqual(["To Do", "In Progress", "Done"]);
+  });
+});
+
+describe("setStatus", () => {
+  it("marks a Task Done with today as its completion date, in one edit", () => {
+    expect(accepted(edit(setStatus, projectWith("A"), 1, "done")).tasks[0]).toEqual({
+      id: 1,
+      name: "A",
+      predecessors: [],
+      status: "done",
+      completionDate: TODAY,
+    });
+  });
+
+  it("marks a Task In Progress with no completion date", () => {
+    const task = accepted(edit(setStatus, projectWith("A"), 1, "in-progress")).tasks[0];
+    expect(task).toEqual({ id: 1, name: "A", predecessors: [], status: "in-progress" });
+    expect(task).not.toHaveProperty("completionDate");
+  });
+
+  it("removes the completion date when a Task leaves Done", () => {
+    const project = aThenB("2026-09-02");
+    for (const status of ["to-do", "in-progress"] as const) {
+      const task = accepted(edit(setStatus, project, 1, status)).tasks[0];
+      expect(task).toEqual({ id: 1, name: "A", predecessors: [], status });
+      expect(task).not.toHaveProperty("completionDate");
+    }
+  });
+
+  it("keeps the completion date of a Task that is already Done", () => {
+    const project = aThenB("2026-09-02");
+    expect(accepted(edit(setStatus, project, 1, "done"))).toBe(project);
+    expect(project.tasks[0]?.completionDate).toBe("2026-09-02");
+  });
+
+  it("rejects marking a Task Done while a predecessor is not Done (US-04), naming both", () => {
+    for (const status of ["to-do", "in-progress"] as const) {
+      const project = accepted(setStatus(aThenB(), 1, status, CONTEXT));
+      expectRejectedWith(
+        edit(setStatus, project, 2, "done"),
+        "done-predecessor-not-done",
+        "Task 2: B cannot be Done while its predecessor 1: A is not Done.",
+      );
+    }
+  });
+
+  it("rejects setting a Done predecessor back while its successor is Done (US-04), naming the successor", () => {
+    const project = aThenB("2026-09-02", "2026-09-03");
+    for (const status of ["to-do", "in-progress"] as const) {
+      expectRejectedWith(
+        edit(setStatus, project, 1, status),
+        "done-predecessor-not-done",
+        "Task 2: B cannot be Done while its predecessor 1: A is not Done.",
+      );
+    }
+  });
+
+  it("rejects marking a Task Done while today is before the START date", () => {
+    const project = accepted(setStartDate(projectWith("A"), "2026-09-10", CONTEXT));
+    expectRejectedWith(
+      edit(setStatus, project, 1, "done"),
+      "completion-date-before-start-date",
+      "Task 1: A has the completion date 2026-09-05, which is before the START date, 2026-09-10.",
+    );
+  });
+
+  it("rejects an unknown id", () => {
+    expectRejected(edit(setStatus, projectWith("A"), 2, "done"), "unknown-task");
+  });
+});
+
+describe("setCompletionDate", () => {
+  it("sets the completion date of a Done Task, trimmed", () => {
+    const project = aThenB("2026-09-02");
+    expect(accepted(edit(setCompletionDate, project, 1, " 2026-09-01 ")).tasks[0]?.completionDate).toBe("2026-09-01");
+    expect(accepted(edit(setCompletionDate, project, 1, TODAY)).tasks[0]?.completionDate).toBe(TODAY);
+  });
+
+  it("rejects a completion date after today (US-04), naming the Task and both dates", () => {
+    expectRejectedWith(
+      edit(setCompletionDate, aThenB("2026-09-02"), 1, "2026-09-06"),
+      "completion-date-after-today",
+      "Task 1: A has the completion date 2026-09-06, which is after today, 2026-09-05.",
+    );
+  });
+
+  it("rejects a completion date before the START date (US-04) and accepts one on it", () => {
+    const project = accepted(setStartDate(aThenB("2026-09-04"), "2026-09-04", CONTEXT));
+    expectRejectedWith(
+      edit(setCompletionDate, project, 1, "2026-09-03"),
+      "completion-date-before-start-date",
+      "Task 1: A has the completion date 2026-09-03, which is before the START date, 2026-09-04.",
+    );
+    expect(accepted(edit(setCompletionDate, project, 1, "2026-09-04")).tasks[0]?.completionDate).toBe("2026-09-04");
+  });
+
+  it("rejects a completion date before a predecessor's (US-04) and accepts the same date", () => {
+    const project = aThenB("2026-09-03", "2026-09-04");
+    expectRejectedWith(
+      edit(setCompletionDate, project, 2, "2026-09-02"),
+      "completion-date-before-predecessor",
+      "Task 2: B has the completion date 2026-09-02, which is before the completion date of its predecessor 1: A, 2026-09-03.",
+    );
+    expect(accepted(edit(setCompletionDate, project, 2, "2026-09-03")).tasks[1]?.completionDate).toBe("2026-09-03");
+  });
+
+  it("rejects moving a predecessor's completion date after its Done successor's, naming the successor", () => {
+    expectRejectedWith(
+      edit(setCompletionDate, aThenB("2026-09-02", "2026-09-03"), 1, "2026-09-04"),
+      "completion-date-before-predecessor",
+      "Task 2: B has the completion date 2026-09-03, which is before the completion date of its predecessor 1: A, 2026-09-04.",
+    );
+  });
+
+  it("rejects clearing the completion date of a Done Task (US-04)", () => {
+    expectRejectedWith(
+      edit(setCompletionDate, aThenB("2026-09-02"), 1, "  "),
+      "done-without-completion-date",
+      "A Done Task needs a completion date.",
+    );
+  });
+
+  it("rejects a completion date on a Task that is not Done", () => {
+    for (const status of ["to-do", "in-progress"] as const) {
+      const project = accepted(setStatus(projectWith("A"), 1, status, CONTEXT));
+      expectRejectedWith(
+        edit(setCompletionDate, project, 1, "2026-09-02"),
+        "completion-date-without-done",
+        "Only a Done Task can have a completion date.",
+      );
+    }
+  });
+
+  it("accepts empty input on a Task that is not Done, leaving no completion date", () => {
+    const project = projectWith("A");
+    const cleared = accepted(edit(setCompletionDate, project, 1, ""));
+    expect(cleared).toEqual(project);
+    expect(cleared.tasks[0]).not.toHaveProperty("completionDate");
+  });
+
+  it("rejects anything but a calendar date from 0001-01-01 to 9999-12-31, as the view does for a date it cannot read", () => {
+    const project = aThenB("2026-09-02");
+    for (const input of ["2026-02-30", "0000-01-01", "10000-01-01", "2026-9-3", "3 Sep 2026", "today"]) {
+      const result = edit(setCompletionDate, project, 1, input);
+      expectRejected(result, "completion-date-not-a-date");
+      if (!result.ok) expect(result.error).toStrictEqual(completionDateNotADate());
+    }
+    expect(completionDateNotADate().message).toBe(
+      "A completion date must be a calendar date from 0001-01-01 to 9999-12-31.",
+    );
+  });
+
+  it("accepts a completion date on a Saturday in weekdays mode", () => {
+    // 2026-09-05 is a Saturday.
+    const project = accepted(setDayCountingMode(aThenB("2026-09-02"), "weekdays", CONTEXT));
+    expect(accepted(edit(setCompletionDate, project, 1, "2026-09-05")).tasks[0]?.completionDate).toBe("2026-09-05");
+  });
+
+  it("rejects an unknown id", () => {
+    expectRejected(edit(setCompletionDate, projectWith("A"), 2, "2026-09-02"), "unknown-task");
+  });
+});
+
+describe("the Done rules on edits to other Tasks and the project", () => {
+  it("rejects adding a predecessor that is not Done to a Done Task, naming the Done Task", () => {
+    let project = projectWith("A", "B", "C");
+    project = accepted(setStatus(project, 2, "done", CONTEXT));
+    expectRejectedWith(
+      edit(addPredecessor, project, 2, 3),
+      "done-predecessor-not-done",
+      "Task 2: B cannot be Done while its predecessor 3: C is not Done.",
+    );
+  });
+
+  it("rejects a START date after a completion date, naming the Task", () => {
+    expectRejectedWith(
+      edit(setStartDate, aThenB("2026-09-02"), "2026-09-03"),
+      "completion-date-before-start-date",
+      "Task 1: A has the completion date 2026-09-02, which is before the START date, 2026-09-03.",
+    );
+  });
+
+  it("accepts clearing the START date of a project with Done Tasks", () => {
+    expect(accepted(edit(setStartDate, aThenB("2026-09-02", "2026-09-03"), "")).start).toEqual({});
+  });
+
+  it("still reports a START date that is not a date in a project with Done Tasks", () => {
+    expectRejected(edit(setStartDate, aThenB("2026-09-02"), "2026-02-30"), "start-date-not-a-date");
+  });
+
+  it("reports the cycle, not a Done rule, for a dependency that closes a cycle through a Done Task (US-01)", () => {
+    const expected = "Adding 2: B as a predecessor of 1: A would create the cycle 1: A → 2: B → 1: A.";
+    expectRejectedWith(edit(addPredecessor, aThenB("2026-09-02"), 1, 2), "cycle", expected);
+    expectRejectedWith(edit(addPredecessor, aThenB("2026-09-02", "2026-09-03"), 1, 2), "cycle", expected);
+  });
+
+  it("keeps a project accepted today free of Validation Errors tomorrow", () => {
+    const project = accepted(createTask(aThenB("2026-09-02", "2026-09-03"), "C", CONTEXT));
+    const completedToday = accepted(setStatus(project, 3, "done", CONTEXT));
+    expect(completedToday.tasks[2]?.completionDate).toBe(TODAY);
+    expect(validateProject(completedToday, { today: "2026-09-06" })).toBeUndefined();
+  });
+
+  it("decides the completion date bound against the today it is given", () => {
+    const project = aThenB("2026-09-02");
+    expectRejected(
+      editOn({ today: "2026-09-03" }, setCompletionDate, project, 1, "2026-09-04"),
+      "completion-date-after-today",
+    );
+    expect(
+      accepted(editOn({ today: "2026-09-04" }, setCompletionDate, project, 1, "2026-09-04")).tasks[0]?.completionDate,
+    ).toBe("2026-09-04");
+  });
+});
+
 describe("validateProject", () => {
   function expectValidationError(project: Project, rule: ValidationErrorRule, message: string): void {
     const error = validateProject(project, CONTEXT);
@@ -481,6 +744,7 @@ describe("validateProject", () => {
     expect(validateProject(accepted(setDuration(project, 2, "", CONTEXT)), CONTEXT)).toBeUndefined();
     expect(validateProject(accepted(deleteTask(project, 2, CONTEXT)), CONTEXT)).toBeUndefined();
     expect(validateProject(accepted(createTask(projectWith("Review"), "👩‍💻 Review", CONTEXT)), CONTEXT)).toBeUndefined();
+    expect(validateProject(aThenB("2026-09-02", "2026-09-03"), CONTEXT)).toBeUndefined();
   });
 
   it("does not mutate the project", () => {
@@ -586,6 +850,77 @@ describe("validateProject", () => {
     );
   });
 
+  it("names the Task for a Done Task without a completion date", () => {
+    expectValidationError(
+      projectOf([task(1, "Design"), task(3, "Build", [], done())]),
+      "done-without-completion-date",
+      "Task 3: Build: A Done Task needs a completion date.",
+    );
+  });
+
+  it("names the Task for a completion date on a Task that is not Done", () => {
+    for (const status of ["to-do", "in-progress"] as const) {
+      expectValidationError(
+        projectOf([task(1, "Design"), task(3, "Build", [], { status, completionDate: "2026-09-03" })]),
+        "completion-date-without-done",
+        "Task 3: Build: Only a Done Task can have a completion date.",
+      );
+    }
+  });
+
+  it("names the Task for a completion date that is not a calendar date", () => {
+    for (const completionDate of ["2026-02-30", "0000-12-31", "2026-9-3", ""]) {
+      expectValidationError(
+        projectOf([task(1, "Design"), task(3, "Build", [], done(completionDate))]),
+        "completion-date-not-a-date",
+        "Task 3: Build: A completion date must be a calendar date from 0001-01-01 to 9999-12-31.",
+      );
+    }
+  });
+
+  it("names the Task and both dates for a completion date after today", () => {
+    expectValidationError(
+      projectOf([task(1, "Design"), task(3, "Build", [], done("2026-09-06"))]),
+      "completion-date-after-today",
+      "Task 3: Build has the completion date 2026-09-06, which is after today, 2026-09-05.",
+    );
+  });
+
+  it("names the Task and both dates for a completion date before the START date, and has no bound while it is unset", () => {
+    const tasks = [task(1, "Design"), task(3, "Build", [], done("2026-09-03"))];
+    expectValidationError(
+      projectOf(tasks, { start: { date: "2026-09-04" } }),
+      "completion-date-before-start-date",
+      "Task 3: Build has the completion date 2026-09-03, which is before the START date, 2026-09-04.",
+    );
+    expect(validateProject(projectOf(tasks), CONTEXT)).toBeUndefined();
+    expect(validateProject(projectOf(tasks, { start: { date: "2026-09-03" } }), CONTEXT)).toBeUndefined();
+  });
+
+  it("names both Tasks for a Done Task with a predecessor that is not Done", () => {
+    for (const status of ["to-do", "in-progress"] as const) {
+      expectValidationError(
+        projectOf([task(1, "Design", [], { status }), task(3, "Build", [1], done("2026-09-03"))]),
+        "done-predecessor-not-done",
+        "Task 3: Build cannot be Done while its predecessor 1: Design is not Done.",
+      );
+    }
+  });
+
+  it("names both Tasks and both dates for a completion date before a predecessor's", () => {
+    expectValidationError(
+      projectOf([task(1, "Design", [], done("2026-09-04")), task(3, "Build", [1], done("2026-09-03"))]),
+      "completion-date-before-predecessor",
+      "Task 3: Build has the completion date 2026-09-03, which is before the completion date of its predecessor 1: Design, 2026-09-04.",
+    );
+    expect(
+      validateProject(
+        projectOf([task(1, "Design", [], done("2026-09-03")), task(3, "Build", [1], done("2026-09-03"))]),
+        CONTEXT,
+      ),
+    ).toBeUndefined();
+  });
+
   it("returns the first Validation Error: Tasks in array order, then START date, project name, id ceiling and cycle", () => {
     const cycle = [task(1, "A", [2]), task(2, "B", [1])];
     const badStart = { start: { date: "2026-13-01" } };
@@ -610,8 +945,67 @@ describe("validateProject", () => {
     expect(validateProject(projectOf(cycle, badName), CONTEXT)?.rule).toBe("project-name-empty");
   });
 
-  it("checks every rule of a Task before the next Task: name, Duration, then predecessor ids", () => {
+  it("checks the Done rules about a Task with its Task checks, and those about its predecessors after the cycle", () => {
+    // A Task's own completion date is checked before the START date, which skips its bound while malformed.
+    expect(
+      validateProject(projectOf([task(1, "A", [], done("2026-02-30"))], { start: { date: "2026-13-01" } }), CONTEXT)
+        ?.rule,
+    ).toBe("completion-date-not-a-date");
+    expect(
+      validateProject(projectOf([task(1, "A", [], done("2026-09-03"))], { start: { date: "2026-13-01" } }), CONTEXT)
+        ?.rule,
+    ).toBe("start-date-not-a-date");
+    // A malformed predecessor date is reported on the predecessor, even when it comes later in the array.
+    expectValidationError(
+      projectOf([task(1, "B", [2], done("2026-09-03")), task(2, "A", [], done("2026-02-30"))]),
+      "completion-date-not-a-date",
+      "Task 2: A: A completion date must be a calendar date from 0001-01-01 to 9999-12-31.",
+    );
+    // A cycle through Done Tasks with unequal completion dates is reported as the cycle.
+    expectValidationError(
+      projectOf([task(1, "A", [2], done("2026-09-04")), task(2, "B", [1], done("2026-09-03"))]),
+      "cycle",
+      "The project contains the cycle 1: A → 2: B → 1: A.",
+    );
+    expect(validateProject(projectOf([task(1, "A", [2], done("2026-09-03")), task(2, "B", [1])]), CONTEXT)?.rule).toBe(
+      "cycle",
+    );
+    // The predecessor rules come after the START date, project name and id ceiling.
+    const notDonePredecessor = [task(1, "A"), task(2, "B", [1], done("2026-09-03"))];
+    expect(validateProject(projectOf(notDonePredecessor, { start: { date: "2026-13-01" } }), CONTEXT)?.rule).toBe(
+      "start-date-not-a-date",
+    );
+    expect(validateProject(projectOf(notDonePredecessor, { name: "" }), CONTEXT)?.rule).toBe("project-name-empty");
+    expect(validateProject(projectOf(notDonePredecessor, { nextTaskId: 2147483648 }), CONTEXT)?.rule).toBe(
+      "task-id-limit-reached",
+    );
+    // Each predecessor rule walks every Task before the next: Task 2 breaks the date bound, Task 4 the Status rule.
+    expectValidationError(
+      projectOf([
+        task(1, "A", [], done("2026-09-03")),
+        task(2, "B", [1], done("2026-09-02")),
+        task(3, "C"),
+        task(4, "D", [3], done("2026-09-04")),
+      ]),
+      "done-predecessor-not-done",
+      "Task 4: D cannot be Done while its predecessor 3: C is not Done.",
+    );
+  });
+
+  it("checks every rule of a Task before the next Task: name, Duration, predecessor ids, then its completion date", () => {
     expect(validateProject(projectOf([task(1, "", [], { duration: 0 })]), CONTEXT)?.rule).toBe("task-name-empty");
+    expect(validateProject(projectOf([task(1, "A", [9], done())]), CONTEXT)?.rule).toBe("unknown-task");
+    expect(
+      validateProject(projectOf([task(1, "A", [], { status: "to-do", completionDate: "2026-02-30" })]), CONTEXT)?.rule,
+    ).toBe("completion-date-without-done");
+    // After today and before the START date at once: the today bound comes first.
+    expect(
+      validateProject(projectOf([task(1, "A", [], done("2026-09-07"))], { start: { date: "2026-09-10" } }), CONTEXT)
+        ?.rule,
+    ).toBe("completion-date-after-today");
+    expect(validateProject(projectOf([task(1, "A", [], done("2026-09-06")), task(2, "")]), CONTEXT)?.rule).toBe(
+      "completion-date-after-today",
+    );
     // A walk rule by rule over all Tasks would report Task 2's empty name first.
     expectValidationError(
       projectOf([task(1, "Design", [9]), task(2, "")]),
@@ -649,6 +1043,8 @@ describe("the guardian", () => {
     ["setProjectName", (project: CheckedProject) => setProjectName(project, "Website", CONTEXT)],
     ["setDayCountingMode", (project: CheckedProject) => setDayCountingMode(project, "weekdays", CONTEXT)],
     ["addPredecessor", (project: CheckedProject) => addPredecessor(project, 3, 1, CONTEXT)],
+    ["setStatus", (project: CheckedProject) => setStatus(project, 3, "done", CONTEXT)],
+    ["setCompletionDate", (project: CheckedProject) => setCompletionDate(project, 3, "", CONTEXT)],
   ])("rejects %s when the resulting project holds a cycle, not only the rule the edit can break", (_name, apply) => {
     const result = apply(deepFreeze(structuredClone(cyclic)));
 
