@@ -746,12 +746,12 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [x] 4.1 Oracle rows red before the change and green after: `npx vitest run src/lib/services/forecast.test.ts`
-- [x] 4.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check`
+- [x] 4.1 Oracle rows red before the change and green after: `npx vitest run src/lib/services/forecast.test.ts` — e63716e
+- [x] 4.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check` — e63716e
 
 #### Manual
 
-- [x] 4.3 Each new row's expected dates were derived by hand from the PRD convention
+- [x] 4.3 Each new row's expected dates were derived by hand from the PRD convention — e63716e
 
 ### Phase 5: Session and panels
 

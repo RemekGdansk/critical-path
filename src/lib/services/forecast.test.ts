@@ -337,6 +337,20 @@ const prdExamples: PrdExample[] = [
     criticalPathTime: 8,
     totalWorkTime: 8,
   },
+  {
+    // A Done Fri 16 Oct, so START's only direct successor is Done; today Sat 17 Oct moves to Mon 19 Oct;
+    // B (3 weekdays) runs Tue 20, Wed 21, Thu 22 → 22 Oct.
+    rule: "Business Logic: in weekdays mode, START's successors Done with today on Saturday moves to Monday",
+    project: inWeekdays(withDone(aThenB("2026-10-01"), [1, "2026-10-16"])),
+    today: "2026-10-17",
+    baseDate: "2026-10-19",
+    baseDateReason: "start-successors-done",
+    movedFromWeekend: "2026-10-17",
+    resourceUnconstrainedProjectFinishDate: "2026-10-22",
+    resourceConstrainedProjectFinishDate: "2026-10-22",
+    criticalPathTime: 3,
+    totalWorkTime: 3,
+  },
 ];
 
 // Every Task Done: the PRD gives no example, so these follow the S-07 decision that the project

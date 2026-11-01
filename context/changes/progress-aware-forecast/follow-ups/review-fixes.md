@@ -15,3 +15,7 @@ Follow-ups queued by implementation reviews, to act on in the named phase.
 ## From impl-review-phase-3.md
 
 - **F3 (Phase 7)**: `context/domain/01-domain-distillation.md` (:74, :122) and `context/domain/02-invariant-aggregate-refactor.md` (:103, :333, :382) still name `task-status-not-supported-yet`, which Phase 3 removed, and no phase lists them. In the documentation pass, decide whether they are point-in-time snapshots (leave them as written) or living documents (update them as the glossary is updated).
+
+## From impl-review-phase-4.md
+
+- **F1 (Phase 5)**: In `src/components/planner/ForecastSummary.tsx:140`, `const today = movedFromWeekend ?? forecast.baseDate` is today only for the reasons whose base date is today (`start-date-unset`, `start-date-in-past`, `start-successors-done`). Under `all-tasks-done` the base date is the latest completion date. When adding the Phase 5 notes, rename the variable or scope it to those reasons, with a one-line comment that `all-tasks-done` does not qualify, and never show it in the "Every Task is Done." note.
