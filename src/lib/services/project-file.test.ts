@@ -22,7 +22,6 @@ import {
 import {
   type ImportResult,
   parseProjectFile,
-  PROJECT_FILE_VERSION,
   projectFileName,
   type ProjectFileRule,
   serializeProject,
@@ -35,9 +34,34 @@ const TODAY = "2026-10-11";
 const CONTEXT: EditContext = { today: TODAY };
 
 // Read as raw bytes from disk: the committed file is the oracle, never regenerated from the exporter.
+const GOLDEN_1_0 = readFileSync(new URL("./golden/project-file-1.0.json", import.meta.url), "utf8");
+
+/**
+ * The project the 1.0 golden file holds, written by hand from the file: the MVP
+ * field set. A name and a START date, weekdays, a Done chain with past weekday
+ * completion dates on or after the START date, an In Progress Task whose
+ * predecessor is Done, To Do Tasks, a Task without a Duration (a Validation
+ * Warning), and ids 3 and 7 deleted.
+ */
+const GOLDEN_1_0_PROJECT: Project = {
+  name: "Shop fit-out – MVP ✓",
+  start: { date: "2026-09-01" },
+  finish: {},
+  dayCountingMode: "weekdays",
+  nextTaskId: 8,
+  tasks: [
+    { id: 1, name: "Survey", predecessors: [], duration: 2, status: "done", completionDate: "2026-09-03" },
+    { id: 2, name: "Strip out", predecessors: [1], duration: 3, status: "done", completionDate: "2026-09-08" },
+    { id: 4, name: "Wiring", predecessors: [2], duration: 5, status: "in-progress" },
+    { id: 5, name: "Paint", predecessors: [4, 6], status: "to-do" },
+    { id: 6, name: "Order signage", predecessors: [], duration: 1, status: "to-do" },
+  ],
+};
+
+// The shipped 0.1 golden files: an older version, so only their import is asserted.
 const GOLDEN = readFileSync(new URL("./golden/project-file-0.1.json", import.meta.url), "utf8");
 
-/** The project the golden file holds, written by hand from the file. */
+/** The project the 0.1 golden file holds, written by hand from the file. */
 const GOLDEN_PROJECT: Project = {
   name: "Relaunch – QA ✓",
   start: { date: "2026-11-02" },
@@ -65,28 +89,6 @@ const GOLDEN_WEEKDAYS_PROJECT: Project = {
     { id: 1, name: "Pack", predecessors: [], duration: 2, status: "to-do" },
     { id: 3, name: "Book movers", predecessors: [], duration: 1, status: "to-do" },
     { id: 4, name: "Move", predecessors: [1, 3], duration: 1, status: "to-do" },
-  ],
-};
-
-const GOLDEN_STATUSES = readFileSync(new URL("./golden/project-file-0.1-statuses.json", import.meta.url), "utf8");
-
-/**
- * The project the statuses golden file holds, written by hand from the file: a Done
- * chain, an In Progress Task, a To Do Task and a Done Task without a Duration. Its
- * completion dates are before TODAY and on or after the START date.
- */
-const GOLDEN_STATUSES_PROJECT: Project = {
-  name: "Shop fit-out – progress",
-  start: { date: "2026-09-01" },
-  finish: {},
-  dayCountingMode: "calendar-days",
-  nextTaskId: 6,
-  tasks: [
-    { id: 1, name: "Survey", predecessors: [], duration: 2, status: "done", completionDate: "2026-09-03" },
-    { id: 2, name: "Strip out", predecessors: [1], duration: 3, status: "done", completionDate: "2026-09-08" },
-    { id: 3, name: "Wiring", predecessors: [2], duration: 5, status: "in-progress" },
-    { id: 4, name: "Paint", predecessors: [3, 5], duration: 4, status: "to-do" },
-    { id: 5, name: "Order signage", predecessors: [], status: "done", completionDate: "2026-09-02" },
   ],
 };
 
@@ -146,10 +148,10 @@ interface TestFile {
   tasks: Record<string, unknown>[];
 }
 
-/** A small, acceptable file, written by hand. */
+/** A small, acceptable file, written by hand, in the version the app writes. */
 function baseFile(): TestFile {
   return {
-    version: "0.1",
+    version: "1.0",
     name: "Website relaunch",
     start: { date: "2026-11-02" },
     finish: {},
@@ -197,13 +199,31 @@ function projectWithChange(change: (project: Project) => void): Project {
   return project;
 }
 
-describe("the golden file (format 0.1)", () => {
+describe("the golden file (format 1.0, the MVP schema)", () => {
   it("imports to the project it holds", () => {
-    expect(imported(parseProjectFile(GOLDEN, CONTEXT))).toStrictEqual(GOLDEN_PROJECT);
+    expect(imported(parseProjectFile(GOLDEN_1_0, CONTEXT))).toStrictEqual(GOLDEN_1_0_PROJECT);
   });
 
   it("is what serializeProject writes for that project, byte for byte", () => {
-    expect(serializeProject(deepFreeze(structuredClone(GOLDEN_PROJECT)))).toBe(GOLDEN);
+    expect(serializeProject(deepFreeze(structuredClone(GOLDEN_1_0_PROJECT)))).toBe(GOLDEN_1_0);
+  });
+
+  it("keeps its Validation Warning through import, since a Done Task needs no Duration", () => {
+    expect(validationWarnings(imported(parseProjectFile(GOLDEN_1_0, CONTEXT)))).toStrictEqual([
+      { rule: "duration-missing", taskId: 5, message: "Paint has no Duration." },
+    ]);
+  });
+
+  it("mints nextTaskId for the next Task, never a deleted id", () => {
+    const project = accepted(createTask(imported(parseProjectFile(GOLDEN_1_0, CONTEXT)), "Snagging", CONTEXT));
+    expect(project.tasks.map((task) => task.id)).toEqual([1, 2, 4, 5, 6, 8]);
+    expect(project.nextTaskId).toBe(9);
+  });
+});
+
+describe("the golden file (format 0.1, import only)", () => {
+  it("imports to the project it holds", () => {
+    expect(imported(parseProjectFile(GOLDEN, CONTEXT))).toStrictEqual(GOLDEN_PROJECT);
   });
 
   it("keeps its Validation Warning through import", () => {
@@ -219,37 +239,32 @@ describe("the golden file (format 0.1)", () => {
   });
 });
 
-describe("the weekdays golden file (format 0.1)", () => {
+describe("the weekdays golden file (format 0.1, import only)", () => {
   it("imports to the project it holds", () => {
     expect(imported(parseProjectFile(GOLDEN_WEEKDAYS, CONTEXT))).toStrictEqual(GOLDEN_WEEKDAYS_PROJECT);
   });
-
-  it("is what serializeProject writes for that project, byte for byte", () => {
-    expect(serializeProject(deepFreeze(structuredClone(GOLDEN_WEEKDAYS_PROJECT)))).toBe(GOLDEN_WEEKDAYS);
-  });
 });
 
-describe("the statuses golden file (format 0.1)", () => {
-  it("imports to the project it holds", () => {
-    expect(imported(parseProjectFile(GOLDEN_STATUSES, CONTEXT))).toStrictEqual(GOLDEN_STATUSES_PROJECT);
-  });
-
-  it("is what serializeProject writes for that project, byte for byte", () => {
-    expect(serializeProject(deepFreeze(structuredClone(GOLDEN_STATUSES_PROJECT)))).toBe(GOLDEN_STATUSES);
-  });
-
-  it("holds no Validation Warning, since a Done Task needs no Duration", () => {
-    expect(validationWarnings(imported(parseProjectFile(GOLDEN_STATUSES, CONTEXT)))).toStrictEqual([]);
+describe("a 0.1 file", () => {
+  // 1.0 adds, removes and reorders no key over 0.1, so no field has an
+  // older-version default (M-1 "Done when"): only the version line changes.
+  it.each([
+    { file: "project-file-0.1.json", text: GOLDEN },
+    { file: "project-file-0.1-weekdays.json", text: GOLDEN_WEEKDAYS },
+  ])("re-exports $file as 1.0, byte for byte but the version line: 1.0 adds no key", ({ text }) => {
+    const lines = text.split("\n");
+    expect(lines[1]).toBe('  "version": "0.1",');
+    const reexported = serializeProject(imported(parseProjectFile(text, CONTEXT)));
+    expect(reexported.split("\n")).toStrictEqual(lines.with(1, '  "version": "1.0",'));
   });
 });
 
 describe("serializeProject", () => {
   it("writes the empty project with empty START, FINISH and Task list", () => {
-    expect(PROJECT_FILE_VERSION).toBe("0.1");
     expect(serializeProject(createEmptyProject(CONTEXT))).toBe(
       [
         "{",
-        '  "version": "0.1",',
+        '  "version": "1.0",',
         '  "start": {},',
         '  "finish": {},',
         '  "dayCountingMode": "calendar-days",',
@@ -342,6 +357,17 @@ describe("parseProjectFile", () => {
       imported(
         parseProjectFile(
           fileWith(() => undefined),
+          CONTEXT,
+        ),
+      ),
+    ).toStrictEqual(baseProject());
+  });
+
+  it.each(["0.1", "1.0"])("accepts version %s, the versions the app has written", (version) => {
+    expect(
+      imported(
+        parseProjectFile(
+          fileWith((file) => (file.version = version)),
           CONTEXT,
         ),
       ),
@@ -631,26 +657,15 @@ describe("parseProjectFile", () => {
       rule: "file-not-a-project",
       fragment: "version must be text, not a number",
     },
-    {
-      case: 'version "0.2"',
-      text: fileWith((file) => (file.version = "0.2")),
-      rule: "file-version-newer",
-      fragment: "The file has version 0.2, newer than version 0.1 that this app reads",
-    },
-    {
-      case: 'version "1"',
-      text: fileWith((file) => (file.version = "1")),
-      rule: "file-version-newer",
-      fragment: "The file has version 1, newer than version 0.1 that this app reads",
-    },
-    // Multi-digit parts compare as integers, not as single characters.
-    ...["10", "0.12"].map((version) => ({
+    // Numerically above 1.0; multi-digit parts ("10", "1.12") compare as integers, not as single characters.
+    ...["1.1", "2", "10", "1.12"].map((version) => ({
       case: `version ${JSON.stringify(version)}`,
       text: fileWith((file) => (file.version = version)),
       rule: "file-version-newer" as const,
-      fragment: `The file has version ${version}, newer than version 0.1 that this app reads`,
+      fragment: `The file has version ${version}, newer than version 1.0 that this app reads`,
     })),
-    ...["0.0", "00.1", "0.01", "0.1.0", "0.2.1", "v0.1", " 0.1"].map((version) => ({
+    // Only "0.1" and "1.0" are read: a canonical version no build wrote ("0.2", "0.0", "1") is not a version either.
+    ...["0.2", "0.0", "1", "1.00", "01.0", "1.0.0", "v1.0", " 1.0"].map((version) => ({
       case: `version ${JSON.stringify(version)}`,
       text: fileWith((file) => (file.version = version)),
       rule: "file-not-a-project" as const,
@@ -691,7 +706,7 @@ describe("parseProjectFile", () => {
       case: "a very long newer version",
       text: fileWith((file) => (file.version = "1".repeat(1000))),
       rule: "file-version-newer",
-      fragment: `The file has version ${"1".repeat(40)}…, newer than version 0.1 that this app reads`,
+      fragment: `The file has version ${"1".repeat(40)}…, newer than version 1.0 that this app reads`,
     },
     {
       case: "a key on FINISH",
@@ -943,10 +958,10 @@ describe("parseProjectFile", () => {
 
   it("checks the version before the shape", () => {
     const text = fileWith((file) => {
-      file.version = "0.2";
+      file.version = "1.1";
       file.colour = "red";
     });
-    expectRejected(parseProjectFile(text, CONTEXT), "file-version-newer", "0.2");
+    expectRejected(parseProjectFile(text, CONTEXT), "file-version-newer", "1.1");
   });
 
   it("checks unique ids before the Validation Errors", () => {

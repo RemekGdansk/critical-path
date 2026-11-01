@@ -1,12 +1,12 @@
 {
-  "version": "0.1",
-  "name": "Shop fit-out – progress",
+  "version": "1.0",
+  "name": "Shop fit-out – MVP ✓",
   "start": {
     "date": "2026-09-01"
   },
   "finish": {},
-  "dayCountingMode": "calendar-days",
-  "nextTaskId": 6,
+  "dayCountingMode": "weekdays",
+  "nextTaskId": 8,
   "tasks": [
     {
       "id": 1,
@@ -25,25 +25,24 @@
       "completionDate": "2026-09-08"
     },
     {
-      "id": 3,
+      "id": 4,
       "name": "Wiring",
       "predecessors": [2],
       "duration": 5,
       "status": "in-progress"
     },
     {
-      "id": 4,
+      "id": 5,
       "name": "Paint",
-      "predecessors": [3, 5],
-      "duration": 4,
+      "predecessors": [4, 6],
       "status": "to-do"
     },
     {
-      "id": 5,
+      "id": 6,
       "name": "Order signage",
       "predecessors": [],
-      "status": "done",
-      "completionDate": "2026-09-02"
+      "duration": 1,
+      "status": "to-do"
     }
   ]
 }

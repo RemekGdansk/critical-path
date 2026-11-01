@@ -794,12 +794,12 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [ ] 8.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
-- [ ] 8.2 Export writes the new version: `PROJECT_FILE_VERSION = "1.0"`
-- [ ] 8.3 E2E passes against build + preview: `npm run test:e2e`
-- [ ] 8.4 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 8.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts`
+- [x] 8.2 Export writes the new version: `PROJECT_FILE_VERSION = "1.0"`
+- [x] 8.3 E2E passes against build + preview: `npm run test:e2e`
+- [x] 8.4 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
 
 #### Manual
 
-- [ ] 8.5 Exported file shows `"version": "1.0"`; a `"0.1"` file imports and re-exports as `"1.0"` with only the version line differing
-- [ ] 8.6 A `"version": "1.1"` file is rejected with the "newer than version 1.0" message
+- [x] 8.5 Exported file shows `"version": "1.0"`; a `"0.1"` file imports and re-exports as `"1.0"` with only the version line differing
+- [x] 8.6 A `"version": "1.1"` file is rejected with the "newer than version 1.0" message
