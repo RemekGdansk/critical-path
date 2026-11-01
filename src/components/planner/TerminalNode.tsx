@@ -13,8 +13,9 @@ interface TerminalNodeProps {
 }
 
 // START and FINISH share one pill shape, visibly different from the rectangular Task nodes.
-// The interactive one (START) draws hover, focus ring and selected ring the way TaskNode
-// does; the inert one (FINISH) resets the pointer cursor React Flow gives selectable nodes.
+// The interactive one (START) draws hover and focus ring the way TaskNode does, and its own
+// selected ring: a translucent --primary ring, as START has no state colour to thicken;
+// the inert one (FINISH) resets the pointer cursor React Flow gives selectable nodes.
 export function TerminalNode({ label, detail, children, interactive, selected = false }: TerminalNodeProps) {
   return (
     <div

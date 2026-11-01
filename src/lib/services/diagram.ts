@@ -23,7 +23,7 @@ export interface Size {
   readonly height: number;
 }
 
-/** Two lines: the name, then the Duration or "No Duration" (with "In Progress" after it), or "Done" and the completion date. */
+/** Two lines: the name, then the Duration or "No Duration" (after a dashed circle when In Progress), or "Done" and the completion date. */
 export const TASK_NODE_SIZE: Size = { width: 180, height: 52 };
 export const START_FINISH_NODE_SIZE: Size = { width: 96, height: 40 };
 /** Horizontal gap between the right edge of one rank and the left edge of the next. */

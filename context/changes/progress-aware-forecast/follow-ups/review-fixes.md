@@ -19,3 +19,7 @@ Follow-ups queued by implementation reviews, to act on in the named phase.
 ## From impl-review-phase-4.md
 
 - **F1 (Phase 5)**: In `src/components/planner/ForecastSummary.tsx:140`, `const today = movedFromWeekend ?? forecast.baseDate` is today only for the reasons whose base date is today (`start-date-unset`, `start-date-in-past`, `start-successors-done`). Under `all-tasks-done` the base date is the latest completion date. When adding the Phase 5 notes, rename the variable or scope it to those reasons, with a one-line comment that `all-tasks-done` does not qualify, and never show it in the "Every Task is Done." note.
+
+## From impl-review-phase-6.md
+
+- **F2 (Phase 7)**: In the test-plan update, record that the app ships no dark mode (nothing applies `.dark`), so the `.dark` token values, `--done` included, are computed for contrast but have not been checked rendered. The S-07 Phase 6 visual check (Progress 6.3, 6.4) covered light only; `change.md` Notes records it.

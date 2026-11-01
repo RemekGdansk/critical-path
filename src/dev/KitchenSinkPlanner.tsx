@@ -128,6 +128,11 @@ function doneOn(project: CheckedProject, taskId: TaskId, completionDate: string,
 /** The START date of the progress fixtures: in the past, so every completion date below is too. */
 const PROGRESS_START_DATE = "2026-09-01";
 
+/** The progress project's ids: its own three Tasks, not the small project's DESIGN … WRITE_DOCS. */
+const PROGRESS_DESIGN: TaskId = 1;
+const PROGRESS_BUILD: TaskId = 2;
+const PROGRESS_WRITE_DOCS: TaskId = 3;
+
 /**
  * "Website relaunch", in progress: Design (3) → Build (5), and Write docs (2)
  * on its own. START 2026-09-01; Design Done on 2026-09-03, Build In Progress
@@ -137,18 +142,17 @@ const PROGRESS_START_DATE = "2026-09-01";
 function progressProject(context: EditContext): CheckedProject {
   let project = accepted(setProjectName(createEmptyProject(context), "Website relaunch", context));
   for (const name of ["Design", "Build", "Write docs"]) project = accepted(createTask(project, name, context));
-  const [design, build, writeDocs] = [1, 2, 3] as const;
-  project = accepted(addPredecessor(project, build, design, context));
+  project = accepted(addPredecessor(project, PROGRESS_BUILD, PROGRESS_DESIGN, context));
   for (const [taskId, days] of [
-    [design, "3"],
-    [build, "5"],
-    [writeDocs, "2"],
+    [PROGRESS_DESIGN, "3"],
+    [PROGRESS_BUILD, "5"],
+    [PROGRESS_WRITE_DOCS, "2"],
   ] as const) {
     project = accepted(setDuration(project, taskId, days, context));
   }
   project = accepted(setStartDate(project, PROGRESS_START_DATE, context));
-  project = doneOn(project, design, "2026-09-03", context);
-  return accepted(setStatus(project, build, "in-progress", context));
+  project = doneOn(project, PROGRESS_DESIGN, "2026-09-03", context);
+  return accepted(setStatus(project, PROGRESS_BUILD, "in-progress", context));
 }
 
 /**
@@ -156,7 +160,7 @@ function progressProject(context: EditContext): CheckedProject {
  * successor, is Done, so the past START date no longer affects the forecast.
  */
 function startSuccessorsDoneProject(context: EditContext): CheckedProject {
-  return accepted(addPredecessor(progressProject(context), 3, 1, context));
+  return accepted(addPredecessor(progressProject(context), PROGRESS_WRITE_DOCS, PROGRESS_DESIGN, context));
 }
 
 /**
@@ -214,7 +218,7 @@ const FIXTURES = {
   /** START selected on a weekdays project whose START date is a Saturday: the weekend notes and weekday units. */
   "weekdays-weekend-start": { project: weekdaysWeekendStartProject, initialSelection: "start" },
   /** Design Done (selected, with its Completion date), Build In Progress and critical, Write docs To Do. */
-  progress: { project: progressProject, initialSelection: DESIGN },
+  progress: { project: progressProject, initialSelection: PROGRESS_DESIGN },
   /** Every Task Done: both Project Finish Dates are the latest completion date, with no swatch. */
   "all-done": { project: allDoneProject, initialSelection: null },
   /** START selected while its only successor is Done: the START date no longer affects the forecast. */

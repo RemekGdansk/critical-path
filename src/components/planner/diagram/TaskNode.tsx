@@ -53,7 +53,7 @@ function TaskNodeComponent({ data: { node }, selected }: TaskNodeProps) {
       title={inProgress ? `${node.name} — ${taskStatusName("in-progress")}` : node.name}
       className={cn(
         "bg-card text-card-foreground flex h-full w-full flex-col justify-center rounded-md border px-3 text-sm shadow-xs transition-colors",
-        "in-focus-visible:outline-ring/50 in-focus-visible:outline-3 in-focus-visible:outline-offset-2",
+        "in-focus-visible:outline-ring/50 in-focus-visible:outline-3 in-focus-visible:outline-offset-3",
         selected ? border.selected : border.idle,
       )}
     >

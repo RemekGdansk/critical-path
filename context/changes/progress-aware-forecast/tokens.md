@@ -1,6 +1,6 @@
 # Token values: `--done` for Done Tasks
 
-`--done` is a new role in `src/styles/global.css`, published as `border-done` and `text-done` through `--color-done` in `@theme inline`. It means only "Done": the border of a Done Task node and the check icon on its second line (`TaskNode.tsx`). The text beside the check ("Done 2026-09-03") stays in `--muted-foreground`, so a Done Task reads as finished, quieter work. It is a non-text role (a border and an icon), so its floor is the WCAG 1.4.11 non-text 3:1, against `--card` (the Task node, inside its border, under the icon) and `--muted` (the diagram canvas, outside the border).
+`--done` is a new role in `src/styles/global.css`, published as `border-done`, `ring-done` and `text-done` through `--color-done` in `@theme inline`. It means only "Done": the border of a Done Task node, its ring when selected, and the check icon on its second line (`TaskNode.tsx`). The text beside the check ("Done 2026-09-03") stays in `--muted-foreground`, so a Done Task reads as finished, quieter work. It is a non-text role (a border and an icon), so its floor is the WCAG 1.4.11 non-text 3:1, against `--card` (the Task node, inside its border, under the icon) and `--muted` (the diagram canvas, outside the border).
 
 | Mode  | `--done`               | vs `--card` (node) | vs `--muted` (canvas) | vs `--background` | vs `--sidebar` |
 | ----- | ---------------------- | ------------------ | --------------------- | ----------------- | -------------- |

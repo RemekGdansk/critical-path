@@ -112,7 +112,8 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
             Design → Build → Ship and Research → Prototype are two equal 7-day chains: both are highlighted end to end,
             from START through to FINISH, in the critical-path colour, with arrowheads in that colour at their usual
             size. Design → Ship (between two critical Tasks, but not on a longest chain) and the shorter Design → Write
-            docs branch stay grey. Build is selected and keeps the selection style.
+            docs branch stay grey. Build is selected: its border stays in the critical-path colour and its ring
+            thickens.
           </p>
         </figcaption>
         <div class="frame">
@@ -153,9 +154,10 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
           <h2>progress</h2>
           <p>
             START 2026-09-01. Design is Done on 2026-09-03 and selected: the panel shows Status Done and the Completion
-            date field, and its node keeps the selection style over the Done border. Build is In Progress and on the
-            critical path: its node reads "5 days · In Progress" with the critical-path border. Write docs is To Do. The
-            header forecasts from today, since Write docs still follows the past START date.
+            date field, and its node keeps the Done border with a thicker ring in the same colour. Build is In Progress
+            and on the critical path: its node has the critical-path border and a dashed circle before "5 days" in the
+            darker text, with "In Progress" in its tooltip; Write docs is To Do, in grey. The header forecasts from
+            today, since Write docs still follows the past START date.
           </p>
           <p class="action">Click away from Design to see its Done border, check icon and "Done 2026-09-03".</p>
         </figcaption>

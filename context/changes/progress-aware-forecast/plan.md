@@ -770,13 +770,13 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [x] 6.1 Diagram tests pass
-- [x] 6.2 Full suite, lint, type check, build, CSP
+- [x] 6.1 Diagram tests pass — 4f68316
+- [x] 6.2 Full suite, lint, type check, build, CSP — 4f68316
 
 #### Manual
 
-- [x] 6.3 Kitchen sink progress, all-done and start-successors-done states read clearly in light and dark
-- [x] 6.4 The `--done` contrast values in `tokens.md` match the rendered colours
+- [x] 6.3 Kitchen sink progress, all-done and start-successors-done states read clearly in light and dark — 4f68316
+- [x] 6.4 The `--done` contrast values in `tokens.md` match the rendered colours — 4f68316
 
 ### Phase 7: Browser check and documentation
 
