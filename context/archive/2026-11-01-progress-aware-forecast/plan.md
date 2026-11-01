@@ -709,99 +709,99 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [x] 1.1 Lint passes: `npm run lint` — 666d1d4
-- [x] 1.2 Type check passes: `npx astro check` — 666d1d4
-- [x] 1.3 All unit tests pass with no expected value changed: `npm test` — 666d1d4
-- [x] 1.4 Build and CSP check pass: `npm run build && npm run check:csp` — 666d1d4
-- [x] 1.5 No module under `src/lib/services/` reads the clock — 666d1d4
+- [x] 1.1 Lint passes: `npm run lint` — 49ddad6
+- [x] 1.2 Type check passes: `npx astro check` — 49ddad6
+- [x] 1.3 All unit tests pass with no expected value changed: `npm test` — 49ddad6
+- [x] 1.4 Build and CSP check pass: `npm run build && npm run check:csp` — 49ddad6
+- [x] 1.5 No module under `src/lib/services/` reads the clock — 49ddad6
 
 #### Manual
 
-- [x] 1.6 Under `npm run dev`, creating, editing, importing and starting a new project behave as before — 666d1d4
+- [x] 1.6 Under `npm run dev`, creating, editing, importing and starting a new project behave as before — 49ddad6
 
 ### Phase 2: Done rules and Status edits
 
 #### Automated
 
-- [x] 2.1 New domain tests were red before the rules and edits existed, and are green now — bd1e1b1
-- [x] 2.2 Full suite passes: `npm test` — bd1e1b1
-- [x] 2.3 Lint and type check pass: `npm run lint && npx astro check` — bd1e1b1
+- [x] 2.1 New domain tests were red before the rules and edits existed, and are green now — 49ddad6
+- [x] 2.2 Full suite passes: `npm test` — 49ddad6
+- [x] 2.3 Lint and type check pass: `npm run lint && npx astro check` — 49ddad6
 
 #### Manual
 
-- [x] 2.4 Review: no Done-rule code in edits; each new rule id produced by exactly one guardian entry, predecessor rules after `cycle` — bd1e1b1
-- [x] 2.5 Review: messages use domain terms and name the Task(s) for the four indirect rules — bd1e1b1
+- [x] 2.4 Review: no Done-rule code in edits; each new rule id produced by exactly one guardian entry, predecessor rules after `cycle` — 49ddad6
+- [x] 2.5 Review: messages use domain terms and name the Task(s) for the four indirect rules — 49ddad6
 
 ### Phase 3: Import lifts the Status gate
 
 #### Automated
 
-- [x] 3.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts` — 9972c4b
-- [x] 3.2 `task-status-not-supported-yet` is gone from the source — 9972c4b
-- [x] 3.3 Full suite, lint, type check: `npm test && npm run lint && npx astro check` — 9972c4b
+- [x] 3.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts` — 49ddad6
+- [x] 3.2 `task-status-not-supported-yet` is gone from the source — 49ddad6
+- [x] 3.3 Full suite, lint, type check: `npm test && npm run lint && npx astro check` — 49ddad6
 
 #### Manual
 
-- [x] 3.4 The golden statuses file reads as a hand-edited project would — 9972c4b
+- [x] 3.4 The golden statuses file reads as a hand-edited project would — 49ddad6
 
 ### Phase 4: Progress-aware forecast
 
 #### Automated
 
-- [x] 4.1 Oracle rows red before the change and green after: `npx vitest run src/lib/services/forecast.test.ts` — e63716e
-- [x] 4.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check` — e63716e
+- [x] 4.1 Oracle rows red before the change and green after: `npx vitest run src/lib/services/forecast.test.ts` — 49ddad6
+- [x] 4.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check` — 49ddad6
 
 #### Manual
 
-- [x] 4.3 Each new row's expected dates were derived by hand from the PRD convention — e63716e
+- [x] 4.3 Each new row's expected dates were derived by hand from the PRD convention — 49ddad6
 
 ### Phase 5: Session and panels
 
 #### Automated
 
-- [x] 5.1 State and view tests pass — dbf7266
-- [x] 5.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check` — dbf7266
+- [x] 5.1 State and view tests pass — 49ddad6
+- [x] 5.2 Full suite, lint, type check: `npm test && npm run lint && npx astro check` — 49ddad6
 
 #### Manual
 
-- [x] 5.3 Marking Done shows today in Completion date; backdating commits only on blur or Enter; Escape restores — dbf7266
-- [x] 5.4 A rejected Status change leaves the select on the committed Status and announces the alert — dbf7266
-- [x] 5.5 Keyboard-only: Status and Completion date reachable in order with visible focus — dbf7266
+- [x] 5.3 Marking Done shows today in Completion date; backdating commits only on blur or Enter; Escape restores — 49ddad6
+- [x] 5.4 A rejected Status change leaves the select on the committed Status and announces the alert — 49ddad6
+- [x] 5.5 Keyboard-only: Status and Completion date reachable in order with visible focus — 49ddad6
 
 ### Phase 6: Diagram Status display
 
 #### Automated
 
-- [x] 6.1 Diagram tests pass — 4f68316
-- [x] 6.2 Full suite, lint, type check, build, CSP — 4f68316
+- [x] 6.1 Diagram tests pass — 49ddad6
+- [x] 6.2 Full suite, lint, type check, build, CSP — 49ddad6
 
 #### Manual
 
-- [x] 6.3 Kitchen sink progress, all-done and start-successors-done states read clearly in light and dark — 4f68316
-- [x] 6.4 The `--done` contrast values in `tokens.md` match the rendered colours — 4f68316
+- [x] 6.3 Kitchen sink progress, all-done and start-successors-done states read clearly in light and dark — 49ddad6
+- [x] 6.4 The `--done` contrast values in `tokens.md` match the rendered colours — 49ddad6
 
 ### Phase 7: Browser check and documentation
 
 #### Automated
 
-- [x] 7.1 E2E passes against build + preview: `npm run test:e2e` — d875176
-- [x] 7.2 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — d875176
+- [x] 7.1 E2E passes against build + preview: `npm run test:e2e` — 49ddad6
+- [x] 7.2 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 49ddad6
 
 #### Manual
 
-- [x] 7.3 PRD MVP flow plus US-04 end to end in `npm run preview`, including export and import in another browser — d875176
-- [x] 7.4 Importing a file with a completion date after today is rejected naming the Task — d875176
+- [x] 7.3 PRD MVP flow plus US-04 end to end in `npm run preview`, including export and import in another browser — 49ddad6
+- [x] 7.4 Importing a file with a completion date after today is rejected naming the Task — 49ddad6
 
 ### Phase 8: Bump the file version to 1.0
 
 #### Automated
 
-- [x] 8.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts` — 576989f
-- [x] 8.2 Export writes the new version: `PROJECT_FILE_VERSION = "1.0"` — 576989f
-- [x] 8.3 E2E passes against build + preview: `npm run test:e2e` — 576989f
-- [x] 8.4 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 576989f
+- [x] 8.1 Contract tests pass: `npx vitest run src/lib/services/project-file.test.ts` — 49ddad6
+- [x] 8.2 Export writes the new version: `PROJECT_FILE_VERSION = "1.0"` — 49ddad6
+- [x] 8.3 E2E passes against build + preview: `npm run test:e2e` — 49ddad6
+- [x] 8.4 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — 49ddad6
 
 #### Manual
 
-- [x] 8.5 Exported file shows `"version": "1.0"`; a `"0.1"` file imports and re-exports as `"1.0"` with only the version line differing — 576989f
-- [x] 8.6 A `"version": "1.1"` file is rejected with the "newer than version 1.0" message — 576989f
+- [x] 8.5 Exported file shows `"version": "1.0"`; a `"0.1"` file imports and re-exports as `"1.0"` with only the version line differing — 49ddad6
+- [x] 8.6 A `"version": "1.1"` file is rejected with the "newer than version 1.0" message — 49ddad6
