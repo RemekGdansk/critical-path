@@ -20,7 +20,6 @@
       "id": 2,
       "name": "Strip out",
       "predecessors": [1],
-      "duration": 3,
       "status": "done",
       "completionDate": "2026-09-08"
     },

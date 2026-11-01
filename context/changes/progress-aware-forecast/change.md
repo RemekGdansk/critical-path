@@ -1,7 +1,7 @@
 ---
 change_id: progress-aware-forecast
 title: Progress aware forecast
-status: implemented
+status: impl_reviewed
 created: 2026-11-01
 updated: 2026-11-01
 archived_at: null

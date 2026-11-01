@@ -39,9 +39,10 @@ const GOLDEN_1_0 = readFileSync(new URL("./golden/project-file-1.0.json", import
 /**
  * The project the 1.0 golden file holds, written by hand from the file: the MVP
  * field set. A name and a START date, weekdays, a Done chain with past weekday
- * completion dates on or after the START date, an In Progress Task whose
- * predecessor is Done, To Do Tasks, a Task without a Duration (a Validation
- * Warning), and ids 3 and 7 deleted.
+ * completion dates on or after the START date (the second Done without a
+ * Duration, which a Done Task does not need), an In Progress Task whose
+ * predecessor is Done, To Do Tasks, a To Do Task without a Duration (a
+ * Validation Warning), and ids 3 and 7 deleted.
  */
 const GOLDEN_1_0_PROJECT: Project = {
   name: "Shop fit-out – MVP ✓",
@@ -51,7 +52,7 @@ const GOLDEN_1_0_PROJECT: Project = {
   nextTaskId: 8,
   tasks: [
     { id: 1, name: "Survey", predecessors: [], duration: 2, status: "done", completionDate: "2026-09-03" },
-    { id: 2, name: "Strip out", predecessors: [1], duration: 3, status: "done", completionDate: "2026-09-08" },
+    { id: 2, name: "Strip out", predecessors: [1], status: "done", completionDate: "2026-09-08" },
     { id: 4, name: "Wiring", predecessors: [2], duration: 5, status: "in-progress" },
     { id: 5, name: "Paint", predecessors: [4, 6], status: "to-do" },
     { id: 6, name: "Order signage", predecessors: [], duration: 1, status: "to-do" },

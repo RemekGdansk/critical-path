@@ -1,6 +1,8 @@
 import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 
+import { projectDiagram } from "@/lib/services/diagram";
+import { forecast } from "@/lib/services/forecast";
 import {
   addPredecessor,
   type CheckedProject,
@@ -25,6 +27,9 @@ import { parseProjectFile, serializeProject } from "@/lib/services/project-file"
 
 const TODAY = "2026-09-05";
 const CONTEXT: EditContext = { today: TODAY };
+// The todays a render may meet after an accepted edit: the edits' own (a Saturday), the next
+// day (a Sunday), and a clock moved back before every completion date the steps can set.
+const RENDER_TODAYS = [TODAY, "2026-09-06", "2026-02-27"];
 
 function deepFreeze<T>(value: T): T {
   if (typeof value === "object" && value !== null && !Object.isFrozen(value)) {
@@ -123,7 +128,7 @@ function apply(project: CheckedProject, step: Step): EditResult {
 describe("edit sequences", () => {
   // Every edit ends in the guardian, which throws ProjectInvariantBreach on a
   // broken model shape, so a sequence that breaks the shape fails here too.
-  it("never accept a Validation Error, never throw, and leave the input unchanged when they reject", () => {
+  it("never accept a Validation Error or a project the forecast or diagram throws on, never throw, and leave the input unchanged when they reject", () => {
     fc.assert(
       // `size: "max"`: fast-check's default size would keep sequences near 10
       // edits, too short to build the Tasks a cycle attempt needs.
@@ -141,6 +146,9 @@ describe("edit sequences", () => {
               ok: true,
               project: result.project,
             });
+            // The planner renders both on every accepted project; a throw there blanks it.
+            for (const today of RENDER_TODAYS) forecast(result.project, today);
+            projectDiagram(result.project);
             project = result.project;
           } else {
             expect(project).toEqual(before);
@@ -149,7 +157,9 @@ describe("edit sequences", () => {
       }),
       // A fixed seed keeps the gate deterministic. To explore new sequences
       // locally, drop `seed`: a failure prints the seed and path that replay it.
-      { seed: 20261019, numRuns: 300 },
+      // 1000 runs, not fewer: this seed first reaches an all-Done weekdays project
+      // with a Saturday completion date (the addWeekdays throw) at run 360.
+      { seed: 20261019, numRuns: 1000 },
     );
   });
 });

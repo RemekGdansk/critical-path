@@ -23,3 +23,7 @@ Follow-ups queued by implementation reviews, to act on in the named phase.
 ## From impl-review-phase-6.md
 
 - **F2 (Phase 7)**: In the test-plan update, record that the app ships no dark mode (nothing applies `.dark`), so the `.dark` token values, `--done` included, are computed for contrast but have not been checked rendered. The S-07 Phase 6 visual check (Progress 6.3, 6.4) covered light only; `change.md` Notes records it.
+
+## From impl-review.md (full plan)
+
+- **F9 (at `/10x-archive`)**: Repoint the `--done` comment in `src/styles/global.css:49` from `context/changes/progress-aware-forecast/tokens.md` to the archived folder's `tokens.md` (as Phase 6 F4 did for `--critical-path`); it is the only reference outside the change folder that names it.

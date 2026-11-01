@@ -187,6 +187,7 @@ How to add new tests in this project. Each sub-section is filled in once the rel
 - **Pixel-level visual snapshots of the diagram** — layout is auto-generated and changes legitimately. Re-evaluate if manual layout is ever added. (Source: Phase 2 interview Q5.)
 - **shadcn/ui primitives in `src/components/ui/`** — vendored and tested upstream. Re-evaluate if a primitive is modified beyond styling. (Source: Phase 2 interview Q5.)
 - **Cross-browser matrix runs** — one desktop browser is enough for a solo after-hours MVP. Re-evaluate if a browser-specific bug reaches users. (Source: Phase 2 interview Q5.)
+- **Dark mode rendering** — the app ships no dark mode (nothing applies `.dark`), so the `.dark` token values in `src/styles/global.css`, `--done` included, are computed for contrast in each slice's `tokens.md` but have never been checked rendered; the S-07 visual check (kitchen sink) covered light only. Re-evaluate when something applies `.dark`: check every `.dark` token rendered in the kitchen sink first. (Source: S-07 Phase 6 review F2.)
 
 ## 8. Freshness Ledger
 

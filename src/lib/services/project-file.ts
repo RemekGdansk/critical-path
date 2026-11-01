@@ -178,18 +178,30 @@ const READ_VERSIONS: readonly string[] = ["0.1", PROJECT_FILE_VERSION];
 // A canonical `major` or `major.minor`: digits only, no leading zeros.
 const VERSION = /^(0|[1-9][0-9]*)(?:\.(0|[1-9][0-9]*))?$/;
 
+/** A canonical version's major and minor; a missing minor is 0. */
+function versionParts(version: string): readonly [number, number] | undefined {
+  const match = VERSION.exec(version);
+  if (match === null) return undefined;
+  const [, major, minor = "0"] = match;
+  return [Number(major), Number(minor)];
+}
+
+// The version written, which a newer one is compared against; the version rows fail at once if it is not canonical.
+const WRITTEN_VERSION_PARTS = versionParts(PROJECT_FILE_VERSION) ?? [Infinity, Infinity];
+
 function checkVersion(root: JsonObject): void {
   if (!Object.hasOwn(root, "version")) notAProject("version is missing");
   const version = root.version;
   if (typeof version !== "string") notAProject(`version must be text, not ${jsonType(version)}`);
   if (READ_VERSIONS.includes(version)) return;
 
-  // Numerically above 1.0 is newer. Anything else is not a version this app reads,
-  // including a canonical one no build wrote ("1", "0.2", "0.0").
-  const match = VERSION.exec(version);
-  if (match !== null) {
-    const [, major, minor = "0"] = match;
-    if (Number(major) > 1 || (Number(major) === 1 && Number(minor) > 0)) {
+  // Numerically above the written version is newer. Anything else is not a version this
+  // app reads, including a canonical one no build wrote ("1", "0.2", "0.0").
+  const parts = versionParts(version);
+  if (parts !== undefined) {
+    const [major, minor] = parts;
+    const [writtenMajor, writtenMinor] = WRITTEN_VERSION_PARTS;
+    if (major > writtenMajor || (major === writtenMajor && minor > writtenMinor)) {
       fail(
         "file-version-newer",
         `The file has version ${shortened(version)}, newer than version ${PROJECT_FILE_VERSION} that this app reads; open it in a newer version of the app.`,

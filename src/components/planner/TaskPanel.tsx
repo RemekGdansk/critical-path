@@ -10,13 +10,15 @@ import { MIN_ISO_DATE } from "@/lib/services/calendar-date";
 import { durationUnit } from "@/lib/services/duration";
 import {
   completionDateNotADate,
+  type EditResult,
+  isTaskStatus,
   TASK_NAME_MAX_LENGTH,
   TASK_STATUSES,
   taskLabel,
   taskStatusName,
 } from "@/lib/services/project";
 import { predecessorCandidates } from "@/lib/services/task-graph";
-import type { Project, Task, TaskStatus } from "@/types";
+import type { Project, Task } from "@/types";
 
 type TaskPanelActions = Pick<
   ProjectActions,
@@ -46,10 +48,6 @@ interface TaskPanelProps {
 /** The Duration as the field shows it; empty when unset. */
 function durationText(task: Task): string {
   return task.duration === undefined ? "" : String(task.duration);
-}
-
-function isTaskStatus(value: string): value is TaskStatus {
-  return TASK_STATUSES.some((status) => status === value);
 }
 
 /**
@@ -206,6 +204,8 @@ export function TaskPanel({ task, project, today, actions, focusRequest }: TaskP
       return;
     }
     setStatusError(undefined);
+    // A Status rule ties the predecessors to the Status, so a predecessor refusal may no longer hold.
+    setPredecessorError(undefined);
     if (leavingDate !== undefined) {
       dateBeforeLeavingDone.current = leavingDate;
     } else if (value === "done" && dateBeforeLeavingDone.current !== undefined) {
@@ -260,12 +260,17 @@ export function TaskPanel({ task, project, today, actions, focusRequest }: TaskP
     if (picked === "") return;
     const result = addPredecessor(task.id, Number(picked));
     if (result.ok) setPickedValue("");
-    setPredecessorError(result.ok ? undefined : result.error.message);
+    commitPredecessorResult(result);
   }
 
   function handleRemovePredecessor(predecessorId: number) {
-    const result = removePredecessor(task.id, predecessorId);
+    commitPredecessorResult(removePredecessor(task.id, predecessorId));
+  }
+
+  // The Status rules read the predecessors, so an accepted change may lift a Status refusal too.
+  function commitPredecessorResult(result: EditResult) {
     setPredecessorError(result.ok ? undefined : result.error.message);
+    if (result.ok) setStatusError(undefined);
   }
 
   return (
@@ -330,6 +335,8 @@ export function TaskPanel({ task, project, today, actions, focusRequest }: TaskP
             ref={completionDateRef}
             id={completionDateId}
             type="date"
+            // The calendar's bounds only: the START date and today. The predecessors' and Done
+            // successors' completion dates are left to the guardian, the one place those rules live.
             min={project.start.date ?? MIN_ISO_DATE}
             max={today}
             value={completionDateDraft}

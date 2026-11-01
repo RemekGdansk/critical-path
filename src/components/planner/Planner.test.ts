@@ -280,6 +280,20 @@ describe("Planner: Status and completion date", () => {
     expect(await screen.findByRole("button", { name: "B, 3 days, In Progress, on the critical path" })).toBeDefined();
   });
 
+  it("clears a Status refusal once removing the predecessor it named makes the Status possible", async () => {
+    const withC = accepted(createTask(doneFixture(false), "C", CONTEXT));
+    renderPlanner(2, accepted(addPredecessor(withC, 2, 3, CONTEXT)));
+    await screen.findByRole("button", { name: /^B, 3 days/ });
+
+    fireEvent.change(statusSelect(), { target: { value: "done" } });
+    expect(screen.getByRole("alert").textContent).toContain("3: C");
+    expect(statusSelect().value).toBe("to-do");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove predecessor 3: C" }));
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   // A closed select fires `change` on arrow keys, so browsing past Done and back is two edits.
   it("restores A's backdated completion date when A leaves Done and comes back in the same panel", async () => {
     renderPlanner(A_ID, doneFixture(false));

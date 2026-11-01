@@ -8,6 +8,8 @@ type: domain-distillation
 
 A map of the business domain, built from the product documents and from the code as found on branch `domain-distillation` at `4c7b2b9`. It describes, and does not change, production code. Every term carries its source. Line numbers were checked against the files at the time of writing.
 
+> **Point-in-time snapshot, not updated as slices land.** Terms, rules and drift items describe the code at `4c7b2b9`; later slices changed some of them (S-07 removed the import rejection UL-37 names and made DR-03's "No edit sets a Status" untrue). For the current terms and Validation Errors, read `context/domain/glossary.md` and `context/foundation/prd.md`.
+
 ## Step 0: Project context
 
 **Source documents read.** `context/foundation/prd.md` (v1, the product spec), `context/foundation/shape-notes.md` (the discovery record, including the verbatim seed idea at line 89 and the resolved gray areas at lines 9–71), `context/foundation/roadmap.md` (milestone M-1, slices F-01 and S-01–S-08), `context/foundation/tech-stack.md`, `context/foundation/test-plan.md`, `context/foundation/lessons.md`, `README.md`, `PROJECT_RULES.md`, and the archived plan `context/archive/2026-10-13-render-crash-recovery/plan-brief.md` for a later decision. Requirements documents exist, so this map isn't limited to the README.

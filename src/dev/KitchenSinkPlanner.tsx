@@ -134,7 +134,7 @@ const PROGRESS_BUILD: TaskId = 2;
 const PROGRESS_WRITE_DOCS: TaskId = 3;
 
 /**
- * "Website relaunch", in progress: Design (3) → Build (5), and Write docs (2)
+ * "Website relaunch", with Tasks In Progress and Done: Design (3) → Build (5), and Write docs (2)
  * on its own. START 2026-09-01; Design Done on 2026-09-03, Build In Progress
  * and critical (5 days against Write docs' 2), Write docs To Do. Write docs
  * still follows START, so the past START date is "in the past".

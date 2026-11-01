@@ -357,6 +357,10 @@ export function setDayCountingMode(project: CheckedProject, mode: DayCountingMod
 /** Every Task Status, in the order the Status select lists them. */
 export const TASK_STATUSES: readonly TaskStatus[] = ["to-do", "in-progress", "done"];
 
+export function isTaskStatus(value: string): value is TaskStatus {
+  return TASK_STATUSES.some((status) => status === value);
+}
+
 const TASK_STATUS_NAMES = { "to-do": "To Do", "in-progress": "In Progress", done: "Done" } as const;
 
 /** The Status as the PRD and the views name it. */

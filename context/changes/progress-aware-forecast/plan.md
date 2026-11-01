@@ -134,6 +134,8 @@ Give the guardian access to today without changing any behaviour: an `EditContex
 
 Add seven Validation Error rules as guardian entries (five in `TASK_CHECKS`, two in `PROJECT_CHECKS` after `cycle`), and add `setStatus` and `setCompletionDate` as addressing + parsing + `accept`. Every PRD acceptance criterion of US-04 about rejection gets a test first.
 
+> **Addendum (2026-11-01, after the plan):** an eighth rule, `in-progress-predecessor-not-done`, was added at the Phase 7 manual review as a `PROJECT_CHECKS` entry after `done-predecessor-not-done` (commit e3c064d). Decision and placement: `change.md` Notes.
+
 ### Changes Required:
 
 #### 1. Rule ids and checks
