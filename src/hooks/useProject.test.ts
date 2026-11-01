@@ -213,6 +213,12 @@ const doneRows: RejectionRow[] = [
     fragment: "Task 2: B cannot be Done while its predecessor 3: C is not Done.",
   },
   {
+    name: "setStatus marking D In Progress while its predecessor C is To Do",
+    run: (state) => state.setStatus(4, "in-progress"),
+    rule: "in-progress-predecessor-not-done",
+    fragment: "Task 4: D cannot be In Progress while its predecessor 3: C is not Done.",
+  },
+  {
     name: "setCompletionDate after today",
     run: (state) => state.setCompletionDate(2, "2026-09-06"),
     rule: "completion-date-after-today",

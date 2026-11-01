@@ -782,13 +782,13 @@ Files exported before S-07 are version `"0.1"`, hold only To Do Tasks without co
 
 #### Automated
 
-- [x] 7.1 E2E passes against build + preview: `npm run test:e2e`
-- [x] 7.2 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp`
+- [x] 7.1 E2E passes against build + preview: `npm run test:e2e` — d875176
+- [x] 7.2 Full gate: `npm run lint && npx astro check && npm test && npm run build && npm run check:csp` — d875176
 
 #### Manual
 
-- [x] 7.3 PRD MVP flow plus US-04 end to end in `npm run preview`, including export and import in another browser
-- [x] 7.4 Importing a file with a completion date after today is rejected naming the Task
+- [x] 7.3 PRD MVP flow plus US-04 end to end in `npm run preview`, including export and import in another browser — d875176
+- [x] 7.4 Importing a file with a completion date after today is rejected naming the Task — d875176
 
 ### Phase 8: Bump the file version to 1.0
 

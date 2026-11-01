@@ -365,8 +365,8 @@ describe("parseProjectFile", () => {
   const statusRows: { case: string; text: string; project: Project }[] = [
     {
       case: "an In Progress Task",
-      text: fileWith((file) => (file.tasks[1].status = "in-progress")),
-      project: projectWithChange((project) => (project.tasks[1].status = "in-progress")),
+      text: fileWith((file) => (file.tasks[0].status = "in-progress")),
+      project: projectWithChange((project) => (project.tasks[0].status = "in-progress")),
     },
     {
       case: "a Done Task with its completion date",
@@ -585,6 +585,12 @@ describe("parseProjectFile", () => {
       }),
       rule: "done-predecessor-not-done",
       fragment: "Task 2: Build cannot be Done while its predecessor 1: Design is not Done.",
+    },
+    {
+      case: "an In Progress Task whose predecessor is not Done",
+      text: fileWith((file) => (file.tasks[1].status = "in-progress")),
+      rule: "in-progress-predecessor-not-done",
+      fragment: "Task 2: Build cannot be In Progress while its predecessor 1: Design is not Done.",
     },
     {
       case: "a completion date before a predecessor's",

@@ -42,6 +42,7 @@ export type ValidationErrorRule =
   | "completion-date-after-today"
   | "completion-date-before-start-date"
   | "done-predecessor-not-done"
+  | "in-progress-predecessor-not-done"
   | "completion-date-before-predecessor";
 
 export interface ValidationError {
@@ -539,13 +540,14 @@ function inWording(task: Task, wording: Wording, rule: ValidationErrorRule, mess
   return { rule, message: wording === "file" ? `Task ${taskLabel(task)}: ${message}` : message };
 }
 
-/** The first Done Task, in array order, with a predecessor that `breaks` names, and that predecessor. */
-function findDonePredecessor(
+/** The first Task with `status`, in array order, with a predecessor that `breaks` names, and that predecessor. */
+function findPredecessor(
   { project, tasksById }: ProjectIndex,
+  status: TaskStatus,
   breaks: (task: Task, predecessor: Task) => boolean,
 ): [Task, Task] | undefined {
   for (const task of project.tasks) {
-    if (task.status !== "done") continue;
+    if (task.status !== status) continue;
     for (const id of task.predecessors) {
       const predecessor = tasksById.get(id);
       // Never undefined here: `unknown-task` in TASK_CHECKS has already passed; the guard is for the type.
@@ -578,11 +580,11 @@ const PROJECT_CHECKS: readonly ProjectCheck[] = [
       ? undefined
       : { rule: "cycle", message: `The project contains the cycle ${pathLabel(project, cycle)}.` };
   },
-  // The Done rules about a Task and its predecessors, after the cycle, so a
-  // dependency closing a cycle through a Done Task is reported as the cycle
-  // (US-01). Edits to other Tasks break them too, so both wordings name both Tasks.
+  // The Status rules about a Task and its predecessors, after the cycle, so a
+  // dependency closing a cycle through a Done or In Progress Task is reported as
+  // the cycle (US-01). Edits to other Tasks break them too, so both wordings name both Tasks.
   (index) => {
-    const found = findDonePredecessor(index, (_task, predecessor) => predecessor.status !== "done");
+    const found = findPredecessor(index, "done", (_task, predecessor) => predecessor.status !== "done");
     if (found === undefined) return undefined;
     const [task, predecessor] = found;
     return {
@@ -590,10 +592,21 @@ const PROJECT_CHECKS: readonly ProjectCheck[] = [
       message: `Task ${taskLabel(task)} cannot be Done while its predecessor ${taskLabel(predecessor)} is not Done.`,
     };
   },
+  // A Task is ready to start only once all its predecessors are Done (PRD Business Logic).
+  (index) => {
+    const found = findPredecessor(index, "in-progress", (_task, predecessor) => predecessor.status !== "done");
+    if (found === undefined) return undefined;
+    const [task, predecessor] = found;
+    return {
+      rule: "in-progress-predecessor-not-done",
+      message: `Task ${taskLabel(task)} cannot be In Progress while its predecessor ${taskLabel(predecessor)} is not Done.`,
+    };
+  },
   // Every Done Task's predecessors are Done by now, and every completion date passed the Task checks, so both are ISO dates.
   (index) => {
-    const found = findDonePredecessor(
+    const found = findPredecessor(
       index,
+      "done",
       ({ completionDate }, predecessor) =>
         completionDate !== undefined &&
         predecessor.completionDate !== undefined &&

@@ -566,6 +566,32 @@ describe("setStatus", () => {
     }
   });
 
+  it("rejects marking a Task In Progress while a predecessor is not Done, naming both", () => {
+    for (const status of ["to-do", "in-progress"] as const) {
+      const project = accepted(setStatus(aThenB(), 1, status, CONTEXT));
+      expectRejectedWith(
+        edit(setStatus, project, 2, "in-progress"),
+        "in-progress-predecessor-not-done",
+        "Task 2: B cannot be In Progress while its predecessor 1: A is not Done.",
+      );
+    }
+  });
+
+  it("accepts marking a Task In Progress once every predecessor is Done", () => {
+    expect(accepted(edit(setStatus, aThenB("2026-09-02"), 2, "in-progress")).tasks[1]?.status).toBe("in-progress");
+  });
+
+  it("rejects setting a Done predecessor back while its successor is In Progress, naming the successor", () => {
+    const project = accepted(setStatus(aThenB("2026-09-02"), 2, "in-progress", CONTEXT));
+    for (const status of ["to-do", "in-progress"] as const) {
+      expectRejectedWith(
+        edit(setStatus, project, 1, status),
+        "in-progress-predecessor-not-done",
+        "Task 2: B cannot be In Progress while its predecessor 1: A is not Done.",
+      );
+    }
+  });
+
   it("rejects marking a Task Done while today is before the START date", () => {
     const project = accepted(setStartDate(projectWith("A"), "2026-09-10", CONTEXT));
     expectRejectedWith(
@@ -680,6 +706,16 @@ describe("the Done rules on edits to other Tasks and the project", () => {
       edit(addPredecessor, project, 2, 3),
       "done-predecessor-not-done",
       "Task 2: B cannot be Done while its predecessor 3: C is not Done.",
+    );
+  });
+
+  it("rejects adding a predecessor that is not Done to an In Progress Task, naming the In Progress Task", () => {
+    let project = projectWith("A", "B", "C");
+    project = accepted(setStatus(project, 2, "in-progress", CONTEXT));
+    expectRejectedWith(
+      edit(addPredecessor, project, 2, 3),
+      "in-progress-predecessor-not-done",
+      "Task 2: B cannot be In Progress while its predecessor 3: C is not Done.",
     );
   });
 
@@ -918,6 +954,22 @@ describe("validateProject", () => {
     }
   });
 
+  it("names both Tasks for an In Progress Task with a predecessor that is not Done", () => {
+    for (const status of ["to-do", "in-progress"] as const) {
+      expectValidationError(
+        projectOf([task(1, "Design", [], { status }), task(3, "Build", [1], { status: "in-progress" })]),
+        "in-progress-predecessor-not-done",
+        "Task 3: Build cannot be In Progress while its predecessor 1: Design is not Done.",
+      );
+    }
+    expect(
+      validateProject(
+        projectOf([task(1, "Design", [], done("2026-09-03")), task(3, "Build", [1], { status: "in-progress" })]),
+        CONTEXT,
+      ),
+    ).toBeUndefined();
+  });
+
   it("names both Tasks and both dates for a completion date before a predecessor's", () => {
     expectValidationError(
       projectOf([task(1, "Design", [], done("2026-09-04")), task(3, "Build", [1], done("2026-09-03"))]),
@@ -1001,6 +1053,31 @@ describe("validateProject", () => {
       "done-predecessor-not-done",
       "Task 4: D cannot be Done while its predecessor 3: C is not Done.",
     );
+    // The In Progress rule runs after the Done Status rule and before the date bound, each over every Task.
+    expectValidationError(
+      projectOf([
+        task(1, "A"),
+        task(2, "B", [1], { status: "in-progress" }),
+        task(3, "C"),
+        task(4, "D", [3], done("2026-09-04")),
+      ]),
+      "done-predecessor-not-done",
+      "Task 4: D cannot be Done while its predecessor 3: C is not Done.",
+    );
+    expectValidationError(
+      projectOf([
+        task(1, "A", [], done("2026-09-03")),
+        task(2, "B", [1], done("2026-09-02")),
+        task(3, "C"),
+        task(4, "D", [3], { status: "in-progress" }),
+      ]),
+      "in-progress-predecessor-not-done",
+      "Task 4: D cannot be In Progress while its predecessor 3: C is not Done.",
+    );
+    // A cycle through In Progress Tasks is reported as the cycle.
+    expect(
+      validateProject(projectOf([task(1, "A", [2], { status: "in-progress" }), task(2, "B", [1])]), CONTEXT)?.rule,
+    ).toBe("cycle");
   });
 
   it("checks every rule of a Task before the next Task: name, Duration, predecessor ids, then its completion date", () => {
