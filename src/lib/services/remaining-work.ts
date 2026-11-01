@@ -53,9 +53,8 @@ function remainingWorkTime(days: number): RemainingWorkTime {
  * days later. A Done Task is not remaining work: it counts as finishing on the
  * base date (offset 0), which the Done rules make exact (a completion date is
  * never after today nor before the START date, so the base date is today
- * whenever a Task is Done). Those rules join the aggregate's rule list in S-07;
- * until then a `CheckedProject` does not vouch for them. A Done Task is never
- * critical.
+ * whenever a Task is Done and work remains). The guardian enforces those rules, so a
+ * `CheckedProject` vouches for them. A Done Task is never critical.
  *
  * A Task is critical when its earliest start equals its latest start (zero
  * slack). A dependency `u → v` is critical only when both Tasks are critical

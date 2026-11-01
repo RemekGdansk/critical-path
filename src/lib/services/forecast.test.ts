@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type Forecast, forecast, forecastBaseDate } from "@/lib/services/forecast";
+import { type Forecast, forecast, forecastBaseDate, type ForecastBaseDate } from "@/lib/services/forecast";
 import {
   addPredecessor,
   type CheckedProject,
@@ -62,6 +62,17 @@ function aWithStatus(status: TaskStatus, completionDate: string | undefined, aDu
     : accepted(setCompletionDate(withStatus, 1, completionDate, context));
 }
 
+/**
+ * `project` with each [Task id, completion date] pair marked Done in turn,
+ * each on its completion date, so that date is today for its edit.
+ */
+function withDone(project: CheckedProject, ...done: [TaskId, string][]): CheckedProject {
+  return done.reduce(
+    (current, [taskId, completionDate]) => accepted(setStatus(current, taskId, "done", { today: completionDate })),
+    project,
+  );
+}
+
 /** START → A (5) → B (3), both To Do, built through the edit functions; an empty START date leaves it unset. */
 function aThenB(startDate: string): CheckedProject {
   return withDependencies(projectWith(startDate, ["A", "5"], ["B", "3"]), [1, 2]);
@@ -78,7 +89,7 @@ interface PrdExample {
   project: CheckedProject;
   today: string;
   baseDate: string;
-  baseDateReason: "start-date" | "start-date-unset" | "start-date-in-past";
+  baseDateReason: ForecastBaseDate["baseDateReason"];
   resourceUnconstrainedProjectFinishDate: string;
   resourceConstrainedProjectFinishDate: string;
   /** Days of the longest chain of remaining work, derived by hand. */
@@ -137,44 +148,48 @@ const prdExamples: PrdExample[] = [
     totalWorkTime: 8,
   },
   {
+    // START's only direct successor A is Done, so the base is today, 3 Sep; B (3) runs 4–6 Sep → 6 Sep.
     rule: "US-04 Given / Business Logic: A Done on 3 Sep, today 3 Sep → 6 Sep",
     project: aWithStatus("done", "2026-09-03", 5),
     today: "2026-09-03",
     baseDate: "2026-09-03",
-    baseDateReason: "start-date-in-past",
+    baseDateReason: "start-successors-done",
     resourceUnconstrainedProjectFinishDate: "2026-09-06",
     resourceConstrainedProjectFinishDate: "2026-09-06",
     criticalPathTime: 3,
     totalWorkTime: 3,
   },
   {
+    // A Done, so the base is today, 8 Sep; B (3) runs 9–11 Sep → 11 Sep.
     rule: "US-04 AC / Business Logic: A Done on 8 Sep, today 8 Sep → 11 Sep",
     project: aWithStatus("done", "2026-09-08", 5),
     today: "2026-09-08",
     baseDate: "2026-09-08",
-    baseDateReason: "start-date-in-past",
+    baseDateReason: "start-successors-done",
     resourceUnconstrainedProjectFinishDate: "2026-09-11",
     resourceConstrainedProjectFinishDate: "2026-09-11",
     criticalPathTime: 3,
     totalWorkTime: 3,
   },
   {
+    // A Done 3 Sep, but B cannot start before today: base 5 Sep; B (3) runs 6–8 Sep → 8 Sep.
     rule: "US-04 AC / Business Logic: A Done on 3 Sep, today 5 Sep, B not Done → 8 Sep",
     project: aWithStatus("done", "2026-09-03", 5),
     today: "2026-09-05",
     baseDate: "2026-09-05",
-    baseDateReason: "start-date-in-past",
+    baseDateReason: "start-successors-done",
     resourceUnconstrainedProjectFinishDate: "2026-09-08",
     resourceConstrainedProjectFinishDate: "2026-09-08",
     criticalPathTime: 3,
     totalWorkTime: 3,
   },
   {
+    // As the 3 Sep row with A's Duration unset: base today, 3 Sep; B (3) runs 4–6 Sep → 6 Sep.
     rule: "Business Logic: a Done Task needs no Duration, so the forecast is not withheld",
     project: aWithStatus("done", "2026-09-03"),
     today: "2026-09-03",
     baseDate: "2026-09-03",
-    baseDateReason: "start-date-in-past",
+    baseDateReason: "start-successors-done",
     resourceUnconstrainedProjectFinishDate: "2026-09-06",
     resourceConstrainedProjectFinishDate: "2026-09-06",
     criticalPathTime: 3,
@@ -191,6 +206,32 @@ const prdExamples: PrdExample[] = [
     resourceConstrainedProjectFinishDate: "2026-09-11",
     criticalPathTime: 8,
     totalWorkTime: 8,
+  },
+  {
+    // Same as the Given row (START 1 Sep, today before it) except A's Status: START 1 Sep;
+    // A (5) runs 2–6 Sep, B (3) 7–9 Sep → 9 Sep, as if A were To Do.
+    rule: "US-04 AC: marking A In Progress does not change the forecast → 9 Sep",
+    project: aWithStatus("in-progress", undefined, 5),
+    today: "2026-08-20",
+    baseDate: "2026-09-01",
+    baseDateReason: "start-date",
+    resourceUnconstrainedProjectFinishDate: "2026-09-09",
+    resourceConstrainedProjectFinishDate: "2026-09-09",
+    criticalPathTime: 8,
+    totalWorkTime: 8,
+  },
+  {
+    // Independent A (5) and B (3) both follow START; A Done 3 Sep, B not, so START's direct
+    // successors are not all Done: the past START date is replaced by today, 5 Sep; B runs 6–8 Sep → 8 Sep.
+    rule: "US-04 AC: a past START date whose direct successors are not all Done is replaced by today",
+    project: withDone(projectWith("2026-09-01", ["A", "5"], ["B", "3"]), [1, "2026-09-03"]),
+    today: "2026-09-05",
+    baseDate: "2026-09-05",
+    baseDateReason: "start-date-in-past",
+    resourceUnconstrainedProjectFinishDate: "2026-09-08",
+    resourceConstrainedProjectFinishDate: "2026-09-08",
+    criticalPathTime: 3,
+    totalWorkTime: 3,
   },
   // FR-017 / Business Logic, weekdays mode. October 2026: Fri 16, Sat 17, Sun 18, Mon 19.
   {
@@ -298,35 +339,75 @@ const prdExamples: PrdExample[] = [
   },
 ];
 
+// Every Task Done: the PRD gives no example, so these follow the S-07 decision that the project
+// finished on its latest completion date. Expected dates are literals derived by hand, never computed.
+const allTasksDoneExamples: PrdExample[] = [
+  {
+    // No remaining work; the latest completion date is B's, 6 Sep, so both dates are 6 Sep.
+    rule: "every Task Done: A Done 3 Sep, B Done 6 Sep, today 20 Sep → both 6 Sep",
+    project: withDone(aThenB("2026-09-01"), [1, "2026-09-03"], [2, "2026-09-06"]),
+    today: "2026-09-20",
+    baseDate: "2026-09-06",
+    baseDateReason: "all-tasks-done",
+    resourceUnconstrainedProjectFinishDate: "2026-09-06",
+    resourceConstrainedProjectFinishDate: "2026-09-06",
+    criticalPathTime: 0,
+    totalWorkTime: 0,
+  },
+  {
+    // START unset, independent A and B, marked Done in date order; A, the first Task, has the latest completion date, 6 Sep.
+    rule: "every Task Done with the START date unset → the latest completion date, not today",
+    project: withDone(projectWith("", ["A", "5"], ["B", "3"]), [2, "2026-09-03"], [1, "2026-09-06"]),
+    today: "2026-09-20",
+    baseDate: "2026-09-06",
+    baseDateReason: "all-tasks-done",
+    resourceUnconstrainedProjectFinishDate: "2026-09-06",
+    resourceConstrainedProjectFinishDate: "2026-09-06",
+    criticalPathTime: 0,
+    totalWorkTime: 0,
+  },
+  {
+    // October 2026: Fri 16, Sat 17. B, Done last, on Saturday 17 Oct; the date stays a Saturday, never moved to Monday.
+    rule: "every Task Done in weekdays mode, latest completion on Saturday → both that Saturday",
+    project: inWeekdays(withDone(aThenB("2026-10-01"), [1, "2026-10-16"], [2, "2026-10-17"])),
+    today: "2026-10-20",
+    baseDate: "2026-10-17",
+    baseDateReason: "all-tasks-done",
+    resourceUnconstrainedProjectFinishDate: "2026-10-17",
+    resourceConstrainedProjectFinishDate: "2026-10-17",
+    criticalPathTime: 0,
+    totalWorkTime: 0,
+  },
+];
+
+/** Asserts the whole forecast for one row, strictly, so a row without movedFromWeekend proves the forecast carries none. */
+function expectForecast({
+  project,
+  today,
+  baseDate,
+  baseDateReason,
+  movedFromWeekend,
+  resourceUnconstrainedProjectFinishDate,
+  resourceConstrainedProjectFinishDate,
+  criticalPathTime,
+  totalWorkTime,
+}: PrdExample): void {
+  expect(forecast(project, today)).toStrictEqual({
+    kind: "forecast",
+    dayCountingMode: project.dayCountingMode,
+    baseDate,
+    baseDateReason,
+    ...(movedFromWeekend === undefined ? {} : { movedFromWeekend }),
+    resourceUnconstrainedProjectFinishDate: { kind: "date", date: resourceUnconstrainedProjectFinishDate },
+    resourceConstrainedProjectFinishDate: { kind: "date", date: resourceConstrainedProjectFinishDate },
+    criticalPathTime: { kind: "days", days: criticalPathTime },
+    totalWorkTime: { kind: "days", days: totalWorkTime },
+  });
+}
+
 describe("forecast", () => {
   describe("PRD worked examples", () => {
-    it.each(prdExamples)(
-      "$rule",
-      ({
-        project,
-        today,
-        baseDate,
-        baseDateReason,
-        movedFromWeekend,
-        resourceUnconstrainedProjectFinishDate,
-        resourceConstrainedProjectFinishDate,
-        criticalPathTime,
-        totalWorkTime,
-      }) => {
-        // Strict, so a row without movedFromWeekend proves the forecast carries none.
-        expect(forecast(project, today)).toStrictEqual({
-          kind: "forecast",
-          dayCountingMode: project.dayCountingMode,
-          baseDate,
-          baseDateReason,
-          ...(movedFromWeekend === undefined ? {} : { movedFromWeekend }),
-          resourceUnconstrainedProjectFinishDate: { kind: "date", date: resourceUnconstrainedProjectFinishDate },
-          resourceConstrainedProjectFinishDate: { kind: "date", date: resourceConstrainedProjectFinishDate },
-          criticalPathTime: { kind: "days", days: criticalPathTime },
-          totalWorkTime: { kind: "days", days: totalWorkTime },
-        });
-      },
-    );
+    it.each(prdExamples)("$rule", expectForecast);
 
     it("follows US-02: equal dates for a chain, withheld while D has no Duration, then different", () => {
       const chain = withDependencies(projectWith("2026-09-01", ["A", "5"], ["B", "3"], ["C", "2"]), [1, 2], [2, 3]);
@@ -365,8 +446,17 @@ describe("forecast", () => {
     expect(finishDates(forecast(project, "2026-08-20"))).toEqual(["2026-09-09", "2026-09-13"]);
   });
 
+  describe("every Task Done", () => {
+    it.each(allTasksDoneExamples)("$rule", expectForecast);
+  });
+
   it("gives the base date for both when there are no Tasks", () => {
     expect(finishDates(forecast(projectWith("2026-09-01"), "2026-08-20"))).toEqual(["2026-09-01", "2026-09-01"]);
+    // No Tasks is not every Task Done, and a past START date with no direct successors is still replaced by today.
+    expect(forecastBaseDate(projectWith("2026-09-01"), "2026-09-05")).toStrictEqual({
+      baseDate: "2026-09-05",
+      baseDateReason: "start-date-in-past",
+    });
   });
 
   it("reports dates after 9999-12-31 as beyond year 9999", () => {
