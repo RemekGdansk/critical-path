@@ -196,7 +196,7 @@ describe("projectDiagram", () => {
     const done = accepted(setStatus(projectWith("A"), 1, "done", CONTEXT));
     const project = accepted(setCompletionDate(done, 1, "2026-09-03", CONTEXT));
     const node = nodeById(projectDiagram(project).nodes, "1");
-    expect(node).toMatchObject({ durationMissing: false, accessibleName: "A" });
+    expect(node).toMatchObject({ durationMissing: false, accessibleName: "A, Done on 2026-09-03" });
     expect(node).not.toHaveProperty("durationText");
   });
 
@@ -221,6 +221,13 @@ describe("projectDiagram", () => {
     expect(project).toEqual(before);
   });
 });
+
+/** Marks the Task Done (today, the edit's default), then backdates it to `completionDate`. */
+function doneOn(project: CheckedProject, taskId: TaskId, completionDate: string): CheckedProject {
+  return accepted(
+    setCompletionDate(accepted(setStatus(project, taskId, "done", CONTEXT)), taskId, completionDate, CONTEXT),
+  );
+}
 
 /** A project with one Task per [name, Duration] pair, ids 1..n; an empty Duration leaves it unset. */
 function projectWithDurations(...tasks: [string, string][]): CheckedProject {
@@ -306,6 +313,9 @@ describe("critical path", () => {
     expect(nodeById(nodes, "3").accessibleName).toBe("C, 1 day");
   });
 
+  // Decided in the progress-aware-forecast plan ("What We're NOT Doing"): the
+  // highlight stays on remaining work (FR-010) and never bridges through a Done
+  // Task, so it may start or end mid-diagram next to one.
   it("never marks a Done Task or an edge from it", () => {
     // A (5) Done → B (3): only B remains.
     let project = withDependencies(projectWithDurations(["A", "5"], ["B", "3"]), [1, 2]);
@@ -320,6 +330,83 @@ describe("critical path", () => {
       ["1->2", false],
       ["2->finish", true],
     ]);
+  });
+});
+
+// One row per Status combination: a Done Task is named by its completion date
+// alone, since it is not remaining work; In Progress follows the Duration (or
+// its Validation Warning) and comes before "on the critical path"; To Do is
+// left unsaid.
+describe("Status", () => {
+  it("names a Done Task by its completion date, with no Duration, warning or critical path", () => {
+    // A (5) Done → B (3); C Done without a Duration.
+    let project = withDependencies(projectWithDurations(["A", "5"], ["B", "3"], ["C", ""]), [1, 2]);
+    project = doneOn(doneOn(project, 1, "2026-09-03"), 3, "2026-09-04");
+    const { nodes } = projectDiagram(project);
+
+    expect(nodeById(nodes, "1")).toMatchObject({
+      status: "done",
+      completionDate: "2026-09-03",
+      durationMissing: false,
+      critical: false,
+      accessibleName: "A, Done on 2026-09-03",
+    });
+    expect(nodeById(nodes, "3")).toMatchObject({
+      status: "done",
+      completionDate: "2026-09-04",
+      durationMissing: false,
+      critical: false,
+      accessibleName: "C, Done on 2026-09-04",
+    });
+    expect(nodeById(nodes, "2")).toMatchObject({ status: "to-do", accessibleName: "B, 3 days, on the critical path" });
+    expect(nodeById(nodes, "2")).not.toHaveProperty("completionDate");
+  });
+
+  it("names an In Progress Task after its Duration, and before 'on the critical path'", () => {
+    // A (5) and C (1) In Progress, B (3) To Do, all independent: A alone is the longest chain.
+    let project = projectWithDurations(["A", "5"], ["B", "3"], ["C", "1"]);
+    project = accepted(setStatus(accepted(setStatus(project, 1, "in-progress", CONTEXT)), 3, "in-progress", CONTEXT));
+    const { nodes } = projectDiagram(project);
+
+    expect(nodeById(nodes, "1")).toMatchObject({
+      status: "in-progress",
+      critical: true,
+      accessibleName: "A, 5 days, In Progress, on the critical path",
+    });
+    expect(nodeById(nodes, "3")).toMatchObject({
+      status: "in-progress",
+      critical: false,
+      accessibleName: "C, 1 day, In Progress",
+    });
+    expect(nodeById(nodes, "2")).toMatchObject({ status: "to-do", accessibleName: "B, 3 days" });
+    expect(nodeById(nodes, "1")).not.toHaveProperty("completionDate");
+  });
+
+  it("names an In Progress Task without a Duration as a Validation Warning, then In Progress", () => {
+    // B has no Duration: the schedule is withheld, so A (5) is not critical either.
+    let project = projectWithDurations(["A", "5"], ["B", ""]);
+    project = accepted(setStatus(accepted(setStatus(project, 1, "in-progress", CONTEXT)), 2, "in-progress", CONTEXT));
+    const { nodes } = projectDiagram(project);
+
+    expect(nodeById(nodes, "2")).toMatchObject({
+      status: "in-progress",
+      durationMissing: true,
+      critical: false,
+      accessibleName: "B, no Duration (Validation Warning), In Progress",
+    });
+    expect(nodeById(nodes, "1")).toMatchObject({ accessibleName: "A, 5 days, In Progress" });
+  });
+
+  it("leaves a To Do Task's name as it was", () => {
+    // A (5) critical, B without a Duration in another project: both To Do.
+    expect(nodeById(projectDiagram(projectWithDurations(["A", "5"])).nodes, "1")).toMatchObject({
+      status: "to-do",
+      accessibleName: "A, 5 days, on the critical path",
+    });
+    expect(nodeById(projectDiagram(projectWithDurations(["B", ""])).nodes, "1")).toMatchObject({
+      status: "to-do",
+      accessibleName: "B, no Duration (Validation Warning)",
+    });
   });
 });
 

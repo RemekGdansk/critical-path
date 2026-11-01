@@ -150,6 +150,50 @@ import { KitchenSinkPlanner } from "@/dev/KitchenSinkPlanner";
 
       <figure>
         <figcaption>
+          <h2>progress</h2>
+          <p>
+            START 2026-09-01. Design is Done on 2026-09-03 and selected: the panel shows Status Done and the Completion
+            date field, and its node keeps the selection style over the Done border. Build is In Progress and on the
+            critical path: its node reads "5 days · In Progress" with the critical-path border. Write docs is To Do. The
+            header forecasts from today, since Write docs still follows the past START date.
+          </p>
+          <p class="action">Click away from Design to see its Done border, check icon and "Done 2026-09-03".</p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="progress" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>all-done</h2>
+          <p>
+            Every Task is Done, from 2026-09-03 to 2026-09-10: each node has the Done border, a check icon and its
+            completion date, nothing is on the critical path, and the header shows both Project Finish Dates as
+            2026-09-10 with "Every Task is Done." and no legend swatch beside the critical-path time.
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="all-done" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
+          <h2>start-successors-done</h2>
+          <p>
+            START is selected with the past START date 2026-09-01, and Design, the only Task that follows START, is
+            Done: the START panel says the date no longer affects the forecast, and the header says "The Tasks that
+            follow START are Done: forecasting from today".
+          </p>
+        </figcaption>
+        <div class="frame">
+          <KitchenSinkPlanner client:only="react" fixture="start-successors-done" />
+        </div>
+      </figure>
+
+      <figure>
+        <figcaption>
           <h2>empty</h2>
           <p>
             No Tasks: START feeds FINISH, the panel says how to create the first Task and the header says to add Tasks

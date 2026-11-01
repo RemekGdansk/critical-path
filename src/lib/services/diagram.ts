@@ -1,14 +1,16 @@
 // The one place that knows how a project becomes a Diagram: START and FINISH
 // always exist, every Task is a node, every predecessor is a dependency edge, a
 // Task without predecessors hangs off START and a Task without successors feeds
-// FINISH. It also decides what each node shows and is called, which Tasks and
-// edges are on the critical path, and that FINISH has nothing to edit. It
-// imports no third-party package: positions come through the LayoutEngine
-// port, and drawing the Diagram is the view's concern.
+// FINISH. It also decides what each node shows and is called (its Duration,
+// Status and completion date included), which Tasks and edges are on the
+// critical path, and that FINISH has nothing to edit. It imports no
+// third-party package: positions come through the LayoutEngine port, and
+// drawing the Diagram is the view's concern.
 import { formatDuration } from "@/lib/services/duration";
+import { taskStatusName } from "@/lib/services/project";
 import { remainingWork, type RemainingWork, taskLinkId } from "@/lib/services/remaining-work";
 import { validationWarnings } from "@/lib/services/validation-warnings";
-import type { DayCountingMode, Project, Task, TaskId } from "@/types";
+import type { DayCountingMode, Project, Task, TaskId, TaskStatus } from "@/types";
 
 export const START_NODE_ID = "start";
 export const FINISH_NODE_ID = "finish";
@@ -21,7 +23,7 @@ export interface Size {
   readonly height: number;
 }
 
-/** Two lines: the name, then the Duration or "No Duration". */
+/** Two lines: the name, then the Duration or "No Duration" (with "In Progress" after it), or "Done" and the completion date. */
 export const TASK_NODE_SIZE: Size = { width: 180, height: 52 };
 export const START_FINISH_NODE_SIZE: Size = { width: 96, height: 40 };
 /** Horizontal gap between the right edge of one rank and the left edge of the next. */
@@ -48,8 +50,14 @@ export interface TaskDiagramNode extends DiagramNodeBase {
   kind: "task";
   taskId: TaskId;
   name: string;
-  /** The Duration as it reads on screen ("5 days", "1 weekday"); absent when the Task has none. */
+  /**
+   * The Duration as it reads on screen ("5 days", "1 weekday"); absent when the
+   * Task has none. A Done Task's node shows its completion date instead.
+   */
   durationText?: string;
+  status: TaskStatus;
+  /** A Done Task's completion date (ISO yyyy-mm-dd); only a Done Task has one. */
+  completionDate?: string;
   /** The Task's duration-missing Validation Warning, from validationWarnings. */
   durationMissing: boolean;
   /** On some longest chain of remaining work, from remainingWork; never while a Validation Warning exists. */
@@ -121,9 +129,12 @@ export function startAccessibleName(date: string | undefined): string {
 }
 
 /**
- * The Task's name, then its Duration, or that it has none as a Validation
- * Warning, then whether it is on the critical path. A warned Task is never
- * critical: the schedule is withheld while any Validation Warning exists.
+ * A Done Task's name and completion date: "A, Done on 2026-09-03". It is not
+ * remaining work, so it has no Duration to announce and is never warned or
+ * critical. Otherwise the Task's name, then its Duration, or that it has none
+ * as a Validation Warning, then "In Progress" when it is, then whether it is
+ * on the critical path; a To Do Task's Status goes unsaid. A warned Task is
+ * never critical: the schedule is withheld while any Validation Warning exists.
  */
 export function taskAccessibleName(
   task: Task,
@@ -131,9 +142,17 @@ export function taskAccessibleName(
   mode: DayCountingMode,
   critical: boolean,
 ): string {
-  if (durationMissing) return `${task.name}, no Duration (Validation Warning)`;
-  const name = task.duration === undefined ? task.name : `${task.name}, ${formatDuration(task.duration, mode)}`;
-  return critical ? `${name}, on the critical path` : name;
+  if (task.status === "done")
+    return task.completionDate === undefined
+      ? `${task.name}, ${taskStatusName("done")}`
+      : `${task.name}, ${taskStatusName("done")} on ${task.completionDate}`;
+  const duration = durationMissing
+    ? `${task.name}, no Duration (Validation Warning)`
+    : task.duration === undefined
+      ? task.name
+      : `${task.name}, ${formatDuration(task.duration, mode)}`;
+  const status = task.status === "in-progress" ? `${duration}, ${taskStatusName("in-progress")}` : duration;
+  return critical ? `${status}, on the critical path` : status;
 }
 
 /** The only way the START date and its accessible name enter the Diagram. */
@@ -184,6 +203,8 @@ function projectNodes(project: Pick<Project, "tasks" | "dayCountingMode">, criti
         ...(task.duration === undefined
           ? {}
           : { durationText: formatDuration(task.duration, project.dayCountingMode) }),
+        status: task.status,
+        ...(task.completionDate === undefined ? {} : { completionDate: task.completionDate }),
         durationMissing,
         critical: isCritical,
         accessibleName: taskAccessibleName(task, durationMissing, project.dayCountingMode, isCritical),

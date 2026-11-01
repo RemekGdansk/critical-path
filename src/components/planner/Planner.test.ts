@@ -188,8 +188,8 @@ function doneFixture(bDone: boolean): CheckedProject {
     : doneA;
 }
 
-/** A's node: Done, so neither warned for its missing Duration nor on the critical path. */
-const A_DONE_NODE = "A";
+/** A's node: Done, so named by its completion date, neither warned for its missing Duration nor on the critical path. */
+const A_DONE_NODE = "A, Done on 2026-09-03";
 
 function statusSelect(): HTMLSelectElement {
   return screen.getByLabelText<HTMLSelectElement>("Status");
@@ -208,9 +208,10 @@ function commitCompletionDate(value: string): void {
   fireEvent.blur(field);
 }
 
-// The Diagram node names carry no Status yet, so the committed Status and
-// completion date are read from the panel: the Status select shows the
-// committed Status, and Escape restores the committed completion date.
+// The committed Status and completion date are read from both the Diagram node
+// name and the panel: the Status select shows the committed Status, and Escape
+// restores the committed completion date. A completion date of today is
+// asserted only by its clock-free prefix, since Planner reads the real clock.
 describe("Planner: Status and completion date", () => {
   it("shows a Done Task's Status and completion date in the panel", async () => {
     renderPlanner(A_ID, doneFixture(false));
@@ -267,12 +268,16 @@ describe("Planner: Status and completion date", () => {
     expect(field.value).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     // Two clock reads (the edit's and the render's max), so midnight may fall between them.
     expect(field.value <= field.max).toBe(true);
+    // The same real today, so only the clock-free prefix of the node name.
+    expect(await screen.findByRole("button", { name: /^B, Done on / })).toBeDefined();
 
     fireEvent.change(statusSelect(), { target: { value: "in-progress" } });
 
     expect(screen.queryByRole("alert")).toBeNull();
     expect(statusSelect().value).toBe("in-progress");
     expect(completionDateField()).toBeNull();
+    // A is Done, so B is the only remaining work, and on the critical path.
+    expect(await screen.findByRole("button", { name: "B, 3 days, In Progress, on the critical path" })).toBeDefined();
   });
 
   // A closed select fires `change` on arrow keys, so browsing past Done and back is two edits.
@@ -287,6 +292,7 @@ describe("Planner: Status and completion date", () => {
     expect(screen.queryByRole("alert")).toBeNull();
     expect(statusSelect().value).toBe("done");
     expect(completionDateField()?.value).toBe("2026-09-03");
+    expect(await screen.findByRole("button", { name: A_DONE_NODE })).toBeDefined();
   });
 
   // jsdom never sets `validity.badInput` and sanitizes "2026-02-30" to "", so it is stubbed as Chromium reports it.

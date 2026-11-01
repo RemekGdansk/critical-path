@@ -26,7 +26,9 @@ import {
   createTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDuration,
+  setStatus,
 } from "@/lib/services/project";
 import type { Project, TaskId } from "@/types";
 
@@ -146,6 +148,25 @@ describe("toFlowNodes", () => {
     const nodes = toFlowNodes(laidOut(chainAndLoneTask()));
     expect(flowNodeById(nodes, "1")).toMatchObject({ ariaLabel: "A, 5 days, on the critical path" });
     expect(flowNodeById(nodes, "3")).toMatchObject({ ariaLabel: "C, 1 day" });
+  });
+
+  it("announces a Done Task by its completion date and an In Progress Task after its Duration, with the Status in data.node", () => {
+    // A (5) Done on 2026-09-03 → B (3) In Progress, now the only remaining work; C (1) To Do.
+    let project = chainAndLoneTask();
+    project = accepted(setCompletionDate(accepted(setStatus(project, 1, "done", CONTEXT)), 1, "2026-09-03", CONTEXT));
+    project = accepted(setStatus(project, 2, "in-progress", CONTEXT));
+    const nodes = toFlowNodes(laidOut(project));
+
+    expect(flowNodeById(nodes, "1")).toMatchObject({
+      ariaLabel: "A, Done on 2026-09-03",
+      ariaRole: "button",
+      data: { node: { status: "done", completionDate: "2026-09-03" } },
+    });
+    expect(flowNodeById(nodes, "2")).toMatchObject({
+      ariaLabel: "B, 3 days, In Progress, on the critical path",
+      data: { node: { status: "in-progress" } },
+    });
+    expect(flowNodeById(nodes, "3")).toMatchObject({ ariaLabel: "C, 1 day", data: { node: { status: "to-do" } } });
   });
 
   it("sets no selection: the Diagram applies it", () => {

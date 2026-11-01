@@ -15,10 +15,12 @@ import {
   createTask,
   type EditContext,
   type EditResult,
+  setCompletionDate,
   setDayCountingMode,
   setDuration,
   setProjectName,
   setStartDate,
+  setStatus,
 } from "@/lib/services/project";
 import type { TaskId } from "@/types";
 
@@ -114,6 +116,68 @@ function criticalPathProject(context: EditContext): CheckedProject {
 }
 
 /**
+ * Marks the Task Done (today, the edit's default) and backdates it to
+ * `completionDate`: two edits, as in the panel.
+ */
+function doneOn(project: CheckedProject, taskId: TaskId, completionDate: string, context: EditContext): CheckedProject {
+  return accepted(
+    setCompletionDate(accepted(setStatus(project, taskId, "done", context)), taskId, completionDate, context),
+  );
+}
+
+/** The START date of the progress fixtures: in the past, so every completion date below is too. */
+const PROGRESS_START_DATE = "2026-09-01";
+
+/**
+ * "Website relaunch", in progress: Design (3) → Build (5), and Write docs (2)
+ * on its own. START 2026-09-01; Design Done on 2026-09-03, Build In Progress
+ * and critical (5 days against Write docs' 2), Write docs To Do. Write docs
+ * still follows START, so the past START date is "in the past".
+ */
+function progressProject(context: EditContext): CheckedProject {
+  let project = accepted(setProjectName(createEmptyProject(context), "Website relaunch", context));
+  for (const name of ["Design", "Build", "Write docs"]) project = accepted(createTask(project, name, context));
+  const [design, build, writeDocs] = [1, 2, 3] as const;
+  project = accepted(addPredecessor(project, build, design, context));
+  for (const [taskId, days] of [
+    [design, "3"],
+    [build, "5"],
+    [writeDocs, "2"],
+  ] as const) {
+    project = accepted(setDuration(project, taskId, days, context));
+  }
+  project = accepted(setStartDate(project, PROGRESS_START_DATE, context));
+  project = doneOn(project, design, "2026-09-03", context);
+  return accepted(setStatus(project, build, "in-progress", context));
+}
+
+/**
+ * The progress project with Write docs after Design too: Design, START's only
+ * successor, is Done, so the past START date no longer affects the forecast.
+ */
+function startSuccessorsDoneProject(context: EditContext): CheckedProject {
+  return accepted(addPredecessor(progressProject(context), 3, 1, context));
+}
+
+/**
+ * The small project with START 2026-09-01 and every Task Done, each on or after
+ * its predecessors: both Project Finish Dates are the latest completion date,
+ * 2026-09-10 (Test).
+ */
+function allDoneProject(context: EditContext): CheckedProject {
+  let project = accepted(setStartDate(smallProject(context), PROGRESS_START_DATE, context));
+  for (const [taskId, completionDate] of [
+    [DESIGN, "2026-09-03"],
+    [BUILD, "2026-09-08"],
+    [TEST, "2026-09-10"],
+    [WRITE_DOCS, "2026-09-05"],
+  ] as const) {
+    project = doneOn(project, taskId, completionDate, context);
+  }
+  return project;
+}
+
+/**
  * "Cyclic plan": A (1) depends on B (2) and B on A. Unlike every other fixture,
  * it is built by hand and deliberately bypasses the edit functions, which would
  * reject the cycle: no project they can build crashes the render at fixture
@@ -149,6 +213,12 @@ const FIXTURES = {
   "start-selected": { project: pastStartProject, initialSelection: "start" },
   /** START selected on a weekdays project whose START date is a Saturday: the weekend notes and weekday units. */
   "weekdays-weekend-start": { project: weekdaysWeekendStartProject, initialSelection: "start" },
+  /** Design Done (selected, with its Completion date), Build In Progress and critical, Write docs To Do. */
+  progress: { project: progressProject, initialSelection: DESIGN },
+  /** Every Task Done: both Project Finish Dates are the latest completion date, with no swatch. */
+  "all-done": { project: allDoneProject, initialSelection: null },
+  /** START selected while its only successor is Done: the START date no longer affects the forecast. */
+  "start-successors-done": { project: startSuccessorsDoneProject, initialSelection: "start" },
   empty: { project: createEmptyProject, initialSelection: null },
   /** A cyclic project the render throws on: the crash fallback, with nothing to go back to. */
   "render-crash": { project: renderCrashProject, initialSelection: null },
